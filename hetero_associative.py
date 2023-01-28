@@ -66,7 +66,7 @@ class HeteroAssociativeMemory(object):
         self._updated = True
 
     def __str__(self):
-        return json.dump(self.__dict__)
+        return f'{{n: {self.n}, p: {self.p}, m: {self.m}, q: {self.q},\n{self.rel_string}}}'
 
     @property
     def n(self):
@@ -86,7 +86,7 @@ class HeteroAssociativeMemory(object):
 
     @property
     def relation(self):
-        return self._relation[:, :, self.m, self.q]
+        return self._relation[:, :, :self.m, :self.q]
 
     @property
     def absolute_max_value(self):
@@ -117,7 +117,7 @@ class HeteroAssociativeMemory(object):
     def iota_relation(self):
         if not self._updated:
             self._updated = self.update()
-        return self._iota_relation[:, :, self.m, self.q]
+        return self._iota_relation[:, :, :self.m, :self.q]
 
     @property
     def sigma(self):
@@ -182,7 +182,7 @@ class HeteroAssociativeMemory(object):
         r_io = self.vectors_to_relation(vector_a, vector_b)
         r_io = self.containment(r_io)
         recognized = np.count_nonzero(
-            r_io[:self.n,:self.p, :self.m, :self.q] == 0) <= self._xi
+            r_io[:,:, :self.m, :self.q] == 0) <= self._xi
         weight = self._weight(vector_a, vector_b)
         recognized = recognized and (self.mean*self._kappa <= weight)
         return recognized, weight        
@@ -206,8 +206,9 @@ class HeteroAssociativeMemory(object):
             self._relation, self._relation + r_io)
         self._updated = False
 
-    def containment(self, r_io):
-        return ~r_io[:self.m, :] | self.iota_relation
+    def containment(self, _r_io):
+        r_io = _r_io[:, :, :self.m, :self.q]
+        return np.where((r_io ==0) | (self.iota_relation !=0), 1, 0)
 
     def project(self, vector, dim):
         projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=int)
@@ -242,7 +243,7 @@ class HeteroAssociativeMemory(object):
         weights = []
         for i in range(self.n):
             for j in range(self.p):
-                w = 0 if self.is_undefined(vector_a[i]) or self.is_undefined(vector_b[j]) \
+                w = 0 if self.is_undefined(vector_a[i], 0) or self.is_undefined(vector_b[j], 1) \
                     else self.relation[i,j,vector_a[i], vector_b[j]]
             weights.append(w)
         return np.array(weights)
@@ -260,19 +261,19 @@ class HeteroAssociativeMemory(object):
                 total = np.sum(relation)
                 matrix = self.relation/total
                 matrix = -matrix*np.log2(np.where(matrix == 0.0, 1.0, matrix))
-                self._entropies[i, j] = matrix.sum(matrix)
+                self._entropies[i, j] = np.sum(matrix)
 
     def _update_means(self):
         for i in range(self.n):
             for j in range(self.p):
                 relation = self.relation[i, j, :, :]
-                count = np.count_nonzero(relation, axis=0)
+                count = np.count_nonzero(relation)
                 count = 1 if count == 0 else count
                 self._means[i,j] = np.sum(relation)/count
 
     def _update_iota_relation(self):
         for i in range(self.n):
-            for j in range(self.p)
+            for j in range(self.p):
                 matrix = self.relation[i, j, :, :]
                 sum = np.sum(matrix)
                 if sum == 0:
@@ -280,7 +281,7 @@ class HeteroAssociativeMemory(object):
                 else:
                     count = np.count_nonzero(matrix)
                     threshold = self.iota*sum/count
-                    self._iota_relation[i, j, :, :] = np.where(matrix < threshold, 0, matrix)
+                    self._iota_relation[i, j, :self.m, :self.q] = np.where(matrix < threshold, 0, matrix)
 
     def validate(self, vector, dim):
         """ It asumes vector is an array of floats, and np.nan
@@ -294,7 +295,7 @@ class HeteroAssociativeMemory(object):
                  f'{expected_length} and given {vector.size}')
         undefined = self.undefined(dim)
         v = np.nan_to_num(vector, copy=True, nan=undefined)
-        v = np.where((v < 0) or (undefined < v), undefined, v)
+        v = np.where((v < 0) | (undefined < v), undefined, v)
         v = v.round()
         return v.astype('int')
 
@@ -310,3 +311,19 @@ class HeteroAssociativeMemory(object):
                 l = vector_b[j]
                 relation[i, j, k, l] = 1
         return relation
+
+    @property    
+    def rel_string(self):
+        return self.toString(self.relation)
+
+    def toString(self, a, p = ''):
+        if a.ndim == 1:
+            return f'{p}{a}'
+        else:
+            s = f'{p}[\n'
+            for b in a:
+                ss = self.toString(b, p + ' ')
+                s = f'{s}{ss}\n'
+            s = f'{s}{p}]'
+            return s
+

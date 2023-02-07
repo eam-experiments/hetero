@@ -56,7 +56,6 @@ class AssociativeMemory(object):
             used in remembering, as percentage of the number of
             characteristics.
         """
-        print(f'{{iota: {iota}, kappa: {kappa}, xi: {xi}, sigma: {sigma}}}')
         self._n = n
         self._m = m+1
         self._xi = xi
@@ -175,11 +174,11 @@ class AssociativeMemory(object):
     def xi(self):
         return self._xi
 
-    @iota.setter
+    @xi.setter
     def xi(self, x):
         if (x < 0) or (x > self.n):
             raise ValueError('Xi must be a non negative number.')
-        self._iota = i
+        self._xi = x
         self._updated = False
 
     def register(self, cue) -> None:

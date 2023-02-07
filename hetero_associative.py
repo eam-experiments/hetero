@@ -55,7 +55,7 @@ class HeteroAssociativeMemory(object):
         self._p = p
         self._q = q+1 # +1 to handle partial functions.
         self._xi = xi
-        self._absolute_max = 1024
+        self._absolute_max = 2**16 - 1
         self._sigma = sigma
         self._iota = iota
         self._kappa = kappa

@@ -1,4 +1,4 @@
-# Copyright [2023] Luis Alberto Pineda Cortés, Rafael Morales Gamboa.
+# Copyright [2023] Luis Alberto Pineda Cortés & Rafael Morales Gamboa.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -158,6 +158,9 @@ class HeteroAssociativeMemory(object):
     def is_undefined(self, value, dim):
         return value == self.undefined(dim)
 
+    def alt(self, dim):
+        return (dim + 1) % 2
+
     def cols(self, dim):
         return self.n if dim == 0 else self.p
 
@@ -187,17 +190,18 @@ class HeteroAssociativeMemory(object):
         recognized = recognized and (self.mean*self._kappa <= weight)
         return recognized, weight        
 
-    def recalL_from_left(self, vector):
-        self.recall(vector, 0)
+    def recall_from_left(self, vector):
+        return self.recall(vector, 0)
 
-    def recalL_from_right(self, vector):
-        self.recall(vector, 1)
+    def recall_from_right(self, vector):
+        return self.recall(vector, 1)
 
     def recall(self, vector, dim):
         vector = self.validate(vector, dim)
         relation = self.project(vector, dim)
-        r_io, weight = self.reduce(relation, dim)
-        r_io = self.revalidate(r_io)
+        print(f'Projection:\n{relation}')
+        r_io, weight = self.reduce(relation, self.alt(dim))
+        r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, weight
 
     def abstract(self, r_io):
@@ -222,7 +226,8 @@ class HeteroAssociativeMemory(object):
     def reduce(self, relation, dim):
         cols = self.cols(dim)
         v = np.array([self.choose(relation[i], dim) for i in range(cols)])
-        return v
+        weight = np.mean([relation[i, v[i]] for i in range(cols)])
+        return v, weight
 
     # Choose a value from the column, assuming it is a probabilistic distribution.
     def choose(self, column, dim):
@@ -237,14 +242,13 @@ class HeteroAssociativeMemory(object):
         return self.rows(dim) - 1
 
     def _weight(self, vector_a, vector_b):
-        return np.mean(self._weights(vector_a, vector_b)) / self.absolute_max_value
+        return np.mean(self._weights(vector_a, vector_b))
 
     def _weights(self, vector_a, vector_b):
         weights = []
         for i in range(self.n):
             for j in range(self.p):
-                w = 0 if self.is_undefined(vector_a[i], 0) or self.is_undefined(vector_b[j], 1) \
-                    else self.relation[i,j,vector_a[i], vector_b[j]]
+                w = self._relation[i,j,vector_a[i], vector_b[j]]
             weights.append(w)
         return np.array(weights)
 
@@ -300,8 +304,8 @@ class HeteroAssociativeMemory(object):
         return v.astype('int')
 
     def revalidate(self, vector, dim):
-        v = vector.astype('float')
-        return np.where(v == float(self.undefined(dim)), np.nan, v)
+        v = np.where(vector == self.undefined(dim), np.nan, vector)
+        return v
 
     def vectors_to_relation(self, vector_a, vector_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)

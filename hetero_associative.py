@@ -64,6 +64,10 @@ class HeteroAssociativeMemory(object):
         self._entropies = np.zeros((self._n, self._p), dtype=np.double)
         self._means = np.zeros((self._n, self._p), dtype=np.double)
         self._updated = True
+        print(f'Relational memory {{n: {self.n}, p: {self.p}, ' +
+            f'm: {self.m}, q: {self.q}, ' + 
+            f'xi: {self.xi}, iota: {self.iota}, ' + 
+            f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
 
     def __str__(self):
         return f'{{n: {self.n}, p: {self.p}, m: {self.m}, q: {self.q},\n{self.rel_string}}}'
@@ -148,6 +152,18 @@ class HeteroAssociativeMemory(object):
         if (iota < 0):
             raise ValueError('Iota must be a non negative number.')
         self._iota = iota
+
+    @property 
+    def xi(self):
+        return self._xi
+
+    @xi.setter
+    def xi(self, x):
+        if (x < 0):
+            raise ValueError('Xi must be a non negative number.')
+        self._xi = x
+        self._updated = False
+
 
     def undefined(self, dim: int):
         return self.m if dim == 0 else self.q

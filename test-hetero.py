@@ -50,39 +50,43 @@ wi = np.array([1, 0, 1])
 
 print(f'v0: {v0}')
 print(f'w0: {w0}')
-h.register(v0,w0)
 print("h.register(v0,w0)")
+h.register(v0,w0)
 print(h)
 
-h.register(v0,w0)
 print("h.register(v0,w0)")
+h.register(v0,w0)
 print(h)
 
 print(f'v1: {v1}')
 print(f'w1: {w1}')
 
-h.register(v1,w1)
 print("h.register(v1,w1)")
+h.register(v1,w1)
 print(h)
 
 print(f'vd: {vd}')
 print(f'w0: {w0}')
 
-h.register(vd, w0)
 print("h.register(vd,w0)")
+h.register(vd, w0)
 print(h)
 
+print(f'h.recognize(v0,w0):')
 r = h.recognize(v0,w0)
-print(f'h.recognize(v0,w0) = {r}')
+print(f'Result: {r}')
 
+print(f'h.recognize(v1,w1):')
 r = h.recognize(v1,w1)
-print(f'h.recognize(v1,w1) = {r}')
+print(f'Result: {r}')
 
+print(f'h.recognize(v0,w1):')
 r = h.recognize(v0,w1)
-print(f'h.recognize(v0,w1) = {r}')
+print(f'Result: {r}')
 
+print(f'h.recognize(v1,w0):')
 r = h.recognize(v1,w0)
-print(f'h.recognize(v1,w0) = {r}')
+print(f'Result: {r}')
 
 print(f'v0: {v0}')
 print('r = h.recall_from_left(v0)')
@@ -114,5 +118,7 @@ print('r = h.recall_from_right(wi)')
 r = h.recall_from_right(wi)
 print(f'vector: {r[0]}, weight: {r[1]}')
 
+print(f'v2: {v2}')
+print('r = h.recall_from_left(v2)')
 r = h.recall_from_left(v2)
-print(v2)
+print(f'vector: {r[0]}, weight: {r[1]}')

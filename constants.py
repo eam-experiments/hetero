@@ -21,8 +21,13 @@ from signal import Sigmasks
 import sys
 import numpy as np
 
+MNIST ='mnist'
+FASHION = 'fashion'
+datasets = [MNIST, FASHION]
+datasets_to_domains = {MNIST: 256, FASHION: 256}
+
 # Directory where all results are stored.
-data_path = 'data/fashion'
+data_path = 'data'
 run_path = 'runs'
 idx_digits = 3
 prep_data_fname = 'prep_data.npy'
@@ -40,14 +45,14 @@ features_prefix = 'features'
 memories_prefix = 'memories'
 noised_prefix = 'mem_noised'
 mem_conf_prefix = 'mem_confrix'
-model_prefix = 'model'
+model_prefix = 'model-'
 recognition_prefix = 'recognition'
 recog_noised_prefix = 'recog_noised'
 weights_prefix = 'weights'
 weights_noised_prefix = 'weights-noised'
 classification_prefix = 'classification'
 classification_noised_prefix = 'classif-noised'
-stats_prefix = 'model_stats'
+stats_prefix = 'model_stats-'
 learn_params_prefix ='learn_params'
 memory_parameters_prefix='mem_params'
 chosen_prefix = 'chosen'
@@ -83,8 +88,6 @@ nnetwork_suffix = '-rnn'
 learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
     [nnetwork_suffix], [original_suffix, amsystem_suffix]]
 
-# Number of columns in memory
-domain = 256
 n_folds = 10
 n_jobs = 1
 dreaming_cycles = 6
@@ -146,6 +149,9 @@ class ExperimentSettings:
     def __str__(self):
         s = '{Parameters: ' + str(self.mem_params) + '}'
         return s
+
+def domain(dataset):
+    return datasets_to_domains[dataset]
 
 def print_warning(*s):
     print('WARNING:', *s, file = sys.stderr)
@@ -215,11 +221,11 @@ def get_full_name(prefix, es):
     return name
 
 # Currently, names include nothing about experiment settings.
-def model_name(es):
-    return model_prefix
+def model_name(dataset, es):
+    return model_prefix + dataset
 
-def stats_model_name(es):
-    return stats_prefix
+def stats_model_name(dataset, network_suffix, es):
+    return stats_prefix + dataset + network_suffix
 
 def data_name(es):
     return data_prefix

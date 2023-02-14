@@ -121,7 +121,7 @@ class HeteroAssociativeMemory(object):
     def iota_relation(self):
         if not self._updated:
             self._updated = self.update()
-        return self._iota_relation[:, :, :self.m, :self.q]
+        return self._iota_relation
 
     @property
     def sigma(self):
@@ -164,7 +164,6 @@ class HeteroAssociativeMemory(object):
         self._xi = x
         self._updated = False
 
-
     def undefined(self, dim: int):
         return self.m if dim == 0 else self.q
 
@@ -189,6 +188,9 @@ class HeteroAssociativeMemory(object):
     def rows_alt(self, dim):
         return self.q if dim == 0 else self.m
 
+    def core(self, full_relation):
+        return full_relation[:, :, :self.m, :self.q]
+    
     def register(self, vector_a, vector_b) -> None:
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
@@ -199,7 +201,9 @@ class HeteroAssociativeMemory(object):
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
         r_io = self.vectors_to_relation(vector_a, vector_b)
+        print(f'R_IO:\n{self.toString(self.core(r_io))}')
         r_io = self.containment(r_io)
+        print(f'Implication:\n{self.toString(r_io)}')
         recognized = np.count_nonzero(
             r_io[:,:, :self.m, :self.q] == 0) <= self._xi
         weight = self._weight(vector_a, vector_b)
@@ -228,10 +232,11 @@ class HeteroAssociativeMemory(object):
 
     def containment(self, _r_io):
         r_io = _r_io[:, :, :self.m, :self.q]
-        return np.where((r_io ==0) | (self.iota_relation !=0), 1, 0)
+        r_iota = self.iota_relation[:, :, :self.m, :self.q]
+        return np.where((r_io ==0) | (r_iota !=0), 1, 0)
 
     def project(self, vector, dim):
-        projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=int)
+        projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
         for i in range(self.cols(dim)):
             k = vector[i]
             projection = projection + (self.iota_relation[i, :, k, :] if dim == 0 
@@ -346,4 +351,5 @@ class HeteroAssociativeMemory(object):
                 s = f'{s}{ss}\n'
             s = f'{s}{p}]'
             return s
+
 

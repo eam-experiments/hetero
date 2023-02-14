@@ -48,10 +48,10 @@ def conv_block(entry, layers, filters, dropout, first_block = False):
 # The number of layers defined in get_encoder.
 encoder_nlayers = 40
 
-def get_encoder():
+def get_encoder(domain):
     dropout = 0.1
     input_data = Input(shape=(dataset.columns, dataset.rows, 1))
-    filters = constants.domain // 16
+    filters = domain // 16
     output = conv_block(input_data, 2, filters, dropout, first_block=True)
     filters *= 2
     dropout += 0.7
@@ -69,13 +69,13 @@ def get_encoder():
     output = LayerNormalization(name = 'encoded')(output)
     return input_data, output
 
-def get_decoder():
-    input_mem = Input(shape=(constants.domain, ))
+def get_decoder(domain):
+    input_mem = Input(shape=(domain, ))
     width = dataset.columns // 4
-    filters = constants.domain // 2
+    filters = domain // 2
     dense = Dense(
         width*width*filters, activation = 'relu',
-        input_shape=(constants.domain, ) )(input_mem)
+        input_shape=(domain, ) )(input_mem)
     output = Reshape((width, width, filters))(dense)
     filters *= 2
     dropout = 0.4
@@ -94,13 +94,11 @@ def get_decoder():
 # The number of layers defined in get_classifier.
 classifier_nlayers = 6
 
-def get_classifier():
-    input_mem = Input(shape=(constants.domain, ))
-    dense = Dense(
-        constants.domain, activation='relu',
-        input_shape=(constants.domain, ))(input_mem)
+def get_classifier(domain):
+    input_mem = Input(shape=(domain, ))
+    dense = Dense(domain, activation='relu', input_shape=(domain, ))(input_mem)
     drop = Dropout(0.4)(dense)
-    dense = Dense(constants.domain, activation='relu')(drop)
+    dense = Dense(domain, activation='relu')(drop)
     drop = Dropout(0.4)(dense)
     classification = Dense(constants.n_labels,
         activation='softmax', name='classified')(drop)

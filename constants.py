@@ -39,23 +39,23 @@ testing_path = 'test'
 memories_path = 'memories'
 dreams_path = 'dreams'
 
-data_prefix = 'data'
-labels_prefix = 'labels'
-features_prefix = 'features'
-memories_prefix = 'memories'
-noised_prefix = 'mem_noised'
-mem_conf_prefix = 'mem_confrix'
+data_prefix = 'data-'
+labels_prefix = 'labels-'
+features_prefix = 'features-'
+memories_prefix = 'memories-'
+noised_prefix = 'mem_noised-'
+mem_conf_prefix = 'mem_confrix-'
 model_prefix = 'model-'
-recognition_prefix = 'recognition'
-recog_noised_prefix = 'recog_noised'
-weights_prefix = 'weights'
-weights_noised_prefix = 'weights-noised'
+recognition_prefix = 'recognition-'
+recog_noised_prefix = 'recog_noised-'
+weights_prefix = 'weights-'
+weights_noised_prefix = 'weights-noised-'
 classification_prefix = 'classification-'
 classification_noised_prefix = 'classif-noised-'
 stats_prefix = 'model_stats-'
-learn_params_prefix ='learn_params'
+learn_params_prefix ='learn_params-'
 memory_parameters_prefix='mem_params'
-chosen_prefix = 'chosen'
+chosen_prefix = 'chosen-'
 
 balanced_data = 'balanced'
 seed_data = 'seed'
@@ -230,14 +230,14 @@ def stats_model_name(dataset, es):
 def classification_name(dataset, es):
     return classification_prefix + dataset
 
-def data_name(es):
-    return data_prefix
+def data_name(dataset, es):
+    return data_prefix + dataset
 
-def features_name(es):
-    return features_prefix
+def features_name(dataset, es):
+    return features_prefix + dataset
 
-def labels_name(es):
-    return labels_prefix
+def labels_name(dataset, es):
+    return labels_prefix + dataset
 
 def memories_name(es):
     return memories_prefix

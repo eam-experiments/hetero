@@ -243,7 +243,8 @@ def train_network(ds, prefix, es):
     return histories, confusion_matrix/totals
 
 
-def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix, es):
+def obtain_features(ds, 
+        model_prefix, features_prefix, labels_prefix, data_prefix, es):
     """ Generate features for sound segments, corresponding to phonemes.
     
     Uses the previously trained neural networks for generating the features.
@@ -254,10 +255,10 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix, e
         model = tf.keras.models.load_model(filename)
         model.summary()
 
-        training_data, training_labels = dataset.get_training(fold)
-        filling_data, filling_labels = dataset.get_filling(fold)
-        testing_data, testing_labels = dataset.get_testing(fold)
-        noised_data, noised_labels = dataset.get_testing(fold, noised = True)
+        training_data, training_labels = dataset.get_training(ds, fold)
+        filling_data, filling_labels = dataset.get_filling(ds, fold)
+        testing_data, testing_labels = dataset.get_testing(ds, fold)
+        noised_data, noised_labels = dataset.get_testing(ds, fold, noised = True)
         settings = [
             (training_data, training_labels, constants.training_suffix),
             (filling_data, filling_labels, constants.filling_suffix),

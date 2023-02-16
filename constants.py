@@ -88,7 +88,7 @@ nnetwork_suffix = '-rnn'
 learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
     [nnetwork_suffix], [original_suffix, amsystem_suffix]]
 
-n_folds = 10
+n_folds = 1
 n_jobs = 1
 dreaming_cycles = 6
 

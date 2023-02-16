@@ -235,7 +235,7 @@ def train_network(ds, prefix, es):
         encoder.save(constants.encoder_filename(prefix, es, fold))
         decoder.save(constants.decoder_filename(prefix, es, fold))
         classifier.save(constants.classifier_filename(prefix, es, fold))
-        prediction_prefix = constants.classification_name(es)
+        prediction_prefix = constants.classification_name(ds, es)
         prediction_filename = constants.data_filename(prediction_prefix, es, fold)
         np.save(prediction_filename, predicted_labels)
     confusion_matrix = confusion_matrix.numpy()

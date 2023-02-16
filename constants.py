@@ -50,8 +50,8 @@ recognition_prefix = 'recognition'
 recog_noised_prefix = 'recog_noised'
 weights_prefix = 'weights'
 weights_noised_prefix = 'weights-noised'
-classification_prefix = 'classification'
-classification_noised_prefix = 'classif-noised'
+classification_prefix = 'classification-'
+classification_noised_prefix = 'classif-noised-'
 stats_prefix = 'model_stats-'
 learn_params_prefix ='learn_params'
 memory_parameters_prefix='mem_params'
@@ -227,6 +227,9 @@ def model_name(dataset, es):
 def stats_model_name(dataset, network_suffix, es):
     return stats_prefix + dataset + network_suffix
 
+def classification_name(dataset, es):
+    return classification_prefix + dataset
+
 def data_name(es):
     return data_prefix
 
@@ -253,9 +256,6 @@ def weights_name(es):
 
 def noised_weights_name(es):
     return weights_noised_prefix
-
-def classification_name(es):
-    return classification_prefix
 
 def noised_classification_name(es):
     return classification_noised_prefix

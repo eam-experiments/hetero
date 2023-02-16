@@ -24,7 +24,7 @@ import numpy as np
 MNIST ='mnist'
 FASHION = 'fashion'
 datasets = [MNIST, FASHION]
-datasets_to_domains = {MNIST: 256, FASHION: 256}
+datasets_to_domains = {MNIST: 128, FASHION: 256}
 
 # Directory where all results are stored.
 data_path = 'data'

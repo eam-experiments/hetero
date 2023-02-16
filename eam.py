@@ -316,8 +316,8 @@ def get_ams_results(
     # Create the memory.
     p = es.mem_params
     eam = AssociativeMemory(
-        domain, msize, p[constants.xi_idx], p[constants.sigma_idx],
-        p[constants.iota_idx], p[constants.kappa_idx])
+        domain, msize, p[constants.xi_idx], p[constants.iota_idx],
+        p[constants.kappa_idx], p[constants.sigma_idx])
 
     # Registrate filling data.
     for features in trf_rounded:

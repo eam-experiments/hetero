@@ -17,13 +17,13 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -e <experiment> | -r | -d) [--runpath=PATH ] [ -l (en | es) ]
+  eam (-n <dataset> | -f <dataset> | -s <dataset> | -r | -d) [--runpath=PATH ] [ -l (en | es) ]
 
 Options:
   -h    Show this screen.
   -n    Trains the neural network for MNIST (mnist) or Fashion (fashion).
   -f    Generates Features for MNIST (mnist) or Fashion (fashion).
-  -e    Run the experiment (options 1 or 2).
+  -s    Run separated tests of memories performance for MNIST y Fashion.
   -r    Generate images from testing data and memories of them.
   -d    Recurrent generation of memories.
   --runpath=PATH   Path to directory where everything will be saved [default: runs]
@@ -61,11 +61,9 @@ if typing.TYPE_CHECKING:
 # Translation
 gettext.install('eam', localedir=None, codeset=None, names=None)
 
-def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std,
+def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
                    es, tag='', xlabels=constants.memory_sizes,
                    xtitle=None, ytitle=None):
-
-    plt.clf()
     plt.figure(figsize=(6.4, 4.8))
 
     full_length = 100.0
@@ -112,51 +110,18 @@ def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std,
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label(_('Entropy'))
 
-    s = tag + 'graph_prse_MEAN' + _('-english')
+    s = tag + 'graph_prse_MEAN-' + dataset + _('-english')
     graph_filename = constants.picture_filename(s, es)
     plt.savefig(graph_filename, dpi=600)
+    plt.close()
 
 
-def plot_size_graph(response_size, size_stdev, es):
-    plt.clf()
-
-    full_length = 100.0
-    step = 0.1
-    main_step = full_length/len(response_size)
-    x = np.arange(0, full_length, main_step)
-
-    # One main step less because levels go on sticks, not
-    # on intervals.
-    xmax = full_length - main_step + step
-    ymax = constants.n_labels
-
-    plt.errorbar(x, response_size, fmt='g-D', yerr=size_stdev,
-                 label=_('Average number of responses'))
-    plt.xlim(0, xmax)
-    plt.ylim(0, ymax)
-    plt.xticks(x, constants.memory_sizes)
-    plt.yticks(np.arange(0, ymax+1, 1), range(constants.n_labels+1))
-
-    plt.xlabel(_('Range Quantization Levels'))
-    plt.ylabel(_('Size'))
-    plt.legend(loc=1)
-    plt.grid(True)
-
-    graph_filename = constants.picture_filename(
-        'graph_size_MEAN' + _('-english'), es)
-    plt.savefig(graph_filename, dpi=600)
-
-
-def plot_behs_graph(no_response, no_correct, correct, es):
-
+def plot_behs_graph(no_response, no_correct, correct, dataset, es):
     for i in range(len(no_response)):
         total = (no_response[i] + no_correct[i] + correct[i])/100.0
         no_response[i] /= total
         no_correct[i] /= total
         correct[i] /= total
-
-    plt.clf()
-
     full_length = 100.0
     step = 0.1
     main_step = full_length/len(constants.memory_sizes)
@@ -185,7 +150,7 @@ def plot_behs_graph(no_response, no_correct, correct, es):
     plt.grid(axis='y')
 
     graph_filename = constants.picture_filename(
-        'graph_behaviours_MEAN' + _('-english'), es)
+        'graph_behaviours_MEAN-' + dataset + _('-english'), es)
     plt.savefig(graph_filename, dpi=600)
 
 
@@ -369,39 +334,36 @@ def get_ams_results(
     return midx, eam.entropy, behaviour, confrix
 
 
-def test_memory_sizes(domain, es):
+def test_memory_sizes(dataset, es):
+    domain = constants.domain(dataset)
     all_entropies = []
     precision = []
     recall = []
     all_confrixes = []
-
     no_response = []
     no_correct_response = []
     correct_response = []
 
-    print('Testing the memory')
-
-    # Retrieve de classifier
-    model_prefix = constants.model_name(es)
-
+    print(f'Testing the memory of {dataset}')
+    model_prefix = constants.model_name(dataset, es)
     for fold in range(constants.n_folds):
         gc.collect()
         filename = constants.classifier_filename(model_prefix, es, fold)
         classifier = tf.keras.models.load_model(filename)
         print(f'Fold: {fold}')
         suffix = constants.filling_suffix
-        filling_features_filename = constants.features_name(es) + suffix
+        filling_features_filename = constants.features_name(dataset, es) + suffix
         filling_features_filename = constants.data_filename(
             filling_features_filename, es, fold)
-        filling_labels_filename = constants.labels_name(es) + suffix
+        filling_labels_filename = constants.labels_name(dataset, es) + suffix
         filling_labels_filename = constants.data_filename(
             filling_labels_filename, es, fold)
 
         suffix = constants.testing_suffix
-        testing_features_filename = constants.features_name(es) + suffix
+        testing_features_filename = constants.features_name(dataset, es) + suffix
         testing_features_filename = constants.data_filename(
             testing_features_filename, es, fold)
-        testing_labels_filename = constants.labels_name(es) + suffix
+        testing_labels_filename = constants.labels_name(dataset, es) + suffix
         testing_labels_filename = constants.data_filename(
             testing_labels_filename, es, fold)
 
@@ -472,21 +434,21 @@ def test_memory_sizes(domain, es):
         [stdv_no_response, stdv_no_correct_response, stdv_correct_response]
 
     np.savetxt(constants.csv_filename(
-        'memory_precision', es), precision, delimiter=',')
+        'memory_precision-' + dataset, es), precision, delimiter=',')
     np.savetxt(constants.csv_filename(
-        'memory_recall', es), recall, delimiter=',')
+        'memory_recall-' + dataset, es), recall, delimiter=',')
     np.savetxt(constants.csv_filename(
-        'memory_entropy', es), all_entropies, delimiter=',')
-    np.savetxt(constants.csv_filename('mean_behaviours', es),
+        'memory_entropy-' + dataset, es), all_entropies, delimiter=',')
+    np.savetxt(constants.csv_filename('mean_behaviours-' + dataset, es),
                mean_behaviours, delimiter=',')
-    np.savetxt(constants.csv_filename('stdv_behaviours', es),
+    np.savetxt(constants.csv_filename('stdv_behaviours-' + dataset, es),
                stdv_behaviours, delimiter=',')
-    np.save(constants.data_filename('memory_confrixes', es), average_confrixes)
-    np.save(constants.data_filename('behaviours', es), behaviours)
+    np.save(constants.data_filename('memory_confrixes-' + dataset, es), average_confrixes)
+    np.save(constants.data_filename('behaviours-' + dataset, es), behaviours)
     plot_pre_graph(average_precision, average_recall, average_entropy,
-                   stdev_precision, stdev_recall, es)
+                   stdev_precision, stdev_recall, dataset, es)
     plot_behs_graph(mean_no_response, mean_no_correct_response,
-                    mean_correct_response, es)
+                    mean_correct_response, dataset, es)
     print('Memory size evaluation completed!')
     return best_memory_sizes
 
@@ -1032,7 +994,6 @@ def valid_choice(label, index, testing_labels):
 ##############################################################################
 # Main section
 
-
 def create_and_train_network(dataset, es):
     print(f'Memory size (columns): {constants.domain(dataset)}')
     model_prefix = constants.model_name(dataset, es)
@@ -1040,7 +1001,6 @@ def create_and_train_network(dataset, es):
     history, conf_matrix = neural_net.train_network(dataset, model_prefix, es)
     save_history(history, stats_prefix, es)
     save_conf_matrix(conf_matrix, stats_prefix, es)
-
 
 def produce_features_from_data(dataset, es):
     model_prefix = constants.model_name(dataset, es)
@@ -1050,24 +1010,12 @@ def produce_features_from_data(dataset, es):
     neural_net.obtain_features(dataset,
         model_prefix, features_prefix, labels_prefix, data_prefix, es)
 
-
-def create_and_train_autoencoders(es):
-    model_prefix = constants.model_name(es)
-    stats_prefix = model_prefix + constants.decoder_suffix
-    features_prefix = constants.features_name(es)
-    data_prefix = constants.data_name(es)
-    history = neural_net.train_decoder(
-        model_prefix, features_prefix, data_prefix, es)
-    save_history(history, stats_prefix, es)
-
-
-def run_evaluation(es):
-    best_memory_sizes = test_memory_sizes(constants.domain, es)
+def run_separate_evaluation(dataset, es):
+    best_memory_sizes = test_memory_sizes(dataset, es)
     print(f'Best memory sizes: {best_memory_sizes}')
     best_filling_percents = test_memory_fills(
-        constants.domain, best_memory_sizes, es)
-    save_learned_params(best_memory_sizes, best_filling_percents, es)
-
+        best_memory_sizes, dataset, es)
+    save_learned_params(best_memory_sizes, best_filling_percents, dataset, es)
 
 def generate_memories(es):
     decode_test_features(es)
@@ -1075,7 +1023,6 @@ def generate_memories(es):
     for msize, mfill in learned:
         remember(msize, mfill, es)
         decode_memories(msize, es)
-
 
 def dream(es):
     learned = load_learned_params(es)
@@ -1117,6 +1064,12 @@ if __name__ == "__main__":
         dataset = args['<dataset>']
         if dataset in constants.datasets:
             produce_features_from_data(dataset, exp_settings)
+        else:
+            print(f'Dataset {dataset} is not supported.')
+    elif args['-s']:
+        dataset = args['<dataset>']
+        if dataset in constants.datasets:
+            run_separate_evaluation(dataset, exp_settings)
         else:
             print(f'Dataset {dataset} is not supported.')
     elif args['-e']:

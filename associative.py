@@ -226,7 +226,6 @@ class AssociativeMemory(object):
         else:
             column = self._normalize(
                 self.relation[i,:], v, self._sigma_scaled, self._scale)
-        print(f'Column {i} centred in {v}: {column}')
         sum = column.sum()
         r = sum*random.random()
         for j in range(self.m):

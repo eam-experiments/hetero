@@ -470,29 +470,29 @@ def test_filling_percent(
     return behaviour, eam.entropy
 
 
-def test_filling_per_fold(mem_size, domain, es, fold):
+def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     # Create the required associative memories.
     p = es.mem_params
     eam = AssociativeMemory(
         domain, mem_size, p[constants.xi_idx],
-        p[constants.sigma_idx], p[constants.iota_idx], p[constants.kappa_idx])
-    model_prefix = constants.model_name(es)
+        p[constants.iota_idx], p[constants.kappa_idx], p[constants.sigma_idx])
+    model_prefix = constants.model_name(dataset, es)
     filename = constants.classifier_filename(model_prefix, es, fold)
     classifier = tf.keras.models.load_model(filename)
 
     suffix = constants.filling_suffix
-    filling_features_filename = constants.features_name(es) + suffix
+    filling_features_filename = constants.features_name(dataset, es) + suffix
     filling_features_filename = constants.data_filename(
         filling_features_filename, es, fold)
-    filling_labels_filename = constants.labels_name(es) + suffix
+    filling_labels_filename = constants.labels_name(dataset, es) + suffix
     filling_labels_filename = constants.data_filename(
         filling_labels_filename, es, fold)
 
     suffix = constants.testing_suffix
-    testing_features_filename = constants.features_name(es) + suffix
+    testing_features_filename = constants.features_name(dataset, es) + suffix
     testing_features_filename = constants.data_filename(
         testing_features_filename, es, fold)
-    testing_labels_filename = constants.labels_name(es) + suffix
+    testing_labels_filename = constants.labels_name(dataset, es) + suffix
     testing_labels_filename = constants.data_filename(
         testing_labels_filename, es, fold)
 
@@ -542,7 +542,8 @@ def test_filling_per_fold(mem_size, domain, es, fold):
     return fold, fold_entropies, fold_precision, fold_recall
 
 
-def test_memory_fills(domain, mem_sizes, es):
+def test_memory_fills(mem_sizes, dataset, es):
+    domain = constants.domain(dataset)
     memory_fills = constants.memory_fills
     testing_folds = constants.n_folds
     best_filling_percents = []
@@ -554,7 +555,7 @@ def test_memory_fills(domain, mem_sizes, es):
         list_results = []
 
         for fold in range(testing_folds):
-            results = test_filling_per_fold(mem_size, domain, es, fold)
+            results = test_filling_per_fold(mem_size, domain, dataset, es, fold)
             list_results.append(results)
         for fold, entropies, precisions, recalls in list_results:
             total_precisions[fold] = precisions
@@ -570,32 +571,32 @@ def test_memory_fills(domain, mem_sizes, es):
 
         np.savetxt(
             constants.csv_filename(
-                'main_average_precision' + constants.numeric_suffix('sze', mem_size), es),
+                'main_average_precision-' + dataset + constants.numeric_suffix('sze', mem_size), es),
             main_avrge_precisions, delimiter=',')
         np.savetxt(
             constants.csv_filename(
-                'main_average_recall' + constants.numeric_suffix('sze', mem_size), es),
+                'main_average_recall-' + dataset  + constants.numeric_suffix('sze', mem_size), es),
             main_avrge_recalls, delimiter=',')
         np.savetxt(
             constants.csv_filename(
-                'main_average_entropy' + constants.numeric_suffix('sze', mem_size), es),
+                'main_average_entropy-' + dataset  + constants.numeric_suffix('sze', mem_size), es),
             main_avrge_entropies, delimiter=',')
         np.savetxt(
             constants.csv_filename(
-                'main_stdev_precision' + constants.numeric_suffix('sze', mem_size), es),
+                'main_stdev_precision-' + dataset  + constants.numeric_suffix('sze', mem_size), es),
             main_stdev_precisions, delimiter=',')
         np.savetxt(
             constants.csv_filename(
-                'main_stdev_recall' + constants.numeric_suffix('sze', mem_size), es),
+                'main_stdev_recall-' + dataset  + constants.numeric_suffix('sze', mem_size), es),
             main_stdev_recalls, delimiter=',')
         np.savetxt(
             constants.csv_filename(
-                'main_stdev_entropy' + constants.numeric_suffix('sze', mem_size), es),
+                'main_stdev_entropy-' + dataset  + constants.numeric_suffix('sze', mem_size), es),
             main_stdev_entropies, delimiter=',')
 
         plot_pre_graph(main_avrge_precisions*100, main_avrge_recalls*100, main_avrge_entropies,
                        main_stdev_precisions*100, main_stdev_recalls *
-                       100, es, 'recall' +
+                       100, dataset, es, 'recall' +
                        constants.numeric_suffix('sze', mem_size),
                        xlabels=constants.memory_fills, xtitle=_('Percentage of memory corpus'))
 

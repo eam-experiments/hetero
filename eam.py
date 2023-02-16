@@ -61,9 +61,6 @@ if typing.TYPE_CHECKING:
 # Translation
 gettext.install('eam', localedir=None, codeset=None, names=None)
 
-MNIST = 'mnist'
-FASHION = 'fashion'
-
 def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std,
                    es, tag='', xlabels=constants.memory_sizes,
                    xtitle=None, ytitle=None):
@@ -919,7 +916,7 @@ def store_image(filename, array):
 def dream_by_memory(features, eam, msize, min_value, max_value):
     dream, recognized, _ = eam.recall(features)
     dream = rsize_recall(np.array(dream, dtype=float),
-                          msize, min_value, max_value)
+                         msize, min_value, max_value)
     return dream, recognized
 
 
@@ -946,12 +943,14 @@ def dreaming_per_fold(features, chosen, eam, min_value, max_value,
                 features, eam, msize, min_value, max_value)
             recognized = recognized and recog
             print(f'Recognized: {recognized}')
-            image = decoder.predict(np.array([dream,]))[0] if recognized else unknown
-            classif = np.argmax(classifier.predict(np.array([dream,])), axis=1)[0]
+            image = decoder.predict(np.array([dream, ]))[
+                0] if recognized else unknown
+            classif = np.argmax(classifier.predict(
+                np.array([dream, ])), axis=1)[0]
             classification.append(classif)
             full_suffix = sgm_suffix + constants.dream_depth_suffix(i)
             store_dream(image, *chosen[fold], full_suffix, es, fold)
-            features = encoder.predict(np.array([image,]))[0]
+            features = encoder.predict(np.array([image, ]))[0]
             features = msize_features(features, msize, min_value, max_value)
     prefix = constants.classification_name(es) + suffix
     filename = constants.csv_filename(prefix, es, fold)
@@ -989,8 +988,8 @@ def dreaming(msize, mfill, cycles, es):
         noised_features = np.load(noised_features_filename)
         testing_labels = np.load(testing_labels_filename)
 
-        label = chosen[fold,0]
-        index = chosen[fold,1]
+        label = chosen[fold, 0]
+        index = chosen[fold, 1]
         if not valid_choice(label, index, testing_labels):
             print(
                 f'There is an invalid choice in the chosen cases for fold {fold}.')
@@ -1026,7 +1025,8 @@ def dreaming(msize, mfill, cycles, es):
 
 
 def valid_choice(label, index, testing_labels):
-    print(f'Validating {label} against {testing_labels[index]} in position {index}')
+    print(
+        f'Validating {label} against {testing_labels[index]} in position {index}')
     return testing_labels[index] == label
 
 ##############################################################################
@@ -1035,19 +1035,19 @@ def valid_choice(label, index, testing_labels):
 
 def create_and_train_network(dataset, es):
     print(f'Memory size (columns): {constants.domain(dataset)}')
-    model_prefix = constants.model_name(dataset,es)
+    model_prefix = constants.model_name(dataset, es)
     stats_prefix = constants.stats_model_name(dataset, es)
     history, conf_matrix = neural_net.train_network(dataset, model_prefix, es)
     save_history(history, stats_prefix, es)
     save_conf_matrix(conf_matrix, stats_prefix, es)
 
 
-def produce_features_from_data(es):
-    model_prefix = constants.model_name(es)
-    features_prefix = constants.features_name(es)
-    labels_prefix = constants.labels_name(es)
-    data_prefix = constants.data_name(es)
-    neural_net.obtain_features(
+def produce_features_from_data(dataset, es):
+    model_prefix = constants.model_name(dataset, es)
+    features_prefix = constants.features_name(dataset, es)
+    labels_prefix = constants.labels_name(dataset, es)
+    data_prefix = constants.data_name(dataset, es)
+    neural_net.obtain_features(dataset,
         model_prefix, features_prefix, labels_prefix, data_prefix, es)
 
 

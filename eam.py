@@ -1036,7 +1036,7 @@ def valid_choice(label, index, testing_labels):
 def create_and_train_network(dataset, es):
     print(f'Memory size (columns): {constants.domain(dataset)}')
     model_prefix = constants.model_name(dataset,es)
-    stats_prefix = constants.stats_model_name(dataset, constants.classifier_suffix, es)
+    stats_prefix = constants.stats_model_name(dataset, es)
     history, conf_matrix = neural_net.train_network(dataset, model_prefix, es)
     save_history(history, stats_prefix, es)
     save_conf_matrix(conf_matrix, stats_prefix, es)

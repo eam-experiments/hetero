@@ -224,8 +224,8 @@ def get_full_name(prefix, es):
 def model_name(dataset, es):
     return model_prefix + dataset
 
-def stats_model_name(dataset, network_suffix, es):
-    return stats_prefix + dataset + network_suffix
+def stats_model_name(dataset, es):
+    return stats_prefix + dataset
 
 def classification_name(dataset, es):
     return classification_prefix + dataset

@@ -253,7 +253,8 @@ def match_labels(features, labels, half = False):
     used_idx = set()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    midx = round(len(labels[left_ds]) / 2)
+    # Assuming ten clases on each dataset.
+    midx = round(len(labels[left_ds]) * 4.0 / 9.0)
     matching_labels = labels[left_ds][:midx] if half else labels[left_ds]
     for left_lab in matching_labels:
         i = 0

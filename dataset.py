@@ -36,13 +36,11 @@ def get_testing(dataset, fold, noised = False):
     return _get_segment(dataset, _TESTING_SEGMENT, fold, noised)
 
 def _get_segment(dataset, segment, fold, noised = False):
-    if (_get_segment.data is None) \
-        or (_get_segment.noised is None) \
-            or (_get_segment.labels is None):
-        _get_segment.data, _get_segment.noised, _get_segment.labels = \
-            _load_dataset(dataset, constants.data_path)
+    if (_get_segment.data is None):
+        _get_segment.data = _load_dataset(dataset, constants.data_path)
     print('Delimiting segment of data.')
-    total = len(_get_segment.labels)
+    # We assume the dataset is balanced
+    total = len(_get_segment.data) / constants.n_labels
     training = total*constants.nn_training_percent
     filling = total*constants.am_filling_percent
     testing = total*constants.am_testing_percent
@@ -63,15 +61,10 @@ def _get_segment(dataset, segment, fold, noised = False):
     elif segment == _TESTING_SEGMENT:
         n, m = k, l
 
-    data = constants.get_data_in_range(_get_segment.noised, n, m) \
-            if noised \
-                else constants.get_data_in_range(_get_segment.data, n, m)
-    labels = constants.get_data_in_range(_get_segment.labels, n, m)
+    data, labels = _get_data_in_range(_get_segment.data, n, m, noised)
     return data, labels
 
 _get_segment.data = None
-_get_segment.noised = None
-_get_segment.labels = None
 
 def noised(data, percent):
     print(f'Adding {percent}% noise to data.')
@@ -108,7 +101,8 @@ def _load_dataset(dataset, path):
         labels = np.concatenate((labels_train, labels_test), axis=0)
         data, noised_data, labels = _shuffle(data, noised_data, labels)
         _save_dataset(dirname, data, noised_data, labels)
-    return data, noised_data, labels
+    data = _split_by_labels(data, noised_data, labels)
+    return data
 
 def _preprocessed_dataset(dirname):
     data_fname = os.path.join(dirname, constants.prep_data_fname)
@@ -157,3 +151,23 @@ def _shuffle(data, noised, labels):
     labels = np.array([p[2] for p in tuples], dtype=int)
     return data, noised, labels
 
+def _split_by_labels(data, noised, labels):
+    data_per_label = {}
+    for l, d, n in zip(labels, data, noised):
+        if l in data_per_label.keys():
+            data_per_label[l].append((l, d, n))
+        else:
+            data_per_label[l] = [(l, d, n)]
+    return data_per_label
+
+def _get_data_in_range(data_per_label, n, m, noised):
+    data = []
+    for label in constants.all_labels:
+        dpl = data_per_label[label]
+        dpl = constants.get_data_in_range(dpl, n, m)
+        data += dpl
+    random.shuffle(data)
+    labels = np.array([d[0] for d in data])
+    i = 2 if noised else 1
+    data = np.array([d[i] for d in data])
+    return data, labels

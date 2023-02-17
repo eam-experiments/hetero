@@ -23,8 +23,8 @@ import constants
 
 class HeteroAssociativeMemory(object):
     def __init__(self, n: int, p: int, m: int, q: int,
-        xi = constants.xi_default, sigma=constants.sigma_default,
-        iota = constants.iota_default, kappa=constants.kappa_default):
+        xi = constants.xi_default, iota = constants.iota_default,
+        kappa=constants.kappa_default, sigma=constants.sigma_default):
         """
         Parameters
         ----------
@@ -211,12 +211,12 @@ class HeteroAssociativeMemory(object):
         return recognized, weight        
 
     def recall_from_left(self, vector):
-        return self.recall(vector, 0)
+        return self._recall(vector, 0)
 
     def recall_from_right(self, vector):
-        return self.recall(vector, 1)
+        return self._recall(vector, 1)
 
-    def recall(self, vector, dim):
+    def _recall(self, vector, dim):
         vector = self.validate(vector, dim)
         relation = self.project(vector, dim)
         print(f'Projection:\n{relation}')

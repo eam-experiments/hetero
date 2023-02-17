@@ -121,7 +121,7 @@ class HeteroAssociativeMemory(object):
     def iota_relation(self):
         if not self._updated:
             self._updated = self.update()
-        return self._iota_relation
+        return self._iota_relation[:, :, :self.m, :self.q]
 
     @property
     def sigma(self):
@@ -201,9 +201,7 @@ class HeteroAssociativeMemory(object):
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
         r_io = self.vectors_to_relation(vector_a, vector_b)
-        print(f'R_IO:\n{self.toString(self.core(r_io))}')
         r_io = self.containment(r_io)
-        print(f'Implication:\n{self.toString(r_io)}')
         recognized = np.count_nonzero(
             r_io[:,:, :self.m, :self.q] == 0) <= self._xi
         weight = self._weight(vector_a, vector_b)
@@ -219,7 +217,6 @@ class HeteroAssociativeMemory(object):
     def _recall(self, vector, dim):
         vector = self.validate(vector, dim)
         relation = self.project(vector, dim)
-        print(f'Projection:\n{relation}')
         r_io, weight = self.reduce(relation, self.alt(dim))
         r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, weight
@@ -232,7 +229,7 @@ class HeteroAssociativeMemory(object):
 
     def containment(self, _r_io):
         r_io = _r_io[:, :, :self.m, :self.q]
-        r_iota = self.iota_relation[:, :, :self.m, :self.q]
+        r_iota = self.iota_relation
         return np.where((r_io ==0) | (r_iota !=0), 1, 0)
 
     def project(self, vector, dim):
@@ -274,9 +271,13 @@ class HeteroAssociativeMemory(object):
         return np.array(weights)
 
     def update(self):
+        print(f'Updating entropies: {time.time()}')
         self._update_entropies()
+        print(f'Updating means: {time.time()}')
         self._update_means()
+        print(f'Updating iota relation: {time.time()}')
         self._update_iota_relation()
+        print(f'Updating completed: {time.time()}')
         return True
 
     def _update_entropies(self):

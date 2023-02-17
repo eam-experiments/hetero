@@ -24,7 +24,7 @@ Options:
   -n    Trains the neural network for MNIST (mnist) or Fashion (fashion).
   -f    Generates Features for MNIST (mnist) or Fashion (fashion).
   -s    Run separated tests of memories performance for MNIST y Fashion.
-  -e    Evaluation of heteroassociation.
+  -e    Evaluation of hetero-association.
   -r    Generate images from testing data and memories of them.
   -d    Recurrent generation of memories.
   --runpath=PATH   Path to directory where everything will be saved [default: runs]
@@ -261,8 +261,8 @@ def match_labels(features, labels, half = False):
         for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
             if (i not in used_idx) and (left_lab == right_lab):
                 used_idx.add(i)
-                right_features.add(right_feat)
-                right_labels.add(right_lab)
+                right_features.append(right_feat)
+                right_labels.append(right_lab)
                 found = True
                 break
             else:
@@ -273,14 +273,32 @@ def match_labels(features, labels, half = False):
         i = 0
         for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
             if (i not in used_idx):
-                right_features.add(right_feat)
-                right_labels.add(right_lab)
+                right_features.append(right_feat)
+                right_labels.append(right_lab)
             i += 1
     n = len(right_features)
     features[left_ds] = features[left_ds][:n]
     labels[left_ds] = labels[left_ds][:n]
     features[right_ds] = np.array(right_features, dtype=int)
     labels[right_ds] = np.array(right_labels, dtype=int)
+
+
+def describe(features, labels):
+    left_ds = constants.left_dataset
+    right_ds = constants.right_dataset
+    left_n = len(labels[left_ds])
+    right_n = len(labels[right_ds])
+    print(f'Elements in left dataset: {left_n}')
+    print(f'Elements in right dataset: {right_n}')
+    minimum = left_n if left_n < right_n else right_n
+    matching = 0
+    for i in range(minimum):
+        left_label = labels[left_ds][i] 
+        right_label = labels[right_ds][i] 
+        matching += (left_label == right_label)
+    print(f'Matching labels: {matching}')
+    print(f'Unmatching labels: {minimum - matching}')
+
 
 def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
     data = []
@@ -316,6 +334,8 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
 def recognize_by_hetero_memory(
         eam, tefs, tels):
     confrix = np.zeros((2,2), dtype=int)
+    print('Recognizing by hetero memory')
+    counter = 0
     for left_feat, left_lab, right_feat, right_lab \
             in zip(tefs[constants.left_dataset], tels[constants.left_dataset],
                     tefs[constants.right_dataset], tels[constants.right_dataset]):
@@ -330,6 +350,8 @@ def recognize_by_hetero_memory(
                 confrix[1,0] += 1
             else:
                 confrix[1,1] += 1
+        counter += 1
+        constants.print_counter(counter, 1000, 100, symbol='*')
     print(f'Confusion matrix:\n{confrix}')
     return confrix
 
@@ -530,9 +552,13 @@ def test_filling_percent(
 def test_hetero_filling_percent(
         eam: HeteroAssociativeMemory, trfs, tefs, tels, percent):
     # Registrate filling data.
+    print('Filling hetero memory')
+    counter = 0
     for left_feat, right_feat \
             in zip(trfs[constants.left_dataset], trfs[constants.right_dataset]):
         eam.register(left_feat,right_feat)
+        counter += 1
+        constants.print_counter(counter, 1000, 100)
     print(f'Filling of memories done at {percent}%')
     confrix = recognize_by_hetero_memory(eam, tefs, tels)
     return confrix, eam.entropy
@@ -647,7 +673,9 @@ def test_hetero_filling_per_fold(es, fold):
         testing_features[dataset] = msize_features(
             t_features, rows[dataset], min_value, max_value)
     match_labels(filling_features, filling_labels)
+    describe(filling_features, filling_labels)
     match_labels(testing_features, testing_labels, half = True)
+    describe(testing_features, testing_labels)
     total = len(filling_features[left_ds])
     print(f'Filling hetero-associative memory with a total of {total} pairs.')
     percents = np.array(constants.memory_fills)

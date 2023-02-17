@@ -40,28 +40,7 @@ def _get_segment(dataset, segment, fold, noised = False):
         _get_segment.data = _load_dataset(dataset, constants.data_path)
     print('Delimiting segment of data.')
     # We assume the dataset is balanced
-    total = len(_get_segment.data) / constants.n_labels
-    training = total*constants.nn_training_percent
-    filling = total*constants.am_filling_percent
-    testing = total*constants.am_testing_percent
-    step = total / constants.n_folds
-    i = fold * step
-    j = i + training
-    k = j + filling
-    l = k + testing
-    i = int(i)
-    j = int(j) % total
-    k = int(k) % total
-    l = int(l) % total
-    n, m = None, None
-    if segment == _TRAINING_SEGMENT:
-        n, m = i, j
-    elif segment == _FILLING_SEGMENT:
-        n, m = j, k
-    elif segment == _TESTING_SEGMENT:
-        n, m = k, l
-
-    data, labels = _get_data_in_range(_get_segment.data, n, m, noised)
+    data, labels = _get_data_in_range(segment, _get_segment.data, fold, noised)
     return data, labels
 
 _get_segment.data = None
@@ -160,11 +139,30 @@ def _split_by_labels(data, noised, labels):
             data_per_label[l] = [(l, d, n)]
     return data_per_label
 
-def _get_data_in_range(data_per_label, n, m, noised):
+def _get_data_in_range(segment, data_per_label, fold, noised):
     data = []
     for label in constants.all_labels:
-        dpl = data_per_label[label]
-        dpl = constants.get_data_in_range(dpl, n, m)
+        total = len(data_per_label[label])
+        training = total*constants.nn_training_percent
+        filling = total*constants.am_filling_percent
+        testing = total*constants.am_testing_percent
+        step = total / constants.n_folds
+        i = fold * step
+        j = i + training
+        k = j + filling
+        l = k + testing
+        i = int(i)
+        j = int(j) % total
+        k = int(k) % total
+        l = int(l) % total
+        n, m = None, None
+        if segment == _TRAINING_SEGMENT:
+            n, m = i, j
+        elif segment == _FILLING_SEGMENT:
+            n, m = j, k
+        elif segment == _TESTING_SEGMENT:
+            n, m = k, l
+        dpl = constants.get_data_in_range(data_per_label[label], n, m)
         data += dpl
     random.shuffle(data)
     labels = np.array([d[0] for d in data])

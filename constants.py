@@ -25,6 +25,9 @@ MNIST ='mnist'
 FASHION = 'fashion'
 datasets = [MNIST, FASHION]
 datasets_to_domains = {MNIST: 128, FASHION: 256}
+datasets_to_codomains = {MNIST: 4, FASHION: 8}
+left_dataset = MNIST
+right_dataset = FASHION
 
 # Directory where all results are stored.
 data_path = 'data'
@@ -92,16 +95,6 @@ n_folds = 1
 n_jobs = 1
 dreaming_cycles = 6
 
-iota_default = 0.0
-kappa_default = 0.0
-xi_default = 0.0
-sigma_default = 0.25
-params_defaults = [iota_default, kappa_default, xi_default, sigma_default]
-iota_idx = 0
-kappa_idx = 1
-xi_idx = 2
-sigma_idx = 3
-
 nn_training_percent = 0.70
 am_filling_percent = 0.20
 am_testing_percent = 0.10
@@ -130,6 +123,16 @@ n_best_memory_sizes = 3
 n_samples = 10
 learned_data_groups = 6
 
+iota_default = 0.0
+kappa_default = 0.0
+xi_default = 0.0
+sigma_default = 0.25
+params_defaults = [iota_default, kappa_default, xi_default, sigma_default]
+iota_idx = 0
+kappa_idx = 1
+xi_idx = 2
+sigma_idx = 3
+
 class ExperimentSettings:
     def __init__(self, params = None):
         if params is None:
@@ -146,12 +149,43 @@ class ExperimentSettings:
             assert(shape[0] == 4)
             self.mem_params = params
 
+    @property
+    def xi(self):
+        return self.mem_params[xi_idx]
+    
+    @property
+    def iota(self):
+        return self.mem_params[iota_idx]
+    
+    @property
+    def kappa(self):
+        return self.mem_params[kappa_idx]
+    
+    @property
+    def sigma(self):
+        return self.mem_params[sigma_idx]
+    
     def __str__(self):
         s = '{Parameters: ' + str(self.mem_params) + '}'
         return s
 
 def domain(dataset):
     return datasets_to_domains[dataset]
+
+def codomain(dataset):
+    return datasets_to_codomains[dataset]
+
+def domains():
+    doms = {}
+    for d in datasets:
+        doms[d] = domain(d)
+    return doms
+
+def codomains():
+    codoms = {}
+    for d in datasets:
+        codoms[d] = codomain(d)
+    return codoms
 
 def print_warning(*s):
     print('WARNING:', *s, file = sys.stderr)

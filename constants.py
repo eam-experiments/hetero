@@ -260,8 +260,8 @@ def noised_weights_name(es):
 def noised_classification_name(es):
     return classification_noised_prefix
 
-def learn_params_name(es):
-    return learn_params_prefix
+def learn_params_name(dataset, es):
+    return learn_params_prefix + dataset
 
 def mem_params_name(es):
     return memory_parameters_prefix

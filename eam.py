@@ -630,8 +630,8 @@ def save_conf_matrix(matrix, prefix, es):
     np.save(filename, matrix)
 
 
-def save_learned_params(mem_sizes, fill_percents, es):
-    name = constants.learn_params_name(es)
+def save_learned_params(mem_sizes, fill_percents, dataset, es):
+    name = constants.learn_params_name(dataset, es)
     filename = constants.data_filename(name, es)
     np.save(filename, np.array([mem_sizes, fill_percents], dtype=int))
 

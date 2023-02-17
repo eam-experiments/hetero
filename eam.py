@@ -256,6 +256,8 @@ def match_labels(features, labels, half = False):
     # Assuming ten clases on each dataset.
     midx = round(len(labels[left_ds]) * 4.0 / 9.0)
     matching_labels = labels[left_ds][:midx] if half else labels[left_ds]
+    counter = 0
+    print('Matching:')
     for left_lab in matching_labels:
         i = 0
         found = False
@@ -270,6 +272,8 @@ def match_labels(features, labels, half = False):
                 i += 1
         if not found:
             break
+        counter += 1
+        constants.print_counter(counter, 1000, 100, symbol='-')
     if half:
         i = 0
         for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
@@ -293,13 +297,18 @@ def describe(features, labels):
     print(f'Elements in right dataset: {right_n}')
     minimum = left_n if left_n < right_n else right_n
     matching = 0
+    left_counts = np.zeros((constants.n_labels), dtype = int)
+    right_counts = np.zeros((constants.n_labels), dtype = int)
     for i in range(minimum):
         left_label = labels[left_ds][i] 
         right_label = labels[right_ds][i] 
+        left_counts[left_label] += 1
+        right_counts[right_label] += 1
         matching += (left_label == right_label)
     print(f'Matching labels: {matching}')
     print(f'Unmatching labels: {minimum - matching}')
-
+    print(f'Left labels counts: {left_counts}')
+    print(f'Right labels counts: {right_counts}')
 
 def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
     data = []

@@ -114,7 +114,7 @@ def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label(_('Entropy'))
 
-    s = tag + 'graph_prse_MEAN-' + dataset + _('-english')
+    s = tag + 'graph_prse_MEAN-' + _('-english')
     graph_filename = constants.picture_filename(s, es)
     plt.savefig(graph_filename, dpi=600)
     plt.close()

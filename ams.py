@@ -25,24 +25,34 @@ class AssociativeMemorySystem:
     """
 
     def __init__(self, n: int, m: int, p: int, q: int,
-            left_xi = constants.xi_default,
-            left_iota = constants.iota_default,
-            left_kappa = constants.kappa_default,
-            left_sigma = constants.sigma_default,
-            mid_xi = constants.xi_default,
-            mid_iota = constants.iota_default,
-            mid_kappa = constants.kappa_default,
-            mid_sigma = constants.sigma_default,
-            right_xi = constants.xi_default,
-            right_iota = constants.iota_default,
-            right_kappa = constants.kappa_default,
-            right_sigma = constants.sigma_default):
+            xi = constants.xi_default,
+            iota = constants.iota_default,
+            kappa = constants.kappa_default,
+            sigma = constants.sigma_default):
         self.left_mem = AssociativeMemory(n, m,
-                xi = left_xi, iota = left_iota,
-                kappa = left_kappa, sigma = left_sigma)
+                xi = xi, iota = iota,
+                kappa = kappa, sigma = sigma)
         self.right_mem = AssociativeMemory(p, q,
-                xi = right_xi, iota = right_iota,
-                kappa = right_kappa, sigma = right_sigma)
+                xi = xi, iota = iota,
+                kappa = kappa, sigma = sigma)
         self.heter_mem = HeteroAssociativeMemory(n, p, m, q,
-                xi = mid_xi, iota = mid_iota,
-                kappa = mid_kappa, sigma = mid_sigma)
+                xi = xi, iota = iota,
+                kappa = kappa, sigma = sigma)
+        
+    def register(self, vector_a_p, vector_b_p):
+        self.left_mem.register(vector_a_p)
+        self.right_mem.register(vector_b_p)
+        vector_a, _ = self.left_mem.recall(vector_a_p)
+        vector_b, _ = self.right_mem.recall(vector_b_p)
+        self.heter_mem.register(vector_a, vector_b)
+
+    def recognize(self, vector_a_p, vector_b_p):
+        vector_a, recognized, _ = self.left_mem.recall(vector_a_p)
+        if not recognized:
+            return False, 0
+        vector_b, recognized, _ = self.right_mem.recall(vector_b_p)
+        if not recognized:
+            return False, 0
+        recognized, weight = self.heter_mem.recognize(vector_a, vector_b)
+        return recognized, weight        
+

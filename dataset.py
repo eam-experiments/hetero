@@ -169,3 +169,4 @@ def _get_data_in_range(segment, data_per_label, fold, noised):
     i = 2 if noised else 1
     data = np.array([d[i] for d in data])
     return data, labels
+

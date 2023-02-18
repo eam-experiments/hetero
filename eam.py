@@ -816,35 +816,35 @@ def test_hetero_fills(es):
 
     np.savetxt(
         constants.csv_filename(
-            'hetero_average_precision-' + dataset, es),
+            'hetero_average_precision', es),
         main_avrge_precisions, delimiter=',')
     np.savetxt(
         constants.csv_filename(
-            'hetero_average_recall-' + dataset, es),
+            'hetero_average_recall', es),
         main_avrge_recalls, delimiter=',')
     np.savetxt(
         constants.csv_filename(
-            'hetero_average_accuracy-' + dataset, es),
+            'hetero_average_accuracy', es),
         main_avrge_accuracies, delimiter=',')
     np.savetxt(
         constants.csv_filename(
-            'hetero_average_entropy-' + dataset, es),
+            'hetero_average_entropy', es),
         main_avrge_entropies, delimiter=',')
     np.savetxt(
         constants.csv_filename(
-            'hetero_stdev_precision-' + dataset, es),
+            'hetero_stdev_precision', es),
         main_stdev_precisions, delimiter=',')
     np.savetxt(
         constants.csv_filename(
-            'hetero_stdev_recall-' + dataset, es),
+            'hetero_stdev_recall', es),
         main_stdev_recalls, delimiter=',')
     np.savetxt(
         constants.csv_filename(
-            'hetero_stdev_accuracy-' + dataset, es),
+            'hetero_stdev_accuracy', es),
         main_stdev_accuracies, delimiter=',')
     np.savetxt(
         constants.csv_filename(
-            'hetero_stdev_entropy-' + dataset, es),
+            'hetero_stdev_entropy', es),
         main_stdev_entropies, delimiter=',')
 
     plot_pre_graph(main_avrge_precisions*100, main_avrge_recalls*100, main_avrge_entropies,

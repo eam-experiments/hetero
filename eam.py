@@ -354,10 +354,10 @@ def recognize_by_hetero_memory(
             if left_lab == right_lab:
                 confrix[0,0] += 1
             else:
-                confrix[0,1] += 1
+                confrix[1,0] += 1
         else:
             if left_lab == right_lab:
-                confrix[1,0] += 1
+                confrix[0,1] += 1
             else:
                 confrix[1,1] += 1
         counter += 1
@@ -710,8 +710,8 @@ def test_hetero_filling_per_fold(es, fold):
         # An array with average entropy per step.
         fold_entropies.append(entropy)
         # Arrays with precision, and recall.
-        fold_precision.append(confrix[0,0]/(confrix[0,0]+confrix[0,1]))
-        fold_recall.append(confrix[0,0]/np.sum(confrix))
+        fold_precision.append(confrix[0,0]/(confrix[0,0]+confrix[1,0]))
+        fold_recall.append(confrix[0,0]/(confrix[0,0]+confrix[0,1]))
         fold_accuracy.append((confrix[0,0]+confrix[1,1])/np.sum(confrix))
         start = end
     fold_entropies = np.array(fold_entropies)

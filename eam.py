@@ -247,10 +247,11 @@ def rsize_recall(recall, msize, min_value, max_value):
         return (max_value - min_value) * recall.astype(dtype=float) \
             / (msize - 1.0) + min_value
 
-def match_labels(features, labels, half = False):
+def match_labels(features, labels, half = False):    
     right_features = []
     right_labels = []
     used_idx = set()
+    last = 0
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
     # Assuming ten clases on each dataset.
@@ -259,7 +260,9 @@ def match_labels(features, labels, half = False):
     counter = 0
     print('Matching:')
     for left_lab in matching_labels:
-        i = 0
+        while last in used_idx:
+            last += 1
+        i = last
         found = False
         for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
             if (i not in used_idx) and (left_lab == right_lab):

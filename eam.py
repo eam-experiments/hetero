@@ -847,9 +847,9 @@ def test_hetero_fills(es):
             'hetero_stdev_entropy', es),
         main_stdev_entropies, delimiter=',')
 
-    plot_pre_graph(main_avrge_precisions*100, main_avrge_recalls*100, main_avrge_entropies,
-                    main_stdev_precisions*100, main_stdev_recalls *
-                    100, dataset, es, acc_mean=main_avrge_accuracies, acc_std=main_stdev_accuracies,
+    plot_pre_graph(100*main_avrge_precisions, 100*main_avrge_recalls, main_avrge_entropies,
+                    100*main_stdev_precisions, 100*main_stdev_recalls, dataset, 
+                    es, acc_mean=100*main_avrge_accuracies, acc_std=100*main_stdev_accuracies,
                     tag = 'hetero_recall',
                     xlabels=constants.memory_fills, xtitle=_('Percentage of memory corpus'))
     print(f'Testing fillings for hetero-associative done.')

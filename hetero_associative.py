@@ -285,8 +285,8 @@ class HeteroAssociativeMemory(object):
             for j in range(self.p):
                 relation = self.relation[i, j, :, :]
                 total = np.sum(relation)
-                matrix = self.relation/total
-                matrix = -matrix*np.log2(np.where(matrix == 0.0, 1.0, matrix))
+                matrix = relation/total
+                matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
 
     def _update_means(self):

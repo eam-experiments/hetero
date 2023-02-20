@@ -51,7 +51,6 @@ import sys
 sys.setrecursionlimit(10000)
 from associative import AssociativeMemory
 from hetero_associative import HeteroAssociativeMemory
-from ams import AssociativeMemorySystem
 import constants
 import dataset as ds
 
@@ -565,7 +564,7 @@ def test_filling_percent(
     return behaviour, eam.entropy
 
 def test_hetero_filling_percent(
-        eam: AssociativeMemorySystem, trfs, tefs, tels, percent):
+        eam: HeteroAssociativeMemory, trfs, tefs, tels, percent):
     # Registrate filling data.
     print('Filling hetero memory')
     counter = 0
@@ -654,7 +653,7 @@ def test_hetero_filling_per_fold(es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds], rows[left_ds], rows[right_ds],
+    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds], rows[left_ds], rows[right_ds],
             es.xi, es.iota, es.kappa, es.sigma)
     filling_features = {}
     filling_labels = {}
@@ -1025,11 +1024,11 @@ def decode_test_features(es):
             testing_features_filename = constants.data_filename(
                 testing_features_prefix, es, fold)
             testing_features = np.load(testing_features_filename)
-            testing_data, testing_labels = ds.get_testing(fold)
+            testing_data, testing_labels = ds.get_testing(dataset, fold)
             noised_features_filename = constants.data_filename(
                 noised_features_prefix, es, fold)
             noised_features = np.load(noised_features_filename)
-            noised_data, _ = ds.get_testing(fold, noised=True)
+            noised_data, _ = ds.get_testing(dataset, fold, noised=True)
 
             # Loads the decoder.
             model_filename = constants.decoder_filename(model_prefix, es, fold)
@@ -1087,7 +1086,11 @@ def decode_memories(msize, es):
 
 def store_original_and_test(testing, prod_test, noised, prod_noise,
                             path, idx, label, dataset, es, fold):
-    
+    directory = os.path.join(path, dataset)
+    if not os.path.exists(path):
+        # Create the directory because it does not exist
+        os.makedirs(directory)
+        print(f'Directory {directory} has been created')    
     testing_filename = constants.testing_image_filename(
         directory, idx, label, es, fold)
     prod_test_filename = constants.prod_testing_image_filename(

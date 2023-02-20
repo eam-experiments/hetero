@@ -250,8 +250,8 @@ class AssociativeMemory(object):
             as undefined.
         """
         if len(vector) != self.n:
-            raise ValueError(f'Invalid size of the input data. ' +
-                'Expected {self.n} and given {vector.size}')
+            raise ValueError('Invalid size of the input data. ' +
+                f'Expected {self.n} and given {vector.size}')
         v = np.nan_to_num(vector, copy=True, nan=self.undefined)
         v = np.where((v > self.m) | (v < 0), self.undefined, v)
         return v.astype('int')

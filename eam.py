@@ -33,6 +33,7 @@ Options:
 
 from associative import AssociativeMemory
 from hetero_associative import HeteroAssociativeMemory
+from ams import AssociativeMemorySystem
 import constants
 import dataset
 import neural_net
@@ -563,7 +564,7 @@ def test_filling_percent(
     return behaviour, eam.entropy
 
 def test_hetero_filling_percent(
-        eam: HeteroAssociativeMemory, trfs, tefs, tels, percent):
+        eam: AssociativeMemorySystem, trfs, tefs, tels, percent):
     # Registrate filling data.
     print('Filling hetero memory')
     counter = 0
@@ -652,7 +653,7 @@ def test_hetero_filling_per_fold(es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds], rows[left_ds], rows[right_ds],
+    eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds], rows[left_ds], rows[right_ds],
             es.xi, es.iota, es.kappa, es.sigma)
     filling_features = {}
     filling_labels = {}

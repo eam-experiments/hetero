@@ -24,7 +24,7 @@ class AssociativeMemorySystem:
     hetero-associative register to associate their content.
     """
 
-    def __init__(self, n: int, m: int, p: int, q: int,
+    def __init__(self, n: int, p: int, m: int, q: int,
             xi = constants.xi_default,
             iota = constants.iota_default,
             kappa = constants.kappa_default,
@@ -39,12 +39,20 @@ class AssociativeMemorySystem:
                 xi = xi, iota = iota,
                 kappa = kappa, sigma = sigma)
         
+    @property
+    def entropy(self):
+        return self.heter_mem.entropy
+
     def register(self, vector_a_p, vector_b_p):
         self.left_mem.register(vector_a_p)
         self.right_mem.register(vector_b_p)
-        vector_a, _ = self.left_mem.recall(vector_a_p)
-        vector_b, _ = self.right_mem.recall(vector_b_p)
-        self.heter_mem.register(vector_a, vector_b)
+        vector_a, recognized_a, _ = self.left_mem.recall(vector_a_p)
+        vector_b, recognized_b, _ = self.right_mem.recall(vector_b_p)
+        if recognized_a and recognized_b:
+            self.heter_mem.register(vector_a, vector_b)
+            return True
+        else:
+            return False
 
     def recognize(self, vector_a_p, vector_b_p):
         vector_a, recognized, _ = self.left_mem.recall(vector_a_p)

@@ -1085,12 +1085,8 @@ def decode_memories(msize, es):
 
 
 def store_original_and_test(testing, prod_test, noised, prod_noise,
-                            path, idx, label, dataset, es, fold):
-    directory = os.path.join(path, dataset)
-    if not os.path.exists(path):
-        # Create the directory because it does not exist
-        os.makedirs(directory)
-        print(f'Directory {directory} has been created')    
+                            test_dir, idx, label, dataset, es, fold):
+    directory = os.path.join(test_dir, dataset)
     testing_filename = constants.testing_image_filename(
         directory, idx, label, es, fold)
     prod_test_filename = constants.prod_testing_image_filename(
@@ -1124,7 +1120,7 @@ def store_dream(dream, label, index, suffix, es, fold):
 
 
 def store_image(filename, array):
-    pixels = array.reshape(dataset.columns, dataset.rows)
+    pixels = array.reshape(ds.columns, ds.rows)
     pixels = pixels.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(filename)
 

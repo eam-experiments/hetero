@@ -138,6 +138,10 @@ class AssociativeMemory(object):
         return self.m
 
     @property
+    def undefined_output(self):
+        return np.full(self.n, np.nan)
+    
+    @property
     def sigma(self):
         return self._sigma
     

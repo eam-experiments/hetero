@@ -426,7 +426,7 @@ def remember_by_hetero_memory(eam: AssociativeMemorySystem,
     confrix, behaviour = recall_by_hetero_memory(
         eam.recall_from_right, left_classifier,
         testing_features[right_ds], testing_labels[left_ds],
-        constants.rows[left_ds], minimum, maximum)
+        rows[left_ds], minimum, maximum)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     confrixes = np.array(confrixes, dtype=int)

@@ -891,12 +891,14 @@ def hetero_remember_per_fold(es, fold):
             behaviours[:, constants.correct_response_idx] + \
             behaviours[:, constants.no_correct_response_idx]
         fold_precision.append(np.where(
-            total_recalls == 0, 1, behaviours[constants.correct_response_idx]/total_recalls))
+            total_recalls == 0, 1, behaviours[:, constants.correct_response_idx]/total_recalls))
         fold_recall.append(behaviours[:, constants.correct_response_idx]/total_test)
         start = end
     fold_entropies = np.array(fold_entropies)
     fold_precision = np.transpose(np.array(fold_precision))
     fold_recall = np.transpose(np.array(fold_recall))
+    fold_behaviours = np.transpose(np.array(fold_behaviours, dtype=int), axes=(1,0,2))
+    fold_confrixes = np.transpose(np.array(fold_behaviours, dtype=int), axes=(1,0,2,3))
     print(f'Filling test of hetero-associative memory completed for fold {fold}')
     return fold, fold_entropies, fold_precision, fold_recall, fold_confrixes, fold_behaviours
 
@@ -1139,14 +1141,14 @@ def remember(es):
         constants.csv_filename(
             'remember_stdev_entropy', es),
         main_stdev_entropies, delimiter=',')
-    np.savetxt(constants.csv_filename('remember_mean_behaviours-', es),
-               main_avrge_behaviours, delimiter=',')
-    np.savetxt(constants.csv_filename('remember_stdv_behaviours-', es),
-               main_stdev_behaviours, delimiter=',')
-    np.savetxt(constants.csv_filename('remember_mean_confrixes-', es),
-               main_avrge_confrixes, delimiter=',')
-    np.savetxt(constants.csv_filename('remember_stdv_confrixes-', es),
-               main_stdev_confrixes, delimiter=',')
+    np.save(constants.data_filename('remember_mean_behaviours-', es),
+               main_avrge_behaviours)
+    np.save(constants.data_filename('remember_stdv_behaviours-', es),
+               main_stdev_behaviours)
+    np.save(constants.data_filename('remember_mean_confrixes-', es),
+               main_avrge_confrixes)
+    np.save(constants.data_filename('remember_stdv_confrixes-', es),
+               main_stdev_confrixes)
 
     for i in range(len(constants.datasets)):
         dataset = constants.datasets[i]
@@ -1154,14 +1156,14 @@ def remember(es):
             100*main_avrge_precisions[i], 100*main_avrge_recalls[i], main_avrge_entropies,
             100*main_stdev_precisions[i], 100*main_stdev_recalls[i], dataset, 
             es, acc_mean=100*main_avrge_accuracies[i], acc_std=100*main_stdev_accuracies[i],
-            tag = 'hetero_remember', xlabels=constants.memory_fills,
+            tag = 'hetero_remember' + dataset, xlabels=constants.memory_fills,
             xtitle=_('Percentage of memory corpus'))
-        mean_no_response = main_avrge_behaviours[i,constants.no_response_idx]
-        mean_no_correct_response = main_avrge_behaviours[i, constants.no_correct_response_idx]
-        mean_correct_response = main_avrge_behaviours[i,constants.correct_response_idx]
+        mean_no_response = main_avrge_behaviours[i,:, constants.no_response_idx]
+        mean_no_correct_response = main_avrge_behaviours[i, :, constants.no_correct_response_idx]
+        mean_correct_response = main_avrge_behaviours[i, :, constants.correct_response_idx]
         plot_behs_graph(mean_no_response, mean_no_correct_response,
                 mean_correct_response, dataset, es)
-        save_conf_matrix(main_avrge_confrixes[i], dataset, es)
+        save_conf_matrix(main_avrge_confrixes[i, len(constants.memory_fills)-1], dataset, es)
     print('Remembering done!')
 
 

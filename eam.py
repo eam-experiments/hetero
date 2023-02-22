@@ -399,11 +399,11 @@ def recall_by_hetero_memory(
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
     behaviour[constants.no_correct_response_idx] = \
         len(testing_labels) - unknown - behaviour[constants.correct_response_idx]
-    return confrix, behaviour
+    return confrix, behaviour, memories
     
 def remember_by_hetero_memory(eam: AssociativeMemorySystem,
             left_classifier, right_classifier,
-            testing_features, testing_labels, min_maxs):
+            testing_features, testing_labels, min_maxs, percent, es, fold):
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
     rows = constants.codomains()
@@ -411,12 +411,16 @@ def remember_by_hetero_memory(eam: AssociativeMemorySystem,
     behaviours = []
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
-    confrix, behaviour = recall_by_hetero_memory(
+    confrix, behaviour, memories = recall_by_hetero_memory(
         eam.recall_from_left, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
         rows[right_ds], minimum, maximum)
     confrixes.append(confrix)
     behaviours.append(behaviour)
+    prefix = constants.memories_name(left_ds, es)
+    prefix + constants.int_suffix(percent, 'fll')
+    filename = constants.data_filename(prefix, es, fold)
+    np.save(filename, memories)
     print('Remembering from right by hetero memory')
     minimum, maximum = min_maxs[left_ds]
     confrix, behaviour = recall_by_hetero_memory(
@@ -638,7 +642,7 @@ def test_hetero_filling_percent(
 
 def hetero_remember_percent(
         eam: AssociativeMemorySystem, left_classifier, right_classifier,
-        filling_features, testing_features, testing_labels, min_maxs, percent):
+        filling_features, testing_features, testing_labels, min_maxs, percent, es, fold):
     # Register filling data.
     print('Filling hetero memory')
     counter = 0
@@ -650,7 +654,7 @@ def hetero_remember_percent(
         constants.print_counter(counter, 1000, 100)
     print(f'Filling of memories done at {percent}%')
     confrixes, behaviours = remember_by_hetero_memory(eam, left_classifier, right_classifier,
-            testing_features, testing_labels, min_maxs)
+            testing_features, testing_labels, min_maxs, percent, es, fold)
     return confrixes, behaviours, eam.entropy
 
 def test_filling_per_fold(mem_size, domain, dataset, es, fold):
@@ -874,7 +878,7 @@ def hetero_remember_per_fold(es, fold):
         confrixes, behaviours, entropy = \
                 hetero_remember_percent(
                     eam, left_classifier, right_classifier,
-                    features, testing_features, testing_labels, min_maxs, percent)
+                    features, testing_features, testing_labels, min_maxs, percent, es, fold)
         fold_entropies.append(entropy)
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)
@@ -1131,6 +1135,14 @@ def remember(es):
         constants.csv_filename(
             'remember_stdev_entropy', es),
         main_stdev_entropies, delimiter=',')
+    np.savetxt(constants.csv_filename('remember_mean_behaviours-', es),
+               main_avrge_behaviours, delimiter=',')
+    np.savetxt(constants.csv_filename('remember_stdv_behaviours-', es),
+               main_stdev_behaviours, delimiter=',')
+    np.savetxt(constants.csv_filename('remember_mean_confrixes-', es),
+               main_avrge_confrixes, delimiter=',')
+    np.savetxt(constants.csv_filename('remember_stdv_confrixes-', es),
+               main_stdev_confrixes, delimiter=',')
 
     for i in range(len(constants.datasets)):
         dataset = constants.datasets[i]
@@ -1145,6 +1157,7 @@ def remember(es):
         mean_correct_response = main_avrge_behaviours[i,constants.correct_response_idx]
         plot_behs_graph(mean_no_response, mean_no_correct_response,
                 mean_correct_response, dataset, es)
+        save_conf_matrix(main_avrge_confrixes[i], dataset, es)
     print('Remembering done!')
 
 

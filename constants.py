@@ -206,7 +206,7 @@ def print_counter(n, every, step = 1, symbol = '.', prefix = ''):
     print(counter, end = '', flush=True)
 
 def int_suffix(n, prefix=None):
-    prefix = '' if prefix is None else '-' + prefix + '_'
+    prefix = '-' if prefix is None else '-' + prefix + '_'
     return prefix + str(n).zfill(3)
 
 def float_suffix(x, prefix=None):
@@ -273,26 +273,29 @@ def features_name(dataset, es):
 def labels_name(dataset, es):
     return labels_prefix + dataset
 
-def memories_name(es):
-    return memories_prefix
+def memories_name(dataset, es):
+    return memories_prefix + dataset
 
-def noised_memories_name(es):
-    return noised_prefix
+def confrix_name(dataset, es):
+    return mem_conf_prefix + dataset
 
-def recognition_name(es):
-    return recognition_prefix
+def noised_memories_name(dataset, es):
+    return noised_prefix + dataset
 
-def noised_recog_name(es):
-    return recog_noised_prefix
+def recognition_name(dataset, es):
+    return recognition_prefix + dataset
 
-def weights_name(es):
-    return weights_prefix
+def noised_recog_name(dataset, es):
+    return recog_noised_prefix + dataset
 
-def noised_weights_name(es):
-    return weights_noised_prefix
+def weights_name(dataset, es):
+    return weights_prefix + dataset
 
-def noised_classification_name(es):
-    return classification_noised_prefix
+def noised_weights_name(dataset, es):
+    return weights_noised_prefix + dataset
+
+def noised_classification_name(dataset, es):
+    return classification_noised_prefix + dataset
 
 def learn_params_name(dataset, es):
     return learn_params_prefix + dataset
@@ -372,9 +375,9 @@ def classifier_filename(name_prefix, es, fold):
 def decoder_filename(name_prefix, es, fold):
     return filename(name_prefix + decoder_suffix, es, fold)
 
-def memory_confrix_filename(fill, es, fold):
-    prefix = mem_conf_prefix + int_suffix(fill, 'fll')
-    return data_filename(prefix, es, fold)
+def memory_confrix_filename(name_prefix, fill, es):
+    prefix = name_prefix + int_suffix(fill, 'fll')
+    return data_filename(prefix, es)
 
 def recog_filename(name_prefix, es, fold):
     return csv_filename(name_prefix, es, fold)

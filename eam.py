@@ -417,17 +417,21 @@ def remember_by_hetero_memory(eam: AssociativeMemorySystem,
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = constants.memories_name(left_ds, es)
-    prefix + constants.int_suffix(percent, 'fll')
+    prefix =+ constants.int_suffix(percent, 'fll')
     filename = constants.data_filename(prefix, es, fold)
     np.save(filename, memories)
     print('Remembering from right by hetero memory')
     minimum, maximum = min_maxs[left_ds]
-    confrix, behaviour = recall_by_hetero_memory(
+    confrix, behaviour, memories = recall_by_hetero_memory(
         eam.recall_from_right, left_classifier,
         testing_features[right_ds], testing_labels[left_ds],
         constants.rows[left_ds], minimum, maximum)
     confrixes.append(confrix)
     behaviours.append(behaviour)
+    prefix = constants.memories_name(right_ds, es)
+    prefix =+ constants.int_suffix(percent, 'fll')
+    filename = constants.data_filename(prefix, es, fold)
+    np.save(filename, memories)
     confrixes = np.array(confrixes, dtype=int)
     behaviours = np.array(behaviours, dtype=int)
     return confrixes, behaviours

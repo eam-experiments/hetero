@@ -64,3 +64,19 @@ class AssociativeMemorySystem:
         recognized, weight = self.heter_mem.recognize(vector_a, vector_b)
         return recognized, weight        
 
+    def recall_from_left(self, vector_a_p):
+        vector_a, recognized, _ = self.left_mem.recall(vector_a_p)
+        if not recognized:
+            return self.right_mem.undefined_output, recognized, 0
+        vector_b, weight = self.heter_mem.recall_from_left(vector_a) 
+        vector_b_p, recognized, _ = self.right_mem.recall(vector_b)
+        return vector_b_p, recognized, (weight if recognized else 0)
+        
+    def recall_from_right(self, vector_b_p):
+        vector_b, recognized, _ = self.right_mem.recall(vector_b_p)
+        if not recognized:
+            return self.left_mem.undefined_output, recognized, 0
+        vector_a, weight = self.heter_mem.recall_from_right(vector_b) 
+        vector_a_p, recognized, _ = self.left_mem.recall(vector_a)
+        return vector_a_p, recognized, (weight if recognized else 0)
+

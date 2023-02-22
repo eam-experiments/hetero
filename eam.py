@@ -1161,7 +1161,7 @@ def remember(es):
         mean_correct_response = main_avrge_behaviours[i,constants.correct_response_idx]
         plot_behs_graph(mean_no_response, mean_no_correct_response,
                 mean_correct_response, dataset, es)
-        save_conf_matrix(main_avrge_confrixes[i], dataset, es)
+        save_conf_matrix(main_avrge_confrixes[i, len(constants.memory_fills)-1], dataset, es)
     print('Remembering done!')
 
 

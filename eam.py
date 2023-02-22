@@ -122,7 +122,7 @@ def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
     plt.close()
 
 
-def plot_behs_graph(no_response, no_correct, correct, dataset, es):
+def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None):
     for i in range(len(no_response)):
         total = (no_response[i] + no_correct[i] + correct[i])/100.0
         no_response[i] /= total
@@ -130,7 +130,9 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es):
         correct[i] /= total
     full_length = 100.0
     step = 0.1
-    main_step = full_length/len(constants.memory_sizes)
+    if xtags is None:
+        xtags = constants.memory_sizes
+    main_step = full_length/len(xtags)
     x = np.arange(0.0, full_length, main_step)
 
     # One main step less because levels go on sticks, not
@@ -147,7 +149,7 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es):
 
     plt.xlim(-width, xmax + width)
     plt.ylim(0.0, ymax)
-    plt.xticks(x, constants.memory_sizes)
+    plt.xticks(x, xtags)
 
     plt.xlabel(_('Range Quantization Levels'))
     plt.ylabel(_('Labels'))
@@ -897,8 +899,8 @@ def hetero_remember_per_fold(es, fold):
     fold_entropies = np.array(fold_entropies)
     fold_precision = np.transpose(np.array(fold_precision))
     fold_recall = np.transpose(np.array(fold_recall))
-    fold_behaviours = np.transpose(np.array(fold_behaviours, dtype=int), axes=(1,0,2))
-    fold_confrixes = np.transpose(np.array(fold_behaviours, dtype=int), axes=(1,0,2,3))
+    fold_behaviours = np.transpose(np.array(fold_behaviours, dtype=int), axes=(1, 0, 2))
+    fold_confrixes = np.transpose(np.array(fold_confrixes, dtype=int), axes=(1, 0, 2, 3))
     print(f'Filling test of hetero-associative memory completed for fold {fold}')
     return fold, fold_entropies, fold_precision, fold_recall, fold_confrixes, fold_behaviours
 
@@ -1162,7 +1164,7 @@ def remember(es):
         mean_no_correct_response = main_avrge_behaviours[i, :, constants.no_correct_response_idx]
         mean_correct_response = main_avrge_behaviours[i, :, constants.correct_response_idx]
         plot_behs_graph(mean_no_response, mean_no_correct_response,
-                mean_correct_response, dataset, es)
+                mean_correct_response, dataset, es, xtags=constants.memory_fills)
         save_conf_matrix(main_avrge_confrixes[i, len(constants.memory_fills)-1], dataset, es)
     print('Remembering done!')
 

@@ -406,6 +406,7 @@ def remember_by_hetero_memory(eam: AssociativeMemorySystem,
             testing_features, testing_labels, min_maxs):
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
+    rows = constants.codomains()
     confrixes = []
     behaviours = []
     print('Remembering from left by hetero memory')
@@ -413,7 +414,7 @@ def remember_by_hetero_memory(eam: AssociativeMemorySystem,
     confrix, behaviour = recall_by_hetero_memory(
         eam.recall_from_left, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
-        constants.rows[right_ds], minimum, maximum)
+        rows[right_ds], minimum, maximum)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     print('Remembering from right by hetero memory')

@@ -233,7 +233,7 @@ class HeteroAssociativeMemory(object):
         return np.where((r_io ==0) | (r_iota !=0), 1, 0)
 
     def project(self, vector, dim):
-        projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
+        projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=int)
         for i in range(self.cols(dim)):
             k = vector[i]
             projection = projection + (self.iota_relation[i, :, k, :] if dim == 0 

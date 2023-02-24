@@ -1,0 +1,18 @@
+[BASIC]
+
+# Regular expression matching correct argument names. Overrides argument-
+# naming-style.
+argument-rgx=[a-z]+[_a-z]*
+
+# Regular expression matching correct attribute names. Overrides attr-naming-
+# style.
+attr-rgx=_*[a-z]+[_a-z]*
+
+# Good variable names regexes, separated by a comma. If names match any regex,
+# they will always be accepted
+good-names-rgxs=[a-z]+[_a-z]*
+
+# Regular expression which should only match function or class names that do
+# not require a docstring.
+no-docstring-rgx=^[_a-z]
+

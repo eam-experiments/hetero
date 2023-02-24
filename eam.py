@@ -682,13 +682,15 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     return fold, fold_entropies, fold_precision, fold_recall
 
 
-def test_hetero_filling_per_fold(es, fold):
+def test_hetero_filling_per_fold(test_cond, es, fold):
     # Create the required associative memories.
     domains = constants.domains()
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds],
+    memory = HeteroAssociativeMemory if test_cond == constants.SIMPLE_HETERO \
+        else AssociativeMemorySystem
+    eam = memory(domains[left_ds], domains[right_ds],
             rows[left_ds], rows[right_ds],
             es.xi, es.iota, es.kappa, es.sigma)
     filling_features = {}
@@ -924,7 +926,7 @@ def test_memory_fills(mem_sizes, dataset, es):
     return best_filling_percents
 
 
-def test_hetero_fills(es):
+def test_hetero_fills(es, test_cond):
     memory_fills = constants.memory_fills
     testing_folds = constants.n_folds
     # All entropies, precision, and recall, per size, fold, and fill.
@@ -935,7 +937,7 @@ def test_hetero_fills(es):
     list_results = []
 
     for fold in range(testing_folds):
-        results = test_hetero_filling_per_fold(es, fold)
+        results = test_hetero_filling_per_fold(test_cond, es, fold)
         list_results.append(results)
     for fold, entropies, precisions, recalls, accuracies in list_results:
         total_precisions[fold] = precisions
@@ -984,10 +986,11 @@ def test_hetero_fills(es):
             'hetero_stdev_entropy', es),
         main_stdev_entropies, delimiter=',')
 
+    prefix = constants.hetero_prefixs[test_cond] + 'hetero_recognize'
     plot_pre_graph(100*main_avrge_precisions, 100*main_avrge_recalls, main_avrge_entropies,
                     100*main_stdev_precisions, 100*main_stdev_recalls, _dataset,
                     es, acc_mean=100*main_avrge_accuracies, acc_std=100*main_stdev_accuracies,
-                    tag = 'hetero_recognize',
+                    tag = prefix,
                     xlabels=constants.memory_fills, xtitle=_('Percentage of memory corpus'))
     print('Testing fillings for hetero-associative done.')
 
@@ -1256,7 +1259,8 @@ def run_separate_evaluation(dataset, es):
     save_learned_params(best_memory_sizes, best_filling_percents, dataset, es)
 
 def run_evaluation(es):
-    test_hetero_fills(es)
+    test_hetero_fills(es, constants.SIMPLE_HETERO)
+    test_hetero_fills(es, constants.FULL_HETERO)
 
 def generate_memories(es):
     decode_test_features(es)

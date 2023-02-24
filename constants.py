@@ -29,6 +29,10 @@ datasets_to_codomains = {MNIST: 4, FASHION: 8}
 left_dataset = MNIST
 right_dataset = FASHION
 
+SIMPLE_HETERO = 0
+FULL_HETERO = 1
+hetero_prefixs = ['simple-', 'full-']
+
 # Directory where all results are stored.
 data_path = 'data'
 run_path = 'runs'

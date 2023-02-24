@@ -16,10 +16,8 @@
 # File originally create by Raul Peralta-Lozada.
 
 import math
-import numpy as np
-from operator import itemgetter
 import random
-import time
+import numpy as np
 
 import constants
 
@@ -30,7 +28,7 @@ def normpdf(x, mean, sd, scale = 1.0):
     return scale*num/denom
 
 
-class AssociativeMemory(object):
+class AssociativeMemory:
     def __init__(self, n: int, m: int,
         xi = constants.xi_default,
         iota = constants.iota_default,
@@ -49,7 +47,7 @@ class AssociativeMemory(object):
         iota: Proportion of the mean weight per column a
             cue must have to match the memory (moderated
             by xi).
-        kappa: Proportion of the average mean weight a 
+        kappa: Proportion of the average mean weight a
             cue must have to match the memory.
         sigma:
             The standard deviation of the normal distribution
@@ -77,7 +75,7 @@ class AssociativeMemory(object):
         # are up to date.
         self._updated = True
         print(f'Memory {{n: {self.n}, m: {self.m}, ' +
-            f'xi: {self.xi}, iota: {self.iota}, ' + 
+            f'xi: {self.xi}, iota: {self.iota}, ' +
             f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
     def __str__(self):
         return str(self.relation)
@@ -140,14 +138,14 @@ class AssociativeMemory(object):
     @property
     def undefined_output(self):
         return np.full(self.n, np.nan)
-    
+
     @property
     def sigma(self):
         return self._sigma
-    
+
     @sigma.setter
     def sigma(self, s):
-        if (s < 0):
+        if s < 0:
             raise ValueError('Sigma must be a non negative number.')
         self._sigma = s
         self._sigma_scaled = abs(s*self.m)
@@ -159,22 +157,22 @@ class AssociativeMemory(object):
 
     @kappa.setter
     def kappa(self, k):
-        if (k < 0):
+        if k < 0:
             raise ValueError('Kappa must be a non negative number.')
         self._kappa = k
 
-    @property 
+    @property
     def iota(self):
         return self._iota
 
     @iota.setter
     def iota(self, i):
-        if (i < 0):
+        if i < 0:
             raise ValueError('Iota must be a non negative number.')
         self._iota = i
         self._updated = False
 
-    @property 
+    @property
     def xi(self):
         return self._xi
 
@@ -206,14 +204,14 @@ class AssociativeMemory(object):
 
     def abstract(self, r_io) -> None:
         self._relation = np.where(
-            self._relation == self.absolute_max_value, 
+            self._relation == self.absolute_max_value,
             self._relation, self._relation + r_io)
         self._updated = False
 
     def _mismatches(self, vector):
         r_io = self.to_relation(vector)
         r_io = self.containment(r_io)
-        return np.count_nonzero(r_io[:self.n,:self.m] == False)
+        return np.count_nonzero(r_io[:self.n,:self.m] is False)
 
     def containment(self, r_io):
         return ~r_io[:,:self.m] | self.iota_relation
@@ -230,15 +228,15 @@ class AssociativeMemory(object):
         else:
             column = self._normalize(
                 self.relation[i,:], v, self._sigma_scaled, self._scale)
-        sum = column.sum()
-        r = sum*random.random()
+        s = column.sum()
+        r = s*random.random()
         for j in range(self.m):
             if r < column[j]:
                 return j
             r -= column[j]
         return self.m - 1
 
-    def _normalize(self, column, mean, std, scale):            
+    def _normalize(self, column, mean, std, scale):
         norm = np.array([normpdf(i, mean, std, scale) for i in range(self.m)])
         return norm*column
 
@@ -249,7 +247,7 @@ class AssociativeMemory(object):
 
     def validate(self, vector):
         """ It asumes vector is an array of floats, and np.nan
-            may be used to register an undefined value, but it also 
+            may be used to register an undefined value, but it also
             considerers any negative number or out of range number
             as undefined.
         """
@@ -300,10 +298,10 @@ class AssociativeMemory(object):
     def _update_iota_relation(self):
         for i in range(self._n):
             column = self._relation[i,:]
-            sum = np.sum(column)
-            if sum == 0:
+            s = np.sum(column)
+            if s == 0:
                 self._iota_relation[i,:] = np.zeros(self._m, dtype=int)
             else:
                 count = np.count_nonzero(column)
-                mean = self.iota*sum/count
+                mean = self.iota*s/count
                 self._iota_relation[i,:] = np.where(column < mean, 0, column)

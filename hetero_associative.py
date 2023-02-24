@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import math
-import numpy as np
-from operator import itemgetter
-import random
 import time
+import random
+import numpy as np
 
 import constants
 
-class HeteroAssociativeMemory(object):
+class HeteroAssociativeMemory:
     def __init__(self, n: int, p: int, m: int, q: int,
         xi = constants.xi_default, iota = constants.iota_default,
         kappa=constants.kappa_default, sigma=constants.sigma_default):
@@ -65,8 +62,8 @@ class HeteroAssociativeMemory(object):
         self._means = np.zeros((self._n, self._p), dtype=np.double)
         self._updated = True
         print(f'Relational memory {{n: {self.n}, p: {self.p}, ' +
-            f'm: {self.m}, q: {self.q}, ' + 
-            f'xi: {self.xi}, iota: {self.iota}, ' + 
+            f'm: {self.m}, q: {self.q}, ' +
+            f'xi: {self.xi}, iota: {self.iota}, ' +
             f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
 
     def __str__(self):
@@ -126,10 +123,10 @@ class HeteroAssociativeMemory(object):
     @property
     def sigma(self):
         return self._sigma
-    
+
     @sigma.setter
     def sigma(self, sigma):
-        if (sigma < 0):
+        if sigma < 0:
             raise ValueError('Sigma must be a non negative number.')
         self._sigma = abs(sigma)
 
@@ -139,27 +136,27 @@ class HeteroAssociativeMemory(object):
 
     @kappa.setter
     def kappa(self, kappa):
-        if (kappa < 0):
+        if kappa < 0:
             raise ValueError('Kappa must be a non negative number.')
         self._kappa = kappa
 
-    @property 
+    @property
     def iota(self):
         return self._iota
 
     @iota.setter
     def iota(self, iota):
-        if (iota < 0):
+        if iota < 0:
             raise ValueError('Iota must be a non negative number.')
         self._iota = iota
 
-    @property 
+    @property
     def xi(self):
         return self._xi
 
     @xi.setter
     def xi(self, x):
-        if (x < 0):
+        if x < 0:
             raise ValueError('Xi must be a non negative number.')
         self._xi = x
         self._updated = False
@@ -190,7 +187,7 @@ class HeteroAssociativeMemory(object):
 
     def core(self, full_relation):
         return full_relation[:, :, :self.m, :self.q]
-    
+
     def register(self, vector_a, vector_b) -> None:
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
@@ -206,7 +203,7 @@ class HeteroAssociativeMemory(object):
             r_io[:,:, :self.m, :self.q] == 0) <= self._xi
         weight = self._weight(vector_a, vector_b)
         recognized = recognized and (self.mean*self._kappa <= weight)
-        return recognized, weight        
+        return recognized, weight
 
     def recall_from_left(self, vector):
         return self._recall(vector, 0)
@@ -223,20 +220,20 @@ class HeteroAssociativeMemory(object):
 
     def abstract(self, r_io):
         self._relation = np.where(
-            self._relation == (self.absolute_max_value-1), 
+            self._relation == (self.absolute_max_value-1),
             self._relation, self._relation + r_io)
         self._updated = False
 
-    def containment(self, _r_io):
-        r_io = _r_io[:, :, :self.m, :self.q]
+    def containment(self, r_io):
+        r = r_io[:, :, :self.m, :self.q]
         r_iota = self.iota_relation
-        return np.where((r_io ==0) | (r_iota !=0), 1, 0)
+        return np.where((r ==0) | (r_iota !=0), 1, 0)
 
     def project(self, vector, dim):
         projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=int)
         for i in range(self.cols(dim)):
             k = vector[i]
-            projection = projection + (self.iota_relation[i, :, k, :] if dim == 0 
+            projection = projection + (self.iota_relation[i, :, k, :] if dim == 0
                 else self.iota_relation[:, i, :, k])
         return projection
 
@@ -249,10 +246,10 @@ class HeteroAssociativeMemory(object):
 
     # Choose a value from the column, assuming it is a probabilistic distribution.
     def choose(self, column, dim):
-        sum = column.sum()
-        if sum == 0:
+        s = column.sum()
+        if s == 0:
             return self.undefined(dim)
-        n = sum*random.random()
+        n = s*random.random()
         for j in range(column.size):
             if n < column[j]:
                 return j
@@ -301,23 +298,24 @@ class HeteroAssociativeMemory(object):
         for i in range(self.n):
             for j in range(self.p):
                 matrix = self.relation[i, j, :, :]
-                sum = np.sum(matrix)
-                if sum == 0:
+                s = np.sum(matrix)
+                if s == 0:
                     self._iota_relation[i, j, :, :] = np.zeros((self.m, self.q), dtype=int)
                 else:
                     count = np.count_nonzero(matrix)
-                    threshold = self.iota*sum/count
-                    self._iota_relation[i, j, :self.m, :self.q] = np.where(matrix < threshold, 0, matrix)
+                    threshold = self.iota*s/count
+                    self._iota_relation[i, j, :self.m, :self.q] = \
+                        np.where(matrix < threshold, 0, matrix)
 
     def validate(self, vector, dim):
         """ It asumes vector is an array of floats, and np.nan
-            is used to register an undefined value, but it also 
+            is used to register an undefined value, but it also
             considerers any negative number or out of range number
             as undefined.
         """
         expected_length = self.cols(dim)
         if vector.size != expected_length:
-            raise ValueError('Invalid lenght of the input data. Expected' + 
+            raise ValueError('Invalid lenght of the input data. Expected' +
                  f'{expected_length} and given {vector.size}')
         undefined = self.undefined(dim)
         v = np.nan_to_num(vector, copy=True, nan=undefined)
@@ -338,19 +336,16 @@ class HeteroAssociativeMemory(object):
                 relation[i, j, k, l] = 1
         return relation
 
-    @property    
+    @property
     def rel_string(self):
         return self.toString(self.relation)
 
     def toString(self, a, p = ''):
         if a.ndim == 1:
             return f'{p}{a}'
-        else:
-            s = f'{p}[\n'
-            for b in a:
-                ss = self.toString(b, p + ' ')
-                s = f'{s}{ss}\n'
-            s = f'{s}{p}]'
-            return s
-
-
+        s = f'{p}[\n'
+        for b in a:
+            ss = self.toString(b, p + ' ')
+            s = f'{s}{ss}\n'
+        s = f'{s}{p}]'
+        return s

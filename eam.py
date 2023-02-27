@@ -317,12 +317,14 @@ def recognize_by_hetero_memory(
         eam, tefs, tels):
     confrix = np.zeros((2,2), dtype=int)
     print('Recognizing by hetero memory')
+    weights = {False: 0, True: 0}
     counter = 0
     for left_feat, left_lab, right_feat, right_lab \
             in zip(tefs[constants.left_dataset], tels[constants.left_dataset],
                     tefs[constants.right_dataset], tels[constants.right_dataset]):
-        recognized, _ = eam.recognize(left_feat, right_feat)
+        recognized, weight = eam.recognize(left_feat, right_feat)
         if recognized:
+            weights[left_lab == right_lab] += 1
             if left_lab == right_lab:
                 confrix[0,0] += 1
             else:
@@ -334,6 +336,7 @@ def recognize_by_hetero_memory(
                 confrix[1,1] += 1
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
+    print(f'Weights: {weights}')
     print(f'Confusion matrix:\n{confrix}')
     return confrix
 

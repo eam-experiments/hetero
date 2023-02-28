@@ -36,6 +36,7 @@ import gc
 import typing
 import gettext
 import json
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -246,6 +247,7 @@ def match_labels(features, labels, half = False):
             break
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='-')
+    print(' end')
     if half:
         i = 0
         for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
@@ -282,6 +284,18 @@ def describe(features, labels):
     print(f'Left labels counts: {left_counts}')
     print(f'Right labels counts: {right_counts}')
 
+def show_weights_stats(weights):
+    w = {}
+    conds = ['TP', 'FN', 'FP', 'TN']
+    for c in conds:
+        if len(weights[c]) == 0:
+            w[c] = (0.0, 0.0)
+        else:
+            mean = np.mean(weights[c])
+            stdv = np.std(weights[c])
+            w[c] = (mean, stdv)
+    print(f'Weights: {w}')
+
 def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
     data = []
     labels = []
@@ -316,27 +330,31 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
 def recognize_by_hetero_memory(
         eam, tefs, tels):
     confrix = np.zeros((2,2), dtype=int)
+    weights = {'TP': [], 'FN': [], 'FP': [], 'TN': []} 
     print('Recognizing by hetero memory')
-    weights = {False: 0, True: 0}
     counter = 0
     for left_feat, left_lab, right_feat, right_lab \
             in zip(tefs[constants.left_dataset], tels[constants.left_dataset],
                     tefs[constants.right_dataset], tels[constants.right_dataset]):
         recognized, weight = eam.recognize(left_feat, right_feat)
         if recognized:
-            weights[left_lab == right_lab] += 1
             if left_lab == right_lab:
                 confrix[0,0] += 1
+                weights['TP'].append(weight)
             else:
                 confrix[1,0] += 1
+                weights['FP'].append(weight)
         else:
             if left_lab == right_lab:
                 confrix[0,1] += 1
+                weights['FN'].append(weight)
             else:
                 confrix[1,1] += 1
+                weights['TN'].append(weight)
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
-    print(f'Weights: {weights}')
+    print(' end')
+    show_weights_stats(weights)
     print(f'Confusion matrix:\n{confrix}')
     return confrix
 
@@ -359,6 +377,7 @@ def recall_by_hetero_memory(
             unknown += 1
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
+    print(' end')
     memories = np.array(memories)
     predictions = np.argmax(classifier.predict(memories), axis=1)
     for correct, prediction in zip(correct, predictions):
@@ -595,6 +614,7 @@ def test_hetero_filling_percent(
         eam.register(left_feat,right_feat)
         counter += 1
         constants.print_counter(counter, 1000, 100)
+    print(' end')
     print(f'Filling of memories done at {percent}%')
     confrix = recognize_by_hetero_memory(eam, tefs, tels)
     return confrix, eam.entropy
@@ -611,6 +631,7 @@ def hetero_remember_percent(
         eam.register(left_feat,right_feat)
         counter += 1
         constants.print_counter(counter, 1000, 100)
+    print(' end')
     print(f'Filling of memories done at {percent}%')
     confrixes, behaviours = remember_by_hetero_memory(eam, left_classifier, right_classifier,
             testing_features, testing_labels, min_maxs, percent, es, fold)
@@ -755,7 +776,8 @@ def test_hetero_filling_per_fold(test_cond, es, fold):
         # An array with average entropy per step.
         fold_entropies.append(entropy)
         # Arrays with precision, and recall.
-        fold_precision.append(confrix[0,0]/(confrix[0,0]+confrix[1,0]))
+        positives = confrix[0,0]+confrix[1,0] 
+        fold_precision.append(1.0 if positives == 0 else confrix[0,0]/positives)
         fold_recall.append(confrix[0,0]/(confrix[0,0]+confrix[0,1]))
         fold_accuracy.append((confrix[0,0]+confrix[1,1])/np.sum(confrix))
         start = end
@@ -929,7 +951,7 @@ def test_memory_fills(mem_sizes, dataset, es):
     return best_filling_percents
 
 
-def test_hetero_fills(es, test_cond):
+def test_hetero_fills(test_cond, es):
     memory_fills = constants.memory_fills
     testing_folds = constants.n_folds
     # All entropies, precision, and recall, per size, fold, and fill.
@@ -989,9 +1011,9 @@ def test_hetero_fills(es, test_cond):
             'hetero_stdev_entropy', es),
         main_stdev_entropies, delimiter=',')
 
-    prefix = constants.hetero_prefixs[test_cond] + 'hetero_recognize'
+    prefix = constants.hetero_prefixs[test_cond] + 'recognize'
     plot_pre_graph(100*main_avrge_precisions, 100*main_avrge_recalls, main_avrge_entropies,
-                    100*main_stdev_precisions, 100*main_stdev_recalls, _dataset,
+                    100*main_stdev_precisions, 100*main_stdev_recalls, 'hetero',
                     es, acc_mean=100*main_avrge_accuracies, acc_std=100*main_stdev_accuracies,
                     tag = prefix,
                     xlabels=constants.memory_fills, xtitle=_('Percentage of memory corpus'))
@@ -1262,8 +1284,8 @@ def run_separate_evaluation(dataset, es):
     save_learned_params(best_memory_sizes, best_filling_percents, dataset, es)
 
 def run_evaluation(es):
-    test_hetero_fills(es, constants.SIMPLE_HETERO)
-    test_hetero_fills(es, constants.FULL_HETERO)
+    test_hetero_fills(constants.SIMPLE_HETERO, es)
+    test_hetero_fills(constants.FULL_HETERO, es)
 
 def generate_memories(es):
     decode_test_features(es)

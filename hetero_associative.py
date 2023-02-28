@@ -201,7 +201,7 @@ class HeteroAssociativeMemory:
         r_io = self.containment(r_io)
         recognized = np.count_nonzero(r_io == 0) <= self._xi
         weight = self._weight(vector_a, vector_b)
-        recognized = recognized and (self.mean*self._kappa <= weight)
+        recognized = recognized and (self._kappa <= weight)
         return recognized, weight
 
     def recall_from_left(self, vector):
@@ -256,7 +256,7 @@ class HeteroAssociativeMemory:
         return self.rows(dim) - 1
 
     def _weight(self, vector_a, vector_b):
-        return np.mean(self._weights(vector_a, vector_b))
+        return np.mean(self._weights(vector_a, vector_b))/self.mean
 
     def _weights(self, vector_a, vector_b):
         weights = []

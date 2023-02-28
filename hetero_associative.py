@@ -199,8 +199,7 @@ class HeteroAssociativeMemory:
         vector_b = self.validate(vector_b, 1)
         r_io = self.vectors_to_relation(vector_a, vector_b)
         r_io = self.containment(r_io)
-        recognized = np.count_nonzero(
-            r_io[:,:, :self.m, :self.q] == 0) <= self._xi
+        recognized = np.count_nonzero(r_io == 0) <= self._xi
         weight = self._weight(vector_a, vector_b)
         recognized = recognized and (self.mean*self._kappa <= weight)
         return recognized, weight
@@ -264,7 +263,7 @@ class HeteroAssociativeMemory:
         for i in range(self.n):
             for j in range(self.p):
                 w = self._relation[i,j,vector_a[i], vector_b[j]]
-            weights.append(w)
+                weights.append(w)
         return np.array(weights)
 
     def update(self):

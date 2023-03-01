@@ -211,7 +211,7 @@ class AssociativeMemory:
     def _mismatches(self, vector):
         r_io = self.to_relation(vector)
         r_io = self.containment(r_io)
-        return np.count_nonzero(r_io[:self.n,:self.m] is False)
+        return np.count_nonzero(r_io[:self.n,:self.m] == 0)
 
     def containment(self, r_io):
         return ~r_io[:,:self.m] | self.iota_relation

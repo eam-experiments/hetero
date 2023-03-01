@@ -189,18 +189,27 @@ class AssociativeMemory:
         self.abstract(r_io)
 
     def recognize(self, cue, validate = True):
+        recognized, weights = self.recog_detailed_weights(cue, validate)
+        return recognized, np.mean(weights)
+
+    def recog_detailed_weights(self, cue, validate = True):
         vector = self.validate(cue) if validate else cue
         recognized = self._mismatches(vector) <= self.xi
-        weight = self._weight(vector)
-        recognized = recognized and (self.mean*self.kappa <= weight)
-        return recognized, weight
+        weights = self._weights(vector)
+        recognized = recognized and (self.mean*self.kappa <= np.mean(weights))
+        return recognized, weights
 
     def recall(self, cue):
-        vector = self.validate(cue)
-        recognized, weight = self.recognize(vector, validate = False)
+        r_io, recognized, weights = self.recall_detailed_weights(cue)
+        return r_io, recognized, np.mean(weights)
+
+    def recall_detailed_weights(self, cue, validate = True):
+        vector = self.validate(cue) if validate else cue
+        recognized, _ = self.recog_detailed_weights(vector, validate = False)
         r_io = self.produce(vector) if recognized else np.full(self.n, self.undefined)
+        weights = self._weights(r_io)
         r_io = self.revalidate(r_io)
-        return r_io, recognized, weight
+        return r_io, recognized, weights
 
     def abstract(self, r_io) -> None:
         self._relation = np.where(

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import constants
 from associative import AssociativeMemory
 from hetero_associative import HeteroAssociativeMemory
@@ -55,28 +56,31 @@ class AssociativeMemorySystem:
             return False
 
     def recognize(self, vector_a_p, vector_b_p):
-        vector_a, recognized, _ = self.left_mem.recall(vector_a_p)
+        vector_a, recognized, weights_a = self.left_mem.recall_detailed_weights(vector_a_p)
         if not recognized:
             return False, 0
-        vector_b, recognized, _ = self.right_mem.recall(vector_b_p)
+        vector_b, recognized, weights_b = self.right_mem.recall_detailed_weights(vector_b_p)
         if not recognized:
             return False, 0
-        recognized, weight = self.heter_mem.recognize(vector_a, vector_b)
-        return recognized, weight        
+        recognized, weight = self.heter_mem.recog_weighted(
+            vector_a, vector_b, weights_a, weights_b)
+        return recognized, weight
 
     def recall_from_left(self, vector_a_p):
-        vector_a, recognized, _ = self.left_mem.recall(vector_a_p)
+        vector_a, recognized, weights_a = self.left_mem.recall_detailed_weights(vector_a_p)
         if not recognized:
             return self.right_mem.undefined_output, recognized, 0
-        vector_b, weight = self.heter_mem.recall_from_left(vector_a) 
-        vector_b_p, recognized, _ = self.right_mem.recall(vector_b)
-        return vector_b_p, recognized, (weight if recognized else 0)
+        weight_a = np.mean(weights_a)
+        vector_b, weight_h = self.heter_mem.recall_from_left_weighted(vector_a, weights_a) 
+        vector_b_p, recognized, weight_b = self.right_mem.recall(vector_b)
+        return vector_b_p, recognized, ((weight_a + weight_h + weight_b)/3 
+                                        if recognized else 0)
         
     def recall_from_right(self, vector_b_p):
-        vector_b, recognized, _ = self.right_mem.recall(vector_b_p)
+        vector_b, recognized, weights_b = self.right_mem.recall_detailed_weights(vector_b_p)
         if not recognized:
             return self.left_mem.undefined_output, recognized, 0
-        vector_a, weight = self.heter_mem.recall_from_right(vector_b) 
+        vector_a, weight = self.heter_mem.recall_from_right_weighted(vector_b, weights_b) 
         vector_a_p, recognized, _ = self.left_mem.recall(vector_a)
         return vector_a_p, recognized, (weight if recognized else 0)
 

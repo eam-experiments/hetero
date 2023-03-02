@@ -196,7 +196,7 @@ class AssociativeMemory:
         vector = self.validate(cue) if validate else cue
         recognized = self._mismatches(vector) <= self.xi
         weights = self._weights(vector)
-        recognized = recognized and (self.mean*self.kappa <= np.mean(weights))
+        recognized = recognized and (self.kappa <= np.mean(weights))
         return recognized, weights
 
     def recall(self, cue):
@@ -280,7 +280,7 @@ class AssociativeMemory:
             w = 0 if self.is_undefined(vector[i]) \
                 else self.relation[i, vector[i]]
             weights.append(w)
-        return np.array(weights)
+        return np.array(weights) / self.means
 
     def is_undefined(self, value):
         return value == self.undefined

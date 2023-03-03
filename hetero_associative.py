@@ -202,8 +202,8 @@ class HeteroAssociativeMemory:
         self.abstract(r_io)
 
     def recognize(self, vector_a, vector_b):
-        weights_a = np.full(vector_a.size, 1)
-        weights_b = np.full(vector_b.size, 1)
+        weights_a = np.full(vector_a.size, 1.0)
+        weights_b = np.full(vector_b.size, 1.0)
         recognized, weights = self.recog_weighted(vector_a, vector_b, weights_a, weights_b)
         return recognized, np.mean(weights)
 
@@ -211,8 +211,8 @@ class HeteroAssociativeMemory:
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
         r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
-        r_io = self.containment(r_io)
-        recognized = np.count_nonzero(r_io == 0) <= self._xi
+        implication = self.containment(r_io)
+        recognized = np.count_nonzero(implication == False) <= self._xi
         weights = self._weights(r_io)
         recognized = recognized and (self._kappa <= np.mean(weights))
         return recognized, weights
@@ -286,7 +286,8 @@ class HeteroAssociativeMemory:
         return np.mean(self._weights(vector_a, vector_b))/self.mean
 
     def _weights(self, relation):
-        weights = np.sum(np.sqrt(relation * self.relation), axis=(2,3))
+        weights = np.sum(np.sqrt(
+            relation[:, :, :self.m, :self.q] * self.relation), axis=(2,3))
         means = np.where(self.means == 0, 1, self.means)
         return weights/means
     

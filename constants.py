@@ -31,7 +31,7 @@ right_dataset = FASHION
 
 SIMPLE_HETERO = 0
 FULL_HETERO = 1
-hetero_prefixs = ['simple-', 'full-']
+hetero_prefixs = ['hetero-direct-', 'hetero-full-']
 
 # Directory where all results are stored.
 data_path = 'data'

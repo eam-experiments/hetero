@@ -285,9 +285,9 @@ class HeteroAssociativeMemory:
     def _weight(self, vector_a, vector_b):
         return np.mean(self._weights(vector_a, vector_b))/self.mean
 
-    def _weights(self, relation):
+    def _weights(self, r_io):
         weights = np.sum(np.sqrt(
-            relation[:, :, :self.m, :self.q] * self.relation), axis=(2,3))
+            r_io[:, :, :self.m, :self.q] * self.relation), axis=(2,3))
         means = np.where(self.means == 0, 1, self.means)
         return weights/means
     
@@ -313,10 +313,10 @@ class HeteroAssociativeMemory:
     def _update_means(self):
         for i in range(self.n):
             for j in range(self.p):
-                relation = self.relation[i, j, :, :]
-                count = np.count_nonzero(relation)
+                r = self.relation[i, j, :, :]
+                count = np.count_nonzero(r)
                 count = 1 if count == 0 else count
-                self._means[i,j] = np.sum(relation)/count
+                self._means[i,j] = np.sum(r)/count
 
     def _update_iota_relation(self):
         for i in range(self.n):

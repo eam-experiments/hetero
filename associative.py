@@ -280,7 +280,7 @@ class AssociativeMemory:
             w = 0 if self.is_undefined(vector[i]) \
                 else self.relation[i, vector[i]]
             weights.append(w)
-        return np.array(weights) / self.means
+        return np.array(weights) / np.where(self.means == 0, 1, self.means)
 
     def is_undefined(self, value):
         return value == self.undefined

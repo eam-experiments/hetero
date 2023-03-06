@@ -286,10 +286,9 @@ class HeteroAssociativeMemory:
         return np.mean(self._weights(vector_a, vector_b))/self.mean
 
     def _weights(self, r_io):
-        weights = np.sum(np.sqrt(
-            r_io[:, :, :self.m, :self.q] * self.relation), axis=(2,3))
+        weights = np.sum(r_io[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
         means = np.where(self.means == 0, 1, self.means)
-        return weights/means
+        return np.sqrt(weights/means)
     
     def update(self):
         print(f'Updating entropies: {time.time()}')

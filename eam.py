@@ -436,11 +436,9 @@ def get_ams_results(
     tef_rounded = msize_features(testing_features, msize, min_value, max_value)
     behaviour = np.zeros(constants.n_behaviours, dtype=np.float64)
 
-    # Create the memory.
-    p = es.mem_params
-    eam = AssociativeMemory(
-        domain, msize, p[constants.xi_idx], p[constants.iota_idx],
-        p[constants.kappa_idx], p[constants.sigma_idx])
+    # Create the memory using default parameters.
+    params = constants.ExperimentalSettings()
+    eam = AssociativeMemory(domain, msize, params)
 
     # Registrate filling data.
     for features in trf_rounded:
@@ -625,8 +623,9 @@ def hetero_remember_percent(
     return confrixes, behaviours, eam.entropy
 
 def test_filling_per_fold(mem_size, domain, dataset, es, fold):
-    # Create the required associative memories.
-    eam = AssociativeMemory(domain, mem_size, es.xi, es.iota, es.kappa, es.sigma)
+    # Create the required associative memories using default parameters.
+    params = constants.ExperimentSettings()
+    eam = AssociativeMemory(domain, mem_size, params)
     model_prefix = constants.model_name(dataset, es)
     filename = constants.classifier_filename(model_prefix, es, fold)
     classifier = tf.keras.models.load_model(filename)
@@ -696,11 +695,14 @@ def test_hetero_filling_per_fold(test_cond, es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    memory = HeteroAssociativeMemory if test_cond == constants.SIMPLE_HETERO \
-        else AssociativeMemorySystem
-    eam = memory(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds],
-            es.xi, es.iota, es.kappa, es.sigma)
+    eam = None
+    if test_cond == constants.SIMPLE_HETERO:
+        eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
+            rows[left_ds], rows[right_ds], es)
+    else:
+        params = constants.ExperimentSettings()
+        eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds],
+                rows[left_ds], rows[right_ds], params, params, es)
     filling_features = {}
     filling_labels = {}
     testing_features = {}
@@ -779,9 +781,9 @@ def hetero_remember_per_fold(es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
+    params = constants.ExperimentSettings()
     eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds],
-            es.xi, es.iota, es.kappa, es.sigma)
+            rows[left_ds], rows[right_ds], params, params, es)
 
     # Retrieve the classifiers.
     model_prefix = constants.model_name(left_ds, es)
@@ -1284,6 +1286,7 @@ if __name__ == "__main__":
         es_lang = gettext.translation('eam', localedir='locale', languages=['es'])
         es_lang.install()
 
+    # Reading memories parameters
     _prefix = constants.memory_parameters_prefix
     _filename = constants.csv_filename(_prefix)
     parameters = None
@@ -1292,6 +1295,7 @@ if __name__ == "__main__":
             np.genfromtxt(_filename, dtype=float, delimiter=',', skip_header=1)
     except:
         pass
+
     exp_settings = constants.ExperimentSettings(parameters)
     print(f'Working directory: {constants.run_path}')
     print(f'Experimental settings: {exp_settings}')

@@ -21,8 +21,7 @@ import constants
 
 class HeteroAssociativeMemory:
     def __init__(self, n: int, p: int, m: int, q: int,
-        xi = constants.xi_default, iota = constants.iota_default,
-        kappa=constants.kappa_default, sigma=constants.sigma_default):
+        es: constants.ExperimentSettings):
         """
         Parameters
         ----------
@@ -34,29 +33,18 @@ class HeteroAssociativeMemory:
             The size of the second domain (of properties).
         q : int
             The size of the second range (of representation).
-        xi: int
-            The number of mismatches allowed between the
-            memory content and the cue.
-        sigma:
-            The standard deviation of the normal distribution
-            used in remembering, centred in the queue, as percentage
-            of the size of the range.
-        iota:
-            Proportion of the average weight in a characteristic (column)
-            required to accept a queue.
-        kappa:
-            Proportion of the average weight of all characteristics required
-            to accept a queue.
+        es: Experimental Settings
+            Includes the values for iota, kappa, xi y sigma.
         """
         self._n = n
         self._m = m+1 # +1 to handle partial functions.
         self._p = p
         self._q = q+1 # +1 to handle partial functions.
-        self._xi = xi
+        self._xi = es.xi
         self._absolute_max = 2**16 - 1
-        self._sigma = sigma
-        self._iota = iota
-        self._kappa = kappa
+        self._sigma = es.sigma
+        self._iota = es.iota
+        self._kappa = es.kappa
         self._relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)
         self._iota_relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)
         self._entropies = np.zeros((self._n, self._p), dtype=np.double)

@@ -26,19 +26,13 @@ class AssociativeMemorySystem:
     """
 
     def __init__(self, n: int, p: int, m: int, q: int,
-            xi = constants.xi_default,
-            iota = constants.iota_default,
-            kappa = constants.kappa_default,
-            sigma = constants.sigma_default):
-        self.left_mem = AssociativeMemory(n, m,
-                xi = xi, iota = iota,
-                kappa = kappa, sigma = sigma)
-        self.right_mem = AssociativeMemory(p, q,
-                xi = xi, iota = iota,
-                kappa = kappa, sigma = sigma)
+            left_es: constants.ExperimentSettings,
+            right_es: constants.ExperimentSettings,
+            hetero_es: constants.ExperimentSettings):
+        self.left_mem = AssociativeMemory(n, m, left_es)
+        self.right_mem = AssociativeMemory(p, q, right_es)
         self.heter_mem = HeteroAssociativeMemory(n, p, m, q,
-                xi = xi, iota = iota,
-                kappa = kappa, sigma = sigma)
+                hetero_es)
         
     @property
     def entropy(self):

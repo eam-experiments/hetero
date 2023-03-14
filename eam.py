@@ -315,7 +315,7 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
 
 
 def recognize_by_hetero_memory(
-        eam, tefs, tels):
+        eam: AssociativeMemorySystem, tefs, tels):
     confrix = np.zeros((2,2), dtype=int)
     weights = {'TP': [], 'FN': [], 'FP': [], 'TN': []} 
     print('Recognizing by hetero memory')
@@ -323,7 +323,7 @@ def recognize_by_hetero_memory(
     for left_feat, left_lab, right_feat, right_lab \
             in zip(tefs[constants.left_dataset], tels[constants.left_dataset],
                     tefs[constants.right_dataset], tels[constants.right_dataset]):
-        recognized, weight = eam.recognize(left_feat, right_feat)
+        recognized, weight = eam.recognize_heter(left_feat, right_feat)
         if recognized:
             if left_lab == right_lab:
                 confrix[0,0] += 1
@@ -689,19 +689,14 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     return fold, fold_entropies, fold_precision, fold_recall
 
 
-def test_hetero_filling_per_fold(test_cond, es, fold):
+def test_hetero_filling_per_fold(es, fold):
     # Create the required associative memories.
     domains = constants.domains()
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    eam = None
-    if test_cond == constants.SIMPLE_HETERO:
-        eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds], es)
-    else:
-        params = constants.ExperimentSettings()
-        eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds],
+    params = constants.ExperimentSettings()
+    eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds],
                 rows[left_ds], rows[right_ds], params, params, es)
     filling_features = {}
     filling_labels = {}
@@ -937,7 +932,7 @@ def test_memory_fills(mem_sizes, dataset, es):
     return best_filling_percents
 
 
-def test_hetero_fills(test_cond, es):
+def test_hetero_fills(es):
     memory_fills = constants.memory_fills
     testing_folds = constants.n_folds
     # All entropies, precision, and recall, per size, fold, and fill.
@@ -948,7 +943,7 @@ def test_hetero_fills(test_cond, es):
     list_results = []
 
     for fold in range(testing_folds):
-        results = test_hetero_filling_per_fold(test_cond, es, fold)
+        results = test_hetero_filling_per_fold(es, fold)
         list_results.append(results)
     for fold, entropies, precisions, recalls, accuracies in list_results:
         total_precisions[fold] = precisions
@@ -997,7 +992,7 @@ def test_hetero_fills(test_cond, es):
             'hetero_stdev_entropy', es),
         main_stdev_entropies, delimiter=',')
 
-    prefix = constants.hetero_prefixs[test_cond] + 'recognize-'
+    prefix = 'hetero_recognize-'
     plot_pre_graph(100*main_avrge_precisions, 100*main_avrge_recalls, main_avrge_entropies,
                     100*main_stdev_precisions, 100*main_stdev_recalls, 'hetero',
                     es, acc_mean=100*main_avrge_accuracies, acc_std=100*main_stdev_accuracies,
@@ -1270,8 +1265,7 @@ def run_separate_evaluation(dataset, es):
     save_learned_params(best_memory_sizes, best_filling_percents, dataset, es)
 
 def run_evaluation(es):
-    test_hetero_fills(constants.SIMPLE_HETERO, es)
-    test_hetero_fills(constants.FULL_HETERO, es)
+    test_hetero_fills(es)
 
 def generate_memories(es):
     decode_test_features(es)

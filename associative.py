@@ -29,11 +29,7 @@ def normpdf(x, mean, sd, scale = 1.0):
 
 
 class AssociativeMemory:
-    def __init__(self, n: int, m: int,
-        xi = constants.xi_default,
-        iota = constants.iota_default,
-        kappa=constants.kappa_default,
-        sigma=constants.sigma_default):
+    def __init__(self, n: int, m: int, es: constants.ExperimentSettings):
         """
         Parameters
         ----------
@@ -41,27 +37,23 @@ class AssociativeMemory:
             The size of the domain (of properties).
         m : int
             The size of the range (of representation).
-        xi: int
-            The number of mismatches allowed between the
-            memory content and the cue.
-        iota: Proportion of the mean weight per column a
-            cue must have to match the memory (moderated
-            by xi).
-        kappa: Proportion of the average mean weight a
-            cue must have to match the memory.
-        sigma:
-            The standard deviation of the normal distribution
-            used in remembering, as percentage of the number of
-            characteristics.
+        es: Experimental Settings, that include xi: The number of
+            mismatches allowed between the memory content and the cue.
+            iota: Proportion of the mean weight per column a cue must
+            have to match the memory (moderated by xi). kappa:
+            Proportion of the average mean weight a cue must have to
+            match the memory. sigma: The standard deviation of the
+            normal distribution used in remembering, as percentage of
+            the number of characteristics.
         """
         self._n = n
         self._m = m+1
-        self._xi = xi
+        self._xi = es.xi
         self._absolute_max = 2**16 - 1
-        self._sigma = sigma
-        self._sigma_scaled = sigma*m
-        self._iota = iota
-        self._kappa = kappa
+        self._sigma = es.sigma
+        self._sigma_scaled = es.sigma*m
+        self._iota = es.iota
+        self._kappa = es.kappa
         self._scale = 1.0/normpdf(0, 0, self._sigma_scaled)
 
         # It is m+1 to handle partial functions.
@@ -189,18 +181,27 @@ class AssociativeMemory:
         self.abstract(r_io)
 
     def recognize(self, cue, validate = True):
+        recognized, weights = self.recog_detailed_weights(cue, validate)
+        return recognized, np.mean(weights)
+
+    def recog_detailed_weights(self, cue, validate = True):
         vector = self.validate(cue) if validate else cue
         recognized = self._mismatches(vector) <= self.xi
-        weight = self._weight(vector)
-        recognized = recognized and (self.mean*self.kappa <= weight)
-        return recognized, weight
+        weights = self._weights(vector)
+        recognized = recognized and (self.kappa <= np.mean(weights))
+        return recognized, weights
 
     def recall(self, cue):
-        vector = self.validate(cue)
-        recognized, weight = self.recognize(vector, validate = False)
+        r_io, recognized, weights = self.recall_detailed_weights(cue)
+        return r_io, recognized, np.mean(weights)
+
+    def recall_detailed_weights(self, cue, validate = True):
+        vector = self.validate(cue) if validate else cue
+        recognized, _ = self.recog_detailed_weights(vector, validate = False)
         r_io = self.produce(vector) if recognized else np.full(self.n, self.undefined)
+        weights = self._weights(r_io)
         r_io = self.revalidate(r_io)
-        return r_io, recognized, weight
+        return r_io, recognized, weights
 
     def abstract(self, r_io) -> None:
         self._relation = np.where(
@@ -271,7 +272,7 @@ class AssociativeMemory:
             w = 0 if self.is_undefined(vector[i]) \
                 else self.relation[i, vector[i]]
             weights.append(w)
-        return np.array(weights)
+        return np.array(weights) / np.where(self.means == 0, 1, self.means)
 
     def is_undefined(self, value):
         return value == self.undefined

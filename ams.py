@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import constants
 from associative import AssociativeMemory
 from hetero_associative import HeteroAssociativeMemory
@@ -25,58 +26,41 @@ class AssociativeMemorySystem:
     """
 
     def __init__(self, n: int, p: int, m: int, q: int,
-            xi = constants.xi_default,
-            iota = constants.iota_default,
-            kappa = constants.kappa_default,
-            sigma = constants.sigma_default):
-        self.left_mem = AssociativeMemory(n, m,
-                xi = xi, iota = iota,
-                kappa = kappa, sigma = sigma)
-        self.right_mem = AssociativeMemory(p, q,
-                xi = xi, iota = iota,
-                kappa = kappa, sigma = sigma)
+            left_es: constants.ExperimentSettings,
+            right_es: constants.ExperimentSettings,
+            hetero_es: constants.ExperimentSettings):
+        self.left_mem = AssociativeMemory(n, m, left_es)
+        self.right_mem = AssociativeMemory(p, q, right_es)
         self.heter_mem = HeteroAssociativeMemory(n, p, m, q,
-                xi = xi, iota = iota,
-                kappa = kappa, sigma = sigma)
+                hetero_es)
         
     @property
     def entropy(self):
         return self.heter_mem.entropy
 
-    def register(self, vector_a_p, vector_b_p):
-        self.left_mem.register(vector_a_p)
-        self.right_mem.register(vector_b_p)
-        vector_a, recognized_a, _ = self.left_mem.recall(vector_a_p)
-        vector_b, recognized_b, _ = self.right_mem.recall(vector_b_p)
-        if recognized_a and recognized_b:
-            self.heter_mem.register(vector_a, vector_b)
-            return True
-        else:
-            return False
+    def register(self, vector_a, vector_b):
+        self.left_mem.register(vector_a)
+        self.right_mem.register(vector_b)
+        self.heter_mem.register(vector_a, vector_b)
 
-    def recognize(self, vector_a_p, vector_b_p):
-        vector_a, recognized, _ = self.left_mem.recall(vector_a_p)
-        if not recognized:
-            return False, 0
-        vector_b, recognized, _ = self.right_mem.recall(vector_b_p)
-        if not recognized:
-            return False, 0
-        recognized, weight = self.heter_mem.recognize(vector_a, vector_b)
-        return recognized, weight        
+    def recognize_left(self, vector_a):
+        recognized, weight = self.left_mem.recognize(vector_a)
+        return recognized, weight
 
-    def recall_from_left(self, vector_a_p):
-        vector_a, recognized, _ = self.left_mem.recall(vector_a_p)
-        if not recognized:
-            return self.right_mem.undefined_output, recognized, 0
+    def recognize_right(self, vector_b):
+        recognized, weight = self.right_mem.recognize(vector_b)
+        return recognized, weight
+
+    def recognize_heter(self, vector_a, vector_b):
+        recognized, weight = self.heter_mem.recognize(
+            vector_a, vector_b)
+        return recognized, weight
+
+    def recall_from_left(self, vector_a):
         vector_b, weight = self.heter_mem.recall_from_left(vector_a) 
-        vector_b_p, recognized, _ = self.right_mem.recall(vector_b)
-        return vector_b_p, recognized, (weight if recognized else 0)
+        return vector_b, weight
         
-    def recall_from_right(self, vector_b_p):
-        vector_b, recognized, _ = self.right_mem.recall(vector_b_p)
-        if not recognized:
-            return self.left_mem.undefined_output, recognized, 0
-        vector_a, weight = self.heter_mem.recall_from_right(vector_b) 
-        vector_a_p, recognized, _ = self.left_mem.recall(vector_a)
-        return vector_a_p, recognized, (weight if recognized else 0)
+    def recall_from_right(self, vector_b):
+        vector_a, weight = self.left_mem.recall_from_right(vector_b)
+        return vector_a, weight
 

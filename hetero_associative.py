@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import time
 import random
 import numpy as np
@@ -20,8 +21,7 @@ import constants
 
 class HeteroAssociativeMemory:
     def __init__(self, n: int, p: int, m: int, q: int,
-        xi = constants.xi_default, iota = constants.iota_default,
-        kappa=constants.kappa_default, sigma=constants.sigma_default):
+        es: constants.ExperimentSettings):
         """
         Parameters
         ----------
@@ -33,29 +33,18 @@ class HeteroAssociativeMemory:
             The size of the second domain (of properties).
         q : int
             The size of the second range (of representation).
-        xi: int
-            The number of mismatches allowed between the
-            memory content and the cue.
-        sigma:
-            The standard deviation of the normal distribution
-            used in remembering, centred in the queue, as percentage
-            of the size of the range.
-        iota:
-            Proportion of the average weight in a characteristic (column)
-            required to accept a queue.
-        kappa:
-            Proportion of the average weight of all characteristics required
-            to accept a queue.
+        es: Experimental Settings
+            Includes the values for iota, kappa, xi y sigma.
         """
         self._n = n
         self._m = m+1 # +1 to handle partial functions.
         self._p = p
         self._q = q+1 # +1 to handle partial functions.
-        self._xi = xi
+        self._xi = es.xi
         self._absolute_max = 2**16 - 1
-        self._sigma = sigma
-        self._iota = iota
-        self._kappa = kappa
+        self._sigma = es.sigma
+        self._iota = es.iota
+        self._kappa = es.kappa
         self._relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)
         self._iota_relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)
         self._entropies = np.zeros((self._n, self._p), dtype=np.double)
@@ -116,9 +105,13 @@ class HeteroAssociativeMemory:
 
     @property
     def iota_relation(self):
+        return self._full_iota_relation[:, :, :self.m, :self.q]
+
+    @property
+    def _full_iota_relation(self):
         if not self._updated:
             self._updated = self.update()
-        return self._iota_relation[:, :, :self.m, :self.q]
+        return self._iota_relation
 
     @property
     def sigma(self):
@@ -191,28 +184,44 @@ class HeteroAssociativeMemory:
     def register(self, vector_a, vector_b) -> None:
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b)
+        weights_a = np.full(vector_a.size, 1)
+        weights_b = np.full(vector_b.size, 1)
+        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
         self.abstract(r_io)
 
     def recognize(self, vector_a, vector_b):
+        weights_a = np.full(vector_a.size, 1.0)
+        weights_b = np.full(vector_b.size, 1.0)
+        recognized, weights = self.recog_weighted(vector_a, vector_b, weights_a, weights_b)
+        return recognized, np.mean(weights)
+
+    def recog_weighted(self, vector_a, vector_b, weights_a, weights_b):
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b)
-        r_io = self.containment(r_io)
-        recognized = np.count_nonzero(r_io == 0) <= self._xi
-        weight = self._weight(vector_a, vector_b)
-        recognized = recognized and (self._kappa <= weight)
-        return recognized, weight
+        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
+        implication = self.containment(r_io)
+        recognized = np.count_nonzero(implication == False) <= self._xi
+        weights = self._weights(r_io)
+        recognized = recognized and (self._kappa <= np.mean(weights))
+        return recognized, weights
 
     def recall_from_left(self, vector):
-        return self._recall(vector, 0)
+        weights = np.full(vector.size, 1)
+        return self.recall_from_left_weighted(vector, weights)
 
     def recall_from_right(self, vector):
-        return self._recall(vector, 1)
+        weights = np.full(vector.size, 1)
+        return self.recall_from_right_weighted(vector, weights)
+    
+    def recall_from_left_weighted(self, vector, weights):
+        return self._recall(vector, weights, 0)
 
-    def _recall(self, vector, dim):
+    def recall_from_right_weighted(self, vector, weights):
+        return self._recall(vector, weights, 1)
+
+    def _recall(self, vector, weights, dim):
         vector = self.validate(vector, dim)
-        relation = self.project(vector, dim)
+        relation = self.project(vector, weights, dim)
         r_io, weight = self.reduce(relation, self.alt(dim))
         r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, weight
@@ -226,22 +235,28 @@ class HeteroAssociativeMemory:
     def containment(self, r_io):
         r = r_io[:, :, :self.m, :self.q]
         r_iota = self.iota_relation
-        return np.where((r ==0) | (r_iota !=0), 1, 0)
+        return np.where((r == 0) | (r_iota != 0), 1, 0)
 
-    def project(self, vector, dim):
-        projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=int)
+    def project(self, vector, weights, dim):
+        projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
         for i in range(self.cols(dim)):
             k = vector[i]
-            projection = projection + (self.iota_relation[i, :, k, :] if dim == 0
-                else self.iota_relation[:, i, :, k])
+            w = weights[i]
+            projection = projection + np.sqrt(
+                    w*((self._full_iota_relation[i, :, k, :] if dim == 0
+                else self._full_iota_relation[:, i, :, k])))
         return projection
 
     # Reduces a relation to a function
     def reduce(self, relation, dim):
         cols = self.cols(dim)
         v = np.array([self.choose(relation[i], dim) for i in range(cols)])
-        weight = np.mean([relation[i, v[i]] for i in range(cols)])
-        return v, weight
+        weights = np.array([relation[i, v[i]] for i in range(cols)])
+        count = np.count_nonzero(relation, axis=1)
+        count = np.where(count == 0, 1, count)
+        means = np.sum(relation, axis=1)/count
+        weights = weights / np.where(means == 0, 1, means)
+        return v, np.mean(weights)
 
     # Choose a value from the column, assuming it is a probabilistic distribution.
     def choose(self, column, dim):
@@ -258,14 +273,11 @@ class HeteroAssociativeMemory:
     def _weight(self, vector_a, vector_b):
         return np.mean(self._weights(vector_a, vector_b))/self.mean
 
-    def _weights(self, vector_a, vector_b):
-        weights = []
-        for i in range(self.n):
-            for j in range(self.p):
-                w = self._relation[i,j,vector_a[i], vector_b[j]]
-                weights.append(w)
-        return np.array(weights)
-
+    def _weights(self, r_io):
+        weights = np.sum(r_io[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
+        means = np.where(self.means == 0, 1, self.means)
+        return np.sqrt(weights/means)
+    
     def update(self):
         print(f'Updating entropies: {time.time()}')
         self._update_entropies()
@@ -288,10 +300,10 @@ class HeteroAssociativeMemory:
     def _update_means(self):
         for i in range(self.n):
             for j in range(self.p):
-                relation = self.relation[i, j, :, :]
-                count = np.count_nonzero(relation)
+                r = self.relation[i, j, :, :]
+                count = np.count_nonzero(r)
                 count = 1 if count == 0 else count
-                self._means[i,j] = np.sum(relation)/count
+                self._means[i,j] = np.sum(r)/count
 
     def _update_iota_relation(self):
         for i in range(self.n):
@@ -326,13 +338,15 @@ class HeteroAssociativeMemory:
         v = np.where(vector == self.undefined(dim), np.nan, vector)
         return v
 
-    def vectors_to_relation(self, vector_a, vector_b):
-        relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)
+    def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
+        relation = np.zeros((self._n, self._p, self._m, self._q), dtype=float)
         for i in range(self.n):
             for j in range(self.p):
                 k = vector_a[i]
                 l = vector_b[j]
-                relation[i, j, k, l] = 1
+                wa = weights_a[i]
+                wb = weights_b[j]
+                relation[i, j, k, l] = math.sqrt(wa*wb)
         return relation
 
     @property

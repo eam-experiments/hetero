@@ -25,13 +25,9 @@ MNIST ='mnist'
 FASHION = 'fashion'
 datasets = [MNIST, FASHION]
 datasets_to_domains = {MNIST: 128, FASHION: 256}
-datasets_to_codomains = {MNIST: 4, FASHION: 8}
+datasets_to_codomains = {MNIST: 8, FASHION: 8}
 left_dataset = MNIST
 right_dataset = FASHION
-
-SIMPLE_HETERO = 0
-FULL_HETERO = 1
-hetero_prefixs = ['simple-', 'full-']
 
 # Directory where all results are stored.
 data_path = 'data'
@@ -130,7 +126,7 @@ learned_data_groups = 6
 iota_default = 0.0
 kappa_default = 0.0
 xi_default = 0.0
-sigma_default = 0.25
+sigma_default = 0.1
 params_defaults = [iota_default, kappa_default, xi_default, sigma_default]
 iota_idx = 0
 kappa_idx = 1

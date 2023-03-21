@@ -62,7 +62,7 @@ class AssociativeMemorySystem:
         return vector_b, recognized, weight
         
     def recall_from_right(self, vector_b):
-        vector_a, weight = self.left_mem.recall_from_right(vector_b)
+        vector_a, weight = self.heter_mem.recall_from_right(vector_b)
         recognized = (np.count_nonzero(np.isnan(vector_a)) != vector_a.size)
-        return vector_a, weight
+        return vector_a, recognized, weight
 

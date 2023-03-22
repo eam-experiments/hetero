@@ -437,7 +437,7 @@ def get_ams_results(
     behaviour = np.zeros(constants.n_behaviours, dtype=np.float64)
 
     # Create the memory using default parameters.
-    params = constants.ExperimentalSettings()
+    params = constants.ExperimentSettings()
     eam = AssociativeMemory(domain, msize, params)
 
     # Registrate filling data.
@@ -1243,7 +1243,7 @@ def create_and_train_network(dataset, es):
     stats_prefix = constants.stats_model_name(dataset, es)
     history, conf_matrix = neural_net.train_network(dataset, model_prefix, es)
     save_history(history, stats_prefix, es)
-    save_conf_matrix(conf_matrix, stats_prefix, es)
+    save_conf_matrix(conf_matrix, '',  stats_prefix, es)
 
 def produce_features_from_data(dataset, es):
     model_prefix = constants.model_name(dataset, es)

@@ -1166,16 +1166,12 @@ def decode_test_features(es):
 
 
 def decode_memories(msize, es):
-    msize_suffix = constants.msize_suffix(msize)
-    model_prefix = constants.model_name(es)
-    testing_labels_prefix = constants.labels_prefix + constants.testing_suffix
 
-    for sigma in constants.sigma_values:
-        print(f'Running remembering for sigma = {sigma:.2f}')
-        sigma_suffix = constants.sigma_suffix(sigma)
-        suffix = msize_suffix + sigma_suffix
-        memories_prefix = constants.memories_name(es) + suffix
-        noised_prefix = constants.noised_memories_name(es) + suffix
+    for dataset in constants.datasets:
+        model_prefix = constants.model_name(dataset, es)
+        testing_labels_prefix = constants.labels_prefix + constants.testing_suffix
+        memories_prefix = constants.memories_name(es)
+        noised_prefix = constants.noised_memories_name(es)
         for fold in range(constants.n_folds):
             # Load test features and labels
             memories_features_filename = constants.data_filename(
@@ -1195,7 +1191,7 @@ def decode_memories(msize, es):
             memories_images = model.predict(memories_features)
             noised_images = model.predict(noised_features)
             n = len(testing_labels)
-            memories_path = constants.memories_path + suffix
+            memories_path = constants.memories_path
             for (i, memory, noised, label) in \
                     zip(range(n), memories_images, noised_images, testing_labels):
                 store_memory(memory, memories_path, i, label, es, fold)

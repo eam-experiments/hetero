@@ -223,8 +223,9 @@ class HeteroAssociativeMemory:
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
         r_io, weight = self.reduce(relation, self.alt(dim))
+        recognized = (np.count_nonzero(r_io != self.undefined) > 0)
         r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, weight
+        return r_io, recognized, weight, relation
 
     def abstract(self, r_io):
         self._relation = np.where(

@@ -49,7 +49,6 @@ import dataset as ds
 import neural_net
 from associative import AssociativeMemory
 from hetero_associative import HeteroAssociativeMemory
-from ams import AssociativeMemorySystem
 
 sys.setrecursionlimit(10000)
 
@@ -123,6 +122,7 @@ def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
 
 
 def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, prefix=''):
+    plt.clf()
     print('Behaviours: ')
     print(f'No response: {no_response}')
     print(f'No correct response: {no_correct}')
@@ -175,6 +175,18 @@ def plot_conf_matrix(matrix, tags, dataset, es, prefix = ''):
     plt.ylabel(_('Label'))
     fname = prefix + constants.matrix_suffix + '-' + dataset + _('-english')
     filename = constants.picture_filename(fname, es)
+    plt.savefig(filename, dpi=600)
+
+
+def plot_relation(relation, prefix, es = None, fold = None):
+    plt.clf()
+    plt.figure(figsize=(6.4, 4.8))
+    seaborn.heatmap(np.transpose(relation), annot=True, cmap='coolwarm')
+    plt.xlabel(_('Characteristics'))
+    plt.ylabel(_('Values'))
+    if es is None:
+        es = constants.ExperimentSettings()
+    filename = constants.picture_filename(prefix, es, fold)
     plt.savefig(filename, dpi=600)
 
 
@@ -315,7 +327,7 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
 
 
 def recognize_by_hetero_memory(
-        eam: AssociativeMemorySystem, tefs, tels):
+        eam: HeteroAssociativeMemory, tefs, tels):
     confrix = np.zeros((2,2), dtype=int)
     weights = {'TP': [], 'FN': [], 'FP': [], 'TN': []} 
     print('Recognizing by hetero memory')
@@ -323,7 +335,7 @@ def recognize_by_hetero_memory(
     for left_feat, left_lab, right_feat, right_lab \
             in zip(tefs[constants.left_dataset], tels[constants.left_dataset],
                     tefs[constants.right_dataset], tels[constants.right_dataset]):
-        recognized, weight = eam.recognize_heter(left_feat, right_feat)
+        recognized, weight = eam.recognize(left_feat, right_feat)
         if recognized:
             if left_lab == right_lab:
                 confrix[0,0] += 1
@@ -355,11 +367,14 @@ def recall_by_hetero_memory(
     unknown = 0
     counter = 0
     for features, label in zip(testing_features, testing_labels):
-        memory, recognized, _ = recall(features)
+        memory, recognized, weight, relation = recall(features)
         if recognized:
             memory = rsize_recall(memory, msize, minimum, maximum)
             memories.append(memory)
             correct.append(label)
+            if random.randrange(1000) == 0:
+                prefix = 'projection-' + str(label).zfill(3)
+                plot_relation(relation, prefix)        
         else:
             unknown += 1
         counter += 1
@@ -377,7 +392,7 @@ def recall_by_hetero_memory(
         len(testing_labels) - unknown - behaviour[constants.correct_response_idx]
     return confrix, behaviour, memories
 
-def remember_by_hetero_memory(eam: AssociativeMemorySystem,
+def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
             left_classifier, right_classifier,
             testing_features, testing_labels, min_maxs, percent, es, fold):
     left_ds = constants.left_dataset
@@ -605,7 +620,7 @@ def test_hetero_filling_percent(
     return confrix, eam.entropy
 
 def hetero_remember_percent(
-        eam: AssociativeMemorySystem, left_classifier, right_classifier,
+        eam: HeteroAssociativeMemory, left_classifier, right_classifier,
         filling_features, testing_features, testing_labels, min_maxs, percent, es, fold):
     # Register filling data.
     print('Filling hetero memory')
@@ -696,7 +711,7 @@ def test_hetero_filling_per_fold(es, fold):
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
     params = constants.ExperimentSettings()
-    eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds],
+    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                 rows[left_ds], rows[right_ds], params, params, es)
     filling_features = {}
     filling_labels = {}
@@ -777,7 +792,7 @@ def hetero_remember_per_fold(es, fold):
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
     params = constants.ExperimentSettings()
-    eam = AssociativeMemorySystem(domains[left_ds], domains[right_ds],
+    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
             rows[left_ds], rows[right_ds], params, params, es)
 
     # Retrieve the classifiers.

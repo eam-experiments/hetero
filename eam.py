@@ -38,6 +38,7 @@ import gettext
 import json
 import random
 import numpy as np
+from scipy import stats
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn
@@ -295,6 +296,23 @@ def show_weights_stats(weights):
             w[c] = (mean, stdv)
     print(f'Weights: {w}')
 
+def freqs_to_values(freqs):
+    xs = []
+    for v, f in enumerate(freqs):
+        for _ in range(f):
+            xs.append(v)
+    random.shuffle(xs)
+    return xs
+
+def average_normality(relation):
+    ps = []
+    for column in relation:
+        xs = freqs_to_values(column)
+        shapiro_test = stats.shapiro(xs)
+        ps.append(shapiro_test.pvalue)
+    return np.mean(ps), np.std(ps)
+
+
 def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
     data = []
     labels = []
@@ -366,12 +384,17 @@ def recall_by_hetero_memory(
     correct = []
     unknown = 0
     counter = 0
+    p_mean = []
+    p_stdv = []
     for features, label in zip(testing_features, testing_labels):
         memory, recognized, weight, relation = recall(features)
         if recognized:
             memory = rsize_recall(memory, msize, minimum, maximum)
             memories.append(memory)
             correct.append(label)
+            pm, ps = normality_test(relation)
+            p_mean.append(pm)
+            p_stdv.append(ps)
             if random.randrange(200) == 0:
                 prefix = 'projection' + '-fill_' + str(int(mfill)).zfill(3) + '-lbl_' + str(label).zfill(3)
                 plot_relation(relation, prefix)        
@@ -380,6 +403,9 @@ def recall_by_hetero_memory(
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
+    p_mean = np.mean(p_mean)
+    p_stdv = np.std(p_stdv)
+    print(f'Normality test: p mean = {p_mean}, p std = {p_stdv}')
     memories = np.array(memories)
     predictions = np.argmax(classifier.predict(memories), axis=1)
     for correct, prediction in zip(correct, predictions):

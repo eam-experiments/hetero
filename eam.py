@@ -358,7 +358,7 @@ def recognize_by_hetero_memory(
     return confrix
 
 def recall_by_hetero_memory(
-        recall, classifier, testing_features, testing_labels, msize, minimum, maximum):
+        recall, classifier, testing_features, testing_labels, msize, mfill, minimum, maximum):
     confrix = np.zeros(
         (constants.n_labels, constants.n_labels), dtype='int')
     behaviour = np.zeros(constants.n_behaviours, dtype=int)
@@ -372,8 +372,8 @@ def recall_by_hetero_memory(
             memory = rsize_recall(memory, msize, minimum, maximum)
             memories.append(memory)
             correct.append(label)
-            if random.randrange(1000) == 0:
-                prefix = 'projection-' + str(label).zfill(3)
+            if random.randrange(200) == 0:
+                prefix = 'projection' + '-fill_' + str(int(mfill)).zfill(3) + '-lbl_' + str(label).zfill(3)
                 plot_relation(relation, prefix)        
         else:
             unknown += 1
@@ -405,7 +405,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     confrix, behaviour, memories = recall_by_hetero_memory(
         eam.recall_from_left, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
-        rows[right_ds], minimum, maximum)
+        rows[right_ds], percent, minimum, maximum)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = constants.memories_name(left_ds, es)
@@ -417,7 +417,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     confrix, behaviour, memories = recall_by_hetero_memory(
         eam.recall_from_right, left_classifier,
         testing_features[right_ds], testing_labels[left_ds],
-        rows[left_ds], minimum, maximum)
+        rows[left_ds], percent, minimum, maximum)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = constants.memories_name(right_ds, es)

@@ -280,13 +280,9 @@ class HeteroAssociativeMemory:
         return np.sqrt(weights/means)
     
     def update(self):
-        print(f'Updating entropies: {time.time()}')
         self._update_entropies()
-        print(f'Updating means: {time.time()}')
         self._update_means()
-        print(f'Updating iota relation: {time.time()}')
         self._update_iota_relation()
-        print(f'Updating completed: {time.time()}')
         return True
 
     def _update_entropies(self):

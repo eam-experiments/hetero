@@ -304,7 +304,7 @@ def freqs_to_values(freqs):
     random.shuffle(xs)
     return xs
 
-def average_normality(relation):
+def normality_test(relation):
     ps = []
     for column in relation:
         xs = freqs_to_values(column)
@@ -384,17 +384,12 @@ def recall_by_hetero_memory(
     correct = []
     unknown = 0
     counter = 0
-    p_mean = []
-    p_stdv = []
     for features, label in zip(testing_features, testing_labels):
         memory, recognized, weight, relation = recall(features)
         if recognized:
             memory = rsize_recall(memory, msize, minimum, maximum)
             memories.append(memory)
             correct.append(label)
-            pm, ps = normality_test(relation)
-            p_mean.append(pm)
-            p_stdv.append(ps)
             if random.randrange(200) == 0:
                 prefix = 'projection' + '-fill_' + str(int(mfill)).zfill(3) + '-lbl_' + str(label).zfill(3)
                 plot_relation(relation, prefix)        
@@ -403,9 +398,6 @@ def recall_by_hetero_memory(
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
-    p_mean = np.mean(p_mean)
-    p_stdv = np.std(p_stdv)
-    print(f'Normality test: p mean = {p_mean}, p std = {p_stdv}')
     memories = np.array(memories)
     predictions = np.argmax(classifier.predict(memories), axis=1)
     for correct, prediction in zip(correct, predictions):

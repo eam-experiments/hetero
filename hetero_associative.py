@@ -243,9 +243,8 @@ class HeteroAssociativeMemory:
         for i in range(self.cols(dim)):
             k = vector[i]
             w = weights[i]
-            projection = projection + np.sqrt(
-                    w*((self._full_iota_relation[i, :, k, :] if dim == 0
-                else self._full_iota_relation[:, i, :, k])))
+            projection = projection + w*(self._full_iota_relation[i, :, k, :] if dim == 0
+                else self._full_iota_relation[:, i, :, k])
         return projection
 
     # Reduces a relation to a function

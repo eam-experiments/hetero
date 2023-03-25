@@ -250,7 +250,7 @@ class HeteroAssociativeMemory:
     # Reduces a relation to a function
     def reduce(self, relation, dim):
         cols = self.cols(dim)
-        v = np.array([self.choose(relation[i], dim) for i in range(cols)])
+        v = np.array([self.choose(column, self.cue(column, dim), dim) for column in relation])
         weights = np.array([relation[i, v[i]] for i in range(cols)])
         count = np.count_nonzero(relation, axis=1)
         count = np.where(count == 0, 1, count)
@@ -259,7 +259,9 @@ class HeteroAssociativeMemory:
         return v, np.mean(weights)
 
     # Choose a value from the column, assuming it is a probabilistic distribution.
-    def choose(self, column, dim):
+    def choose(self, column, value, dim):
+        if value != self.undefined(dim):
+            column = self._normalize(column, value)
         s = column.sum()
         if s == 0:
             return self.undefined(dim)
@@ -269,6 +271,33 @@ class HeteroAssociativeMemory:
                 return j
             n -= column[j]
         return self.rows(dim) - 1
+
+    def cue(self, column,dim):
+        """ Returns the median of the column.
+        """
+        s = np.sum(column)
+        if s == 0:
+            return self.undefined(dim)
+        n = s/2.0
+        for i, f in enumerate(column):
+            if n < f:
+                return i
+            n -= f
+
+    def _normalize(self, column, cue):
+        mean = cue
+        stdv = self.sigma*self.m
+        scale = 1.0/self.normpdf(0, 0, stdv)
+        norm = np.array([self.normpdf(i, mean, stdv, scale) for i in range(self.m)])
+        return norm*column
+
+    def normpdf(x, mean, stdv, scale = 1.0):
+        var = float(stdv)**2
+        denom = (2*math.pi*var)**.5
+        num = math.exp(-(float(x)-float(mean))**2/(2*var))
+        return scale*num/denom
+
+
 
     def _weight(self, vector_a, vector_b):
         return np.mean(self._weights(vector_a, vector_b))/self.mean

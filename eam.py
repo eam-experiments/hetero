@@ -181,7 +181,7 @@ def plot_conf_matrix(matrix, tags, dataset, es, prefix = ''):
 def plot_relation(relation, prefix, es = None, fold = None):
     plt.clf()
     plt.figure(figsize=(6.4, 4.8))
-    seaborn.heatmap(np.transpose(relation), annot=True, cmap='coolwarm')
+    seaborn.heatmap(np.transpose(relation), annot=False, cmap='coolwarm')
     plt.xlabel(_('Characteristics'))
     plt.ylabel(_('Values'))
     if es is None:
@@ -793,7 +793,7 @@ def hetero_remember_per_fold(es, fold):
     right_ds = constants.right_dataset
     params = constants.ExperimentSettings()
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds], params, params, es)
+            rows[left_ds], rows[right_ds], es)
 
     # Retrieve the classifiers.
     model_prefix = constants.model_name(left_ds, es)

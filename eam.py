@@ -375,7 +375,7 @@ def recognize_by_hetero_memory(
     print(f'Confusion matrix:\n{confrix}')
     return confrix
 
-def recall_by_hetero_memory(
+def recall_by_hetero_memory(remembered_dataset,
         recall, classifier, testing_features, testing_labels, msize, mfill, minimum, maximum):
     confrix = np.zeros(
         (constants.n_labels, constants.n_labels), dtype='int')
@@ -391,7 +391,9 @@ def recall_by_hetero_memory(
             memories.append(memory)
             correct.append(label)
             if random.randrange(200) == 0:
-                prefix = 'projection' + '-fill_' + str(int(mfill)).zfill(3) + '-lbl_' + str(label).zfill(3)
+                prefix = 'projection-' + remembered_dataset + \
+                    '-fill_' + str(int(mfill)).zfill(3) + \
+                        '-lbl_' + str(label).zfill(3)
                 plot_relation(relation, prefix)        
         else:
             unknown += 1
@@ -420,7 +422,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     behaviours = []
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(
+    confrix, behaviour, memories = recall_by_hetero_memory(right_ds
         eam.recall_from_left, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
         rows[right_ds], percent, minimum, maximum)

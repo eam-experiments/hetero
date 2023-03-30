@@ -261,7 +261,7 @@ class HeteroAssociativeMemory:
     # Choose a value from the column, assuming it is a probabilistic distribution.
     def choose(self, column, value, dim):
         if value != self.undefined(dim):
-            column = self._normalize(column, value)
+            column = self._normalize(column, value, dim)
         s = column.sum()
         if s == 0:
             return self.undefined(dim)
@@ -284,14 +284,14 @@ class HeteroAssociativeMemory:
                 return i
             n -= f
 
-    def _normalize(self, column, cue):
+    def _normalize(self, column, cue, dim):
         mean = cue
         stdv = self.sigma*self.m
         scale = 1.0/self.normpdf(0, 0, stdv)
         norm = np.array([self.normpdf(i, mean, stdv, scale) for i in range(self.m)])
-        return norm*column
+        return norm*column[:self.rows(dim)]
 
-    def normpdf(x, mean, stdv, scale = 1.0):
+    def normpdf(self, x, mean, stdv, scale = 1.0):
         var = float(stdv)**2
         denom = (2*math.pi*var)**.5
         num = math.exp(-(float(x)-float(mean))**2/(2*var))

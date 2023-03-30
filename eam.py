@@ -730,7 +730,7 @@ def test_hetero_filling_per_fold(es, fold):
     right_ds = constants.right_dataset
     params = constants.ExperimentSettings()
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-                rows[left_ds], rows[right_ds], params, params, es)
+                rows[left_ds], rows[right_ds], es)
     filling_features = {}
     filling_labels = {}
     testing_features = {}

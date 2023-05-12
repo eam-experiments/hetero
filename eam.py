@@ -422,7 +422,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     behaviours = []
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(right_ds
+    confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
         eam.recall_from_left, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
         rows[right_ds], percent, minimum, maximum)
@@ -625,7 +625,7 @@ def test_filling_percent(
     return behaviour, eam.entropy
 
 def test_hetero_filling_percent(
-        eam, trfs, tefs, tels, percent):
+        eam: HeteroAssociativeMemory, trfs, tefs, tels, percent):
     # Register filling data.
     print('Filling hetero memory')
     counter = 0
@@ -636,6 +636,7 @@ def test_hetero_filling_percent(
         constants.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
+    print(f'Memory full at {100*eam.fullness}%')
     confrix = recognize_by_hetero_memory(eam, tefs, tels)
     return confrix, eam.entropy
 
@@ -730,7 +731,6 @@ def test_hetero_filling_per_fold(es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    params = constants.ExperimentSettings()
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                 rows[left_ds], rows[right_ds], es)
     filling_features = {}
@@ -787,8 +787,6 @@ def test_hetero_filling_per_fold(es, fold):
         confrix, entropy = \
                 test_hetero_filling_percent(
                     eam, features, testing_features, testing_labels, percent)
-        # A list of tuples (position, label, features)
-        # fold_recalls += recalls
         # An array with average entropy per step.
         fold_entropies.append(entropy)
         # Arrays with precision, and recall.

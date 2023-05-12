@@ -184,44 +184,33 @@ class HeteroAssociativeMemory:
     def register(self, vector_a, vector_b) -> None:
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
-        weights_a = np.full(vector_a.size, 1)
-        weights_b = np.full(vector_b.size, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
+        r_io = self.vectors_to_relation(vector_a, vector_b)
         self.abstract(r_io)
 
     def recognize(self, vector_a, vector_b):
-        weights_a = np.full(vector_a.size, 1.0)
-        weights_b = np.full(vector_b.size, 1.0)
-        recognized, weights = self.recog_weighted(vector_a, vector_b, weights_a, weights_b)
+        recognized, weights = self._recog(vector_a, vector_b)
         return recognized, np.mean(weights)
 
-    def recog_weighted(self, vector_a, vector_b, weights_a, weights_b):
+    def _recog(self, vector_a, vector_b):
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
+        r_io = self.vectors_to_relation(vector_a, vector_b)
         implication = self.containment(r_io)
         recognized = np.count_nonzero(implication == False) <= self._xi
         weights = self._weights(r_io)
-        recognized = recognized and (self._kappa <= np.mean(weights))
+        mean = self.mean
+        recognized = recognized and (self._kappa*mean <= np.mean(weights))
         return recognized, weights
 
     def recall_from_left(self, vector):
-        weights = np.full(vector.size, 1)
-        return self.recall_from_left_weighted(vector, weights)
+        return self._recall(vector, 0)
 
     def recall_from_right(self, vector):
-        weights = np.full(vector.size, 1)
-        return self.recall_from_right_weighted(vector, weights)
+        return self._recall(vector, 1)
     
-    def recall_from_left_weighted(self, vector, weights):
-        return self._recall(vector, weights, 0)
-
-    def recall_from_right_weighted(self, vector, weights):
-        return self._recall(vector, weights, 1)
-
-    def _recall(self, vector, weights, dim):
+    def _recall(self, vector, dim):
         vector = self.validate(vector, dim)
-        relation = self.project(vector, weights, dim)
+        relation = self.project(vector, dim)
         r_io, weight = self.reduce(relation, self.alt(dim))
         recognized = (np.count_nonzero(r_io != self.undefined) > 0)
         r_io = self.revalidate(r_io, self.alt(dim))
@@ -236,14 +225,13 @@ class HeteroAssociativeMemory:
     def containment(self, r_io):
         r = r_io[:, :, :self.m, :self.q]
         r_iota = self.iota_relation
-        return np.where((r == 0) | (r_iota != 0), 1, 0)
+        return np.where((r == 0) | (r_iota != 0), True, False)
 
-    def project(self, vector, weights, dim):
+    def project(self, vector, dim):
         projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
         for i in range(self.cols(dim)):
             k = vector[i]
-            w = weights[i]
-            projection = projection + w*(self._full_iota_relation[i, :, k, :] if dim == 0
+            projection = projection + (self._full_iota_relation[i, :, k, :] if dim == 0
                 else self._full_iota_relation[:, i, :, k])
         return projection
 
@@ -252,27 +240,23 @@ class HeteroAssociativeMemory:
         cols = self.cols(dim)
         v = np.array([self.choose(column, self.cue(column, dim), dim) for column in relation])
         weights = np.array([relation[i, v[i]] for i in range(cols)])
-        count = np.count_nonzero(relation, axis=1)
-        count = np.where(count == 0, 1, count)
-        means = np.sum(relation, axis=1)/count
-        weights = weights / np.where(means == 0, 1, means)
         return v, np.mean(weights)
 
     # Choose a value from the column, assuming it is a probabilistic distribution.
     def choose(self, column, value, dim):
-        if value != self.undefined(dim):
-            column = self._normalize(column, value, dim)
-        s = column.sum()
+        dist =  column if value == self.undefined(dim) \
+            else self._normalize(column, value, dim)
+        s = dist.sum()
         if s == 0:
             return self.undefined(dim)
         n = s*random.random()
-        for j in range(column.size):
-            if n < column[j]:
+        for j in range(dist.size):
+            if n < dist[j]:
                 return j
-            n -= column[j]
+            n -= dist[j]
         return self.rows(dim) - 1
 
-    def cue(self, column,dim):
+    def cue(self, column, dim):
         """ Returns the median of the column.
         """
         s = np.sum(column)
@@ -286,10 +270,11 @@ class HeteroAssociativeMemory:
 
     def _normalize(self, column, cue, dim):
         mean = cue
-        stdv = self.sigma*self.m
+        rows = self.rows(dim)
+        stdv = self.sigma*rows
         scale = 1.0/self.normpdf(0, 0, stdv)
-        norm = np.array([self.normpdf(i, mean, stdv, scale) for i in range(self.m)])
-        return norm*column[:self.rows(dim)]
+        norm = np.array([self.normpdf(i, mean, stdv, scale) for i in range(rows)])
+        return norm*column[:rows]
 
     def normpdf(self, x, mean, stdv, scale = 1.0):
         var = float(stdv)**2
@@ -297,16 +282,13 @@ class HeteroAssociativeMemory:
         num = math.exp(-(float(x)-float(mean))**2/(2*var))
         return scale*num/denom
 
-
-
     def _weight(self, vector_a, vector_b):
-        return np.mean(self._weights(vector_a, vector_b))/self.mean
+        return np.mean(self._weights(vector_a, vector_b))
 
     def _weights(self, r_io):
         weights = np.sum(r_io[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
-        means = np.where(self.means == 0, 1, self.means)
-        return np.sqrt(weights/means)
-    
+        return weights
+        
     def update(self):
         self._update_entropies()
         self._update_means()
@@ -363,17 +345,21 @@ class HeteroAssociativeMemory:
         v = np.where(vector == self.undefined(dim), np.nan, vector)
         return v
 
-    def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
+    def vectors_to_relation(self, vector_a, vector_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=float)
         for i in range(self.n):
+            k = vector_a[i]
             for j in range(self.p):
-                k = vector_a[i]
                 l = vector_b[j]
-                wa = weights_a[i]
-                wb = weights_b[j]
-                relation[i, j, k, l] = math.sqrt(wa*wb)
+                relation[i, j, k, l] = 1
         return relation
 
+    @property
+    def fullness(self):
+        count = np.count_nonzero(self.relation)
+        total = self.n*self.m*self.p*self.q
+        return count*1.0/total
+    
     @property
     def rel_string(self):
         return self.toString(self.relation)

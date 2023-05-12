@@ -17,12 +17,13 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -s <dataset> | -e | -r ) [--runpath=PATH ] [ -l (en | es) ]
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r ) [--runpath=PATH ] [ -l (en | es) ]
 
 Options:
   -h    Show this screen.
   -n    Trains the neural network for MNIST (mnist) or Fashion (fashion).
   -f    Generates Features for MNIST (mnist) or Fashion (fashion).
+  -d    Calculate distances intra/inter classes of features.
   -s    Run separated tests of memories performance for MNIST y Fashion.
   -e    Evaluation of recognition of hetero-associations.
   -r    Evaluation of hetero-recalling.
@@ -207,10 +208,91 @@ def get_min(arrays):
             _min = local_min
     return _min
 
+def features_distance(f, g):
+    return np.linalg.norm(f - g)
+
+def intra_distances(filling_features, filling_labels,
+                                 testing_features, testing_labels):
+    ff_dist = {}
+    ft_dist = {}
+    for label in range(constants.n_labels):
+        ff_dist[label] = []
+        ft_dist[label] = []
+    f_len = len(filling_labels)
+    t_len = len(testing_labels)
+    for i in range(f_len):
+        for j in range(f_len):
+            if (i != j) and (filling_labels[i] == filling_labels[j]):
+                label = filling_labels[i]
+                d = features_distance(filling_features[i], filling_features[j])
+                ff_dist[label].append(d)
+        for j in range(t_len):
+            if filling_labels[i] == testing_labels[j]:
+                label = filling_labels[i]
+                d = features_distance(filling_features[i], testing_features[j])
+                ft_dist[label].append(d)
+    ff_means = []
+    ff_stdvs = []
+    ft_means = []
+    ft_stdvs = []
+    for label in range(constants.n_labels):
+        mean = np.mean(ff_dist[label])
+        stdv = np.std(ff_dist[label])
+        ff_means.append(mean)
+        ff_stdvs.append(stdv)
+        mean = np.mean(ft_dist[label])
+        stdv = np.std(ft_dist[label])
+        ft_means.append(mean)
+        ft_stdvs.append(stdv)
+    means = np.array((ff_means, ft_means))
+    stdvs = np.array((ff_stdvs, ft_stdvs))
+    return means, stdvs
+
+def inter_distances(filling_features, filling_labels,
+                                 testing_features, testing_labels):
+    ff_dist = {}
+    ft_dist = {}
+    for l1 in range(constants.n_labels):
+        for l2 in range(constants.n_labels):
+            ff_dist[(l1,l2)] = []
+            ft_dist[(l1,l2)] = []
+    f_len = len(filling_labels)
+    t_len = len(testing_labels)
+    for i in range(f_len):
+        for j in range(f_len):
+            if filling_labels[i] != filling_labels[j]:
+                l1 = filling_labels[i]
+                l2 = filling_labels[j]
+                d = features_distance(filling_features[i], filling_features[j])
+                ff_dist[(l1,l2)].append(d)
+        for j in range(t_len):
+            if filling_labels[i] != testing_labels[j]:
+                l1 = filling_labels[i]
+                l2 = testing_labels[j]
+                d = features_distance(filling_features[i], testing_features[j])
+                ft_dist[(l1,l2)].append(d)
+    ff_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    ff_stdvs = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    ft_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    ft_stdvs = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    for l1 in range(constants.n_labels):
+        for l2 in range(constants.n_labels):
+            if l1 != l2:
+                mean = np.mean(ff_dist[(l1,l2)])
+                stdv = np.std(ff_dist[(l1,l2)])
+
+                ff_means[l1,l2] = mean
+                ff_stdvs[l1,l2] = stdv
+                mean = np.mean(ft_dist[(l1,l2)])
+                stdv = np.std(ft_dist[(l1,l2)])
+                ft_means[l1,l2] = mean
+                ft_stdvs[l1,l2] = stdv
+    means = np.concatenate((ff_means, ft_means), axis=1)
+    stdvs = np.concatenate((ff_stdvs, ft_stdvs), axis=1)
+    return means, stdvs
 
 def msize_features(features, msize, min_value, max_value):
     return np.round((msize-1)*(features-min_value) / (max_value-min_value)).astype(int)
-
 
 def rsize_recall(recall, msize, min_value, max_value):
     if msize == 1:
@@ -312,6 +394,33 @@ def normality_test(relation):
         ps.append(shapiro_test.pvalue)
     return np.mean(ps), np.std(ps)
 
+def distances_per_fold(dataset, es, fold):
+    suffix = constants.filling_suffix
+    filling_features_filename = constants.features_name(dataset, es) + suffix
+    filling_features_filename = constants.data_filename(
+        filling_features_filename, es, fold)
+    filling_labels_filename = constants.labels_name(dataset, es) + suffix
+    filling_labels_filename = constants.data_filename(
+        filling_labels_filename, es, fold)
+
+    suffix = constants.testing_suffix
+    testing_features_filename = constants.features_name(dataset, es) + suffix
+    testing_features_filename = constants.data_filename(
+        testing_features_filename, es, fold)
+    testing_labels_filename = constants.labels_name(dataset, es) + suffix
+    testing_labels_filename = constants.data_filename(
+        testing_labels_filename, es, fold)
+
+    filling_features = np.load(filling_features_filename)
+    filling_labels = np.load(filling_labels_filename)
+    testing_features = np.load(testing_features_filename)
+    testing_labels = np.load(testing_labels_filename)
+
+    intra_means, intra_stdvs = intra_distances(filling_features, filling_labels,
+                                 testing_features, testing_labels)
+    inter_means, inter_stdvs = intra_distances(filling_features, filling_labels,
+                                 testing_features, testing_labels)
+    return intra_means, intra_stdvs, inter_means, inter_stdvs
 
 def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
     data = []
@@ -488,6 +597,33 @@ def get_ams_results(
     behaviour[constants.precision_idx] = precision
     behaviour[constants.recall_idx] = recall
     return midx, eam.entropy, behaviour, confrix
+
+def intra_inter_distances(dataset, es):
+    list_results = []
+    for fold in range(constants.n_folds):
+        results = distances_per_fold(dataset, es, fold)
+        list_results.append(results)
+    intra_means = []
+    intra_stdvs = []
+    inter_means = []
+    inter_stdvs = []
+    for tra_mean, tra_stdv, ter_mean, ter_stdv in list_results:
+        intra_means.append(tra_mean)
+        intra_stdvs.append(tra_stdv)
+        inter_means.append(ter_mean)
+        inter_stdvs.append(ter_stdv)
+    intra_means = np.array(intra_means)
+    intra_stdvs = np.array(intra_stdvs)
+    inter_means = np.array(inter_means)
+    inter_stdvs = np.array(inter_stdvs)
+    data = [intra_means, intra_stdvs, inter_means, inter_stdvs]
+    suffixes = [('-intra', '-means'), ('-intra', '-stdvs'),
+                ('-inter', '-means'), ('-inter', '-stdvs')]
+    for d, st in zip(data, suffixes):
+        filename = constants.distance_name(dataset, es)
+        filename += st[0] + st[1]
+        filename = constants.csv_filename(filename, es)
+        np.savetxt(filename, d, delimiter=',')
 
 def test_memory_sizes(dataset, es):
     domain = constants.domain(dataset)
@@ -1286,6 +1422,9 @@ def produce_features_from_data(dataset, es):
     neural_net.obtain_features(dataset,
         model_prefix, features_prefix, labels_prefix, data_prefix, es)
 
+def calculate_distances(dataset, es):
+    intra_inter_distances(dataset, es)
+
 def run_separate_evaluation(dataset, es):
     best_memory_sizes = test_memory_sizes(dataset, es)
     print(f'Best memory sizes: {best_memory_sizes}')
@@ -1335,6 +1474,12 @@ if __name__ == "__main__":
         _dataset = args['<dataset>']
         if _dataset in constants.datasets:
             produce_features_from_data(_dataset, exp_settings)
+        else:
+            print(f'Dataset {_dataset} is not supported.')
+    elif args['-d']:
+        _dataset = args['<dataset>']
+        if _dataset in constants.datasets:
+            calculate_distances(_dataset, exp_settings)
         else:
             print(f'Dataset {_dataset} is not supported.')
     elif args['-s']:

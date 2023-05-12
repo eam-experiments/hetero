@@ -165,6 +165,7 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     fname = prefix + 'graph_behaviours-' + dataset + _('-english')
     graph_filename = constants.picture_filename(fname, es)
     plt.savefig(graph_filename, dpi=600)
+    plt.close()
 
 
 def plot_conf_matrix(matrix, tags, dataset, es, prefix = ''):
@@ -177,6 +178,7 @@ def plot_conf_matrix(matrix, tags, dataset, es, prefix = ''):
     fname = prefix + constants.matrix_suffix + '-' + dataset + _('-english')
     filename = constants.picture_filename(fname, es)
     plt.savefig(filename, dpi=600)
+    plt.close()
 
 
 def plot_relation(relation, prefix, es = None, fold = None):
@@ -189,6 +191,7 @@ def plot_relation(relation, prefix, es = None, fold = None):
         es = constants.ExperimentSettings()
     filename = constants.picture_filename(prefix, es, fold)
     plt.savefig(filename, dpi=600)
+    plt.close()
 
 
 def get_max(arrays):
@@ -422,7 +425,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     behaviours = []
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(right_ds
+    confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
         eam.recall_from_left, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
         rows[right_ds], percent, minimum, maximum)
@@ -434,7 +437,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     np.save(filename, memories)
     print('Remembering from right by hetero memory')
     minimum, maximum = min_maxs[left_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(
+    confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
         eam.recall_from_right, left_classifier,
         testing_features[right_ds], testing_labels[left_ds],
         rows[left_ds], percent, minimum, maximum)

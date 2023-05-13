@@ -220,6 +220,7 @@ def intra_distances(filling_features, filling_labels,
         ft_dist[label] = []
     f_len = len(filling_labels)
     t_len = len(testing_labels)
+    counter = 0
     for i in range(f_len):
         for j in range(f_len):
             if (i != j) and (filling_labels[i] == filling_labels[j]):
@@ -231,6 +232,8 @@ def intra_distances(filling_features, filling_labels,
                 label = filling_labels[i]
                 d = features_distance(filling_features[i], testing_features[j])
                 ft_dist[label].append(d)
+        constants.print_counter(counter, 1000, 100)
+        counter += 1
     ff_means = []
     ff_stdvs = []
     ft_means = []
@@ -258,6 +261,7 @@ def inter_distances(filling_features, filling_labels,
             ft_dist[(l1,l2)] = []
     f_len = len(filling_labels)
     t_len = len(testing_labels)
+    counter = 0
     for i in range(f_len):
         for j in range(f_len):
             if filling_labels[i] != filling_labels[j]:
@@ -271,6 +275,8 @@ def inter_distances(filling_features, filling_labels,
                 l2 = testing_labels[j]
                 d = features_distance(filling_features[i], testing_features[j])
                 ft_dist[(l1,l2)].append(d)
+        constants.print_counter(counter, 1000, 100)
+        counter += 1
     ff_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
     ff_stdvs = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
     ft_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
@@ -416,8 +422,10 @@ def distances_per_fold(dataset, es, fold):
     testing_features = np.load(testing_features_filename)
     testing_labels = np.load(testing_labels_filename)
 
+    print('Calculating intra-distances')
     intra_means, intra_stdvs = intra_distances(filling_features, filling_labels,
                                  testing_features, testing_labels)
+    print('Calculating inter-distances')
     inter_means, inter_stdvs = intra_distances(filling_features, filling_labels,
                                  testing_features, testing_labels)
     return intra_means, intra_stdvs, inter_means, inter_stdvs

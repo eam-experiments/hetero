@@ -234,6 +234,7 @@ def intra_distances(filling_features, filling_labels,
                 ft_dist[label].append(d)
         constants.print_counter(counter, 1000, 100)
         counter += 1
+    print(' end.')
     ff_means = []
     ff_stdvs = []
     ft_means = []
@@ -277,6 +278,7 @@ def inter_distances(filling_features, filling_labels,
                 ft_dist[(l1,l2)].append(d)
         constants.print_counter(counter, 1000, 100)
         counter += 1
+    print(' end.')
     ff_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
     ff_stdvs = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
     ft_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
@@ -426,7 +428,7 @@ def distances_per_fold(dataset, es, fold):
     intra_means, intra_stdvs = intra_distances(filling_features, filling_labels,
                                  testing_features, testing_labels)
     print('Calculating inter-distances')
-    inter_means, inter_stdvs = intra_distances(filling_features, filling_labels,
+    inter_means, inter_stdvs = inter_distances(filling_features, filling_labels,
                                  testing_features, testing_labels)
     return intra_means, intra_stdvs, inter_means, inter_stdvs
 
@@ -620,14 +622,15 @@ def intra_inter_distances(dataset, es):
         intra_stdvs.append(tra_stdv)
         inter_means.append(ter_mean)
         inter_stdvs.append(ter_stdv)
-    intra_means = np.array(intra_means)
-    intra_stdvs = np.array(intra_stdvs)
-    inter_means = np.array(inter_means)
-    inter_stdvs = np.array(inter_stdvs)
+    intra_means = np.concatenate(intra_means, axis=1)
+    intra_stdvs = np.concatenate(intra_stdvs, axis=1)
+    inter_means = np.concatenate(inter_means, axis=1)
+    inter_stdvs = np.concatenate(inter_stdvs, axis=1)
     data = [intra_means, intra_stdvs, inter_means, inter_stdvs]
     suffixes = [('-intra', '-means'), ('-intra', '-stdvs'),
                 ('-inter', '-means'), ('-inter', '-stdvs')]
     for d, st in zip(data, suffixes):
+        print(f'Shape{st[0]},{st[1]}: {d.shape}')
         filename = constants.distance_name(dataset, es)
         filename += st[0] + st[1]
         filename = constants.csv_filename(filename, es)

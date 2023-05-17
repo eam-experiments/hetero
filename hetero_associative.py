@@ -318,13 +318,15 @@ class HeteroAssociativeMemory:
                 matrix = self.relation[i, j, :, :]
                 s = np.sum(matrix)
                 if s == 0:
-                    self._iota_relation[i, j, :, :] = np.zeros((self.m, self.q), dtype=int)
+                    self._iota_relation[i, j, :self.m, :self.q] = np.zeros((self.m, self.q), dtype=int)
                 else:
                     count = np.count_nonzero(matrix)
                     threshold = self.iota*s/count
                     self._iota_relation[i, j, :self.m, :self.q] = \
                         np.where(matrix < threshold, 0, matrix)
-
+        turned_off = np.count_nonzero(self.relation) - np.count_nonzero(self.iota_relation)
+        print(f'Iota relation updated, and {turned_off} cells have been turned off')
+        
     def validate(self, vector, dim):
         """ It asumes vector is an array of floats, and np.nan
             is used to register an undefined value, but it also

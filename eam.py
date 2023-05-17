@@ -233,7 +233,7 @@ def stats_measures(filling_features, filling_labels,
     means[constants.n_labels,1] = np.mean(testing_features)
     stdvs[constants.n_labels,0] = np.std(filling_features)
     stdvs[constants.n_labels,1] = np.std(testing_features)
-    
+    return means, stdvs
 
 
 def distance_matrices(filling_features, filling_labels,
@@ -410,12 +410,9 @@ def normality_test(relation):
 def statistics_per_fold(dataset, es, fold):
     filling_features, filling_labels, \
     testing_features, testing_labels = features_per_fold(dataset, es, fold)
-
     print(f'Calculating statistics for fold {fold}')
-    means, stdvs = stats_measures(filling_features, filling_labels,
+    return stats_measures(filling_features, filling_labels,
                                  testing_features, testing_labels)
-    return means, stdvs
-
 
 def distances_per_fold(dataset, es, fold):
     filling_features, filling_labels, \
@@ -606,6 +603,7 @@ def statistics(dataset, es):
     list_results = []
     for fold in range(constants.n_folds):
         results = statistics_per_fold(dataset, es, fold)
+        print(f'Results: {results}')
         list_results.append(results)
     means = []
     stdvs = []

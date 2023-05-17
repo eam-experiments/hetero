@@ -211,49 +211,33 @@ def get_min(arrays):
 def features_distance(f, g):
     return np.linalg.norm(f - g)
 
-def intra_distances(filling_features, filling_labels,
-                                 testing_features, testing_labels):
-    ff_dist = {}
-    ft_dist = {}
+def stats_measures(filling_features, filling_labels,
+        testing_features, testing_labels):
+    filling_fpl = {}
+    testing_fpl = {}
     for label in range(constants.n_labels):
-        ff_dist[label] = []
-        ft_dist[label] = []
-    f_len = len(filling_labels)
-    t_len = len(testing_labels)
-    counter = 0
-    for i in range(f_len):
-        for j in range(f_len):
-            if (i != j) and (filling_labels[i] == filling_labels[j]):
-                label = filling_labels[i]
-                d = features_distance(filling_features[i], filling_features[j])
-                ff_dist[label].append(d)
-        for j in range(t_len):
-            if filling_labels[i] == testing_labels[j]:
-                label = filling_labels[i]
-                d = features_distance(filling_features[i], testing_features[j])
-                ft_dist[label].append(d)
-        constants.print_counter(counter, 1000, 100)
-        counter += 1
-    print(' end.')
-    ff_means = []
-    ff_stdvs = []
-    ft_means = []
-    ft_stdvs = []
-    for label in range(constants.n_labels):
-        mean = np.mean(ff_dist[label])
-        stdv = np.std(ff_dist[label])
-        ff_means.append(mean)
-        ff_stdvs.append(stdv)
-        mean = np.mean(ft_dist[label])
-        stdv = np.std(ft_dist[label])
-        ft_means.append(mean)
-        ft_stdvs.append(stdv)
-    means = np.array((ff_means, ft_means))
-    stdvs = np.array((ff_stdvs, ft_stdvs))
-    return means, stdvs
+        filling_fpl[label] = []
+        testing_fpl[label] = []
+    for f, l in zip (filling_features, filling_labels):
+        filling_fpl[l].append(f)
+    for f, l in zip (testing_features, testing_labels):
+        testing_fpl[l].append(f)
+    means = np.zeros((constants.n_labels+1, 2), dtype=float)
+    stdvs = np.zeros((constants.n_labels+1,2), dtype=float)
+    for l in range(constants.n_labels):
+        means[l,0] = np.mean(filling_fpl[l])
+        means[l,1] = np.mean(testing_fpl[l])
+        stdvs[l,0] = np.std(filling_fpl[l])
+        stdvs[l,1] = np.std(testing_fpl[l])
+    means[constants.n_labels,0] = np.mean(filling_features)
+    means[constants.n_labels,1] = np.mean(testing_features)
+    stdvs[constants.n_labels,0] = np.std(filling_features)
+    stdvs[constants.n_labels,1] = np.std(testing_features)
+    
 
-def inter_distances(filling_features, filling_labels,
-                                 testing_features, testing_labels):
+
+def distance_matrices(filling_features, filling_labels,
+        testing_features, testing_labels):
     ff_dist = {}
     ft_dist = {}
     for l1 in range(constants.n_labels):
@@ -265,17 +249,16 @@ def inter_distances(filling_features, filling_labels,
     counter = 0
     for i in range(f_len):
         for j in range(f_len):
-            if filling_labels[i] != filling_labels[j]:
+            if i != j:
                 l1 = filling_labels[i]
                 l2 = filling_labels[j]
                 d = features_distance(filling_features[i], filling_features[j])
                 ff_dist[(l1,l2)].append(d)
         for j in range(t_len):
-            if filling_labels[i] != testing_labels[j]:
-                l1 = filling_labels[i]
-                l2 = testing_labels[j]
-                d = features_distance(filling_features[i], testing_features[j])
-                ft_dist[(l1,l2)].append(d)
+            l1 = filling_labels[i]
+            l2 = testing_labels[j]
+            d = features_distance(filling_features[i], testing_features[j])
+            ft_dist[(l1,l2)].append(d)
         constants.print_counter(counter, 1000, 100)
         counter += 1
     print(' end.')
@@ -285,16 +268,15 @@ def inter_distances(filling_features, filling_labels,
     ft_stdvs = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
     for l1 in range(constants.n_labels):
         for l2 in range(constants.n_labels):
-            if l1 != l2:
-                mean = np.mean(ff_dist[(l1,l2)])
-                stdv = np.std(ff_dist[(l1,l2)])
+            mean = np.mean(ff_dist[(l1,l2)])
+            stdv = np.std(ff_dist[(l1,l2)])
 
-                ff_means[l1,l2] = mean
-                ff_stdvs[l1,l2] = stdv
-                mean = np.mean(ft_dist[(l1,l2)])
-                stdv = np.std(ft_dist[(l1,l2)])
-                ft_means[l1,l2] = mean
-                ft_stdvs[l1,l2] = stdv
+            ff_means[l1,l2] = mean
+            ff_stdvs[l1,l2] = stdv
+            mean = np.mean(ft_dist[(l1,l2)])
+            stdv = np.std(ft_dist[(l1,l2)])
+            ft_means[l1,l2] = mean
+            ft_stdvs[l1,l2] = stdv
     means = np.concatenate((ff_means, ft_means), axis=1)
     stdvs = np.concatenate((ff_stdvs, ft_stdvs), axis=1)
     return means, stdvs
@@ -307,6 +289,29 @@ def rsize_recall(recall, msize, min_value, max_value):
         return (recall.astype(dtype=float) + 1.0)*(max_value - min_value)/2
     return (max_value - min_value) * recall.astype(dtype=float) \
         / (msize - 1.0) + min_value
+
+def features_per_fold(dataset, es, fold):
+    suffix = constants.filling_suffix
+    filling_features_filename = constants.features_name(dataset, es) + suffix
+    filling_features_filename = constants.data_filename(
+        filling_features_filename, es, fold)
+    filling_labels_filename = constants.labels_name(dataset, es) + suffix
+    filling_labels_filename = constants.data_filename(
+        filling_labels_filename, es, fold)
+
+    suffix = constants.testing_suffix
+    testing_features_filename = constants.features_name(dataset, es) + suffix
+    testing_features_filename = constants.data_filename(
+        testing_features_filename, es, fold)
+    testing_labels_filename = constants.labels_name(dataset, es) + suffix
+    testing_labels_filename = constants.data_filename(
+        testing_labels_filename, es, fold)
+
+    filling_features = np.load(filling_features_filename)
+    filling_labels = np.load(filling_labels_filename)
+    testing_features = np.load(testing_features_filename)
+    testing_labels = np.load(testing_labels_filename)
+    return filling_features, filling_labels, testing_features, testing_labels
 
 def match_labels(features, labels, half = False):
     right_features = []
@@ -402,35 +407,24 @@ def normality_test(relation):
         ps.append(shapiro_test.pvalue)
     return np.mean(ps), np.std(ps)
 
+def statistics_per_fold(dataset, es, fold):
+    filling_features, filling_labels, \
+    testing_features, testing_labels = features_per_fold(dataset, es, fold)
+
+    print(f'Calculating statistics for fold {fold}')
+    means, stdvs = stats_measures(filling_features, filling_labels,
+                                 testing_features, testing_labels)
+    return means, stdvs
+
+
 def distances_per_fold(dataset, es, fold):
-    suffix = constants.filling_suffix
-    filling_features_filename = constants.features_name(dataset, es) + suffix
-    filling_features_filename = constants.data_filename(
-        filling_features_filename, es, fold)
-    filling_labels_filename = constants.labels_name(dataset, es) + suffix
-    filling_labels_filename = constants.data_filename(
-        filling_labels_filename, es, fold)
+    filling_features, filling_labels, \
+    testing_features, testing_labels = features_per_fold(dataset, es, fold)
 
-    suffix = constants.testing_suffix
-    testing_features_filename = constants.features_name(dataset, es) + suffix
-    testing_features_filename = constants.data_filename(
-        testing_features_filename, es, fold)
-    testing_labels_filename = constants.labels_name(dataset, es) + suffix
-    testing_labels_filename = constants.data_filename(
-        testing_labels_filename, es, fold)
-
-    filling_features = np.load(filling_features_filename)
-    filling_labels = np.load(filling_labels_filename)
-    testing_features = np.load(testing_features_filename)
-    testing_labels = np.load(testing_labels_filename)
-
-    print('Calculating intra-distances')
-    intra_means, intra_stdvs = intra_distances(filling_features, filling_labels,
+    print(f'Calculating distances for fold {fold}')
+    means, stdvs = distance_matrices(filling_features, filling_labels,
                                  testing_features, testing_labels)
-    print('Calculating inter-distances')
-    inter_means, inter_stdvs = inter_distances(filling_features, filling_labels,
-                                 testing_features, testing_labels)
-    return intra_means, intra_stdvs, inter_means, inter_stdvs
+    return means, stdvs
 
 def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
     data = []
@@ -608,31 +602,45 @@ def get_ams_results(
     behaviour[constants.recall_idx] = recall
     return midx, eam.entropy, behaviour, confrix
 
-def intra_inter_distances(dataset, es):
+def statistics(dataset, es):
+    list_results = []
+    for fold in range(constants.n_folds):
+        results = statistics_per_fold(dataset, es, fold)
+        list_results.append(results)
+    means = []
+    stdvs = []
+    for mean, stdv in list_results:
+        means.append(mean)
+        stdvs.append(stdv)
+    means = np.concatenate(means, axis=1)
+    stdvs = np.concatenate(stdvs, axis=1)
+    data = [means, stdvs]
+    suffixes = ['-means', '-stdvs']
+    for d, suffix in zip(data, suffixes):
+        print(f'Shape{suffix[0]},{suffix[1]}: {d.shape}')
+        filename = constants.fstats_name(dataset, es)
+        filename += suffix
+        filename = constants.csv_filename(filename, es)
+        np.savetxt(filename, d, delimiter=',')
+
+def distances(dataset, es):
     list_results = []
     for fold in range(constants.n_folds):
         results = distances_per_fold(dataset, es, fold)
         list_results.append(results)
-    intra_means = []
-    intra_stdvs = []
-    inter_means = []
-    inter_stdvs = []
-    for tra_mean, tra_stdv, ter_mean, ter_stdv in list_results:
-        intra_means.append(tra_mean)
-        intra_stdvs.append(tra_stdv)
-        inter_means.append(ter_mean)
-        inter_stdvs.append(ter_stdv)
-    intra_means = np.concatenate(intra_means, axis=1)
-    intra_stdvs = np.concatenate(intra_stdvs, axis=1)
-    inter_means = np.concatenate(inter_means, axis=1)
-    inter_stdvs = np.concatenate(inter_stdvs, axis=1)
-    data = [intra_means, intra_stdvs, inter_means, inter_stdvs]
-    suffixes = [('-intra', '-means'), ('-intra', '-stdvs'),
-                ('-inter', '-means'), ('-inter', '-stdvs')]
-    for d, st in zip(data, suffixes):
-        print(f'Shape{st[0]},{st[1]}: {d.shape}')
+    distance_means = []
+    distance_stdvs = []
+    for mean, stdv in list_results:
+        distance_means.append(mean)
+        distance_stdvs.append(stdv)
+    distance_means = np.concatenate(distance_means, axis=1)
+    distance_stdvs = np.concatenate(distance_stdvs, axis=1)
+    data = [distance_means, distance_stdvs]
+    suffixes = ['-means', '-stdvs']
+    for d, suffix in zip(data, suffixes):
+        print(f'Shape{suffix[0]},{suffix[1]}: {d.shape}')
         filename = constants.distance_name(dataset, es)
-        filename += st[0] + st[1]
+        filename += suffix
         filename = constants.csv_filename(filename, es)
         np.savetxt(filename, d, delimiter=',')
 
@@ -1433,8 +1441,9 @@ def produce_features_from_data(dataset, es):
     neural_net.obtain_features(dataset,
         model_prefix, features_prefix, labels_prefix, data_prefix, es)
 
-def calculate_distances(dataset, es):
-    intra_inter_distances(dataset, es)
+def describe_dataset(dataset, es):
+    statistics(dataset, es)
+    distances(dataset, es)
 
 def run_separate_evaluation(dataset, es):
     best_memory_sizes = test_memory_sizes(dataset, es)
@@ -1490,7 +1499,7 @@ if __name__ == "__main__":
     elif args['-d']:
         _dataset = args['<dataset>']
         if _dataset in constants.datasets:
-            calculate_distances(_dataset, exp_settings)
+            describe_dataset(_dataset, exp_settings)
         else:
             print(f'Dataset {_dataset} is not supported.')
     elif args['-s']:

@@ -544,7 +544,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     np.save(filename, memories)
     print('Remembering from right by hetero memory')
     minimum, maximum = min_maxs[left_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(
+    confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
         eam.recall_from_right, left_classifier,
         testing_features[right_ds], testing_labels[left_ds],
         rows[left_ds], percent, minimum, maximum)

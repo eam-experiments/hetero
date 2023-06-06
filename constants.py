@@ -59,6 +59,8 @@ stats_prefix = 'model_stats-'
 learn_params_prefix ='learn_params-'
 memory_parameters_prefix='mem_params'
 chosen_prefix = 'chosen-'
+distance_prefix = 'distance-'
+fstats_prefix = 'feature_stats-'
 
 balanced_data = 'balanced'
 seed_data = 'seed'
@@ -299,6 +301,12 @@ def noised_classification_name(dataset, es):
 
 def learn_params_name(dataset, es):
     return learn_params_prefix + dataset
+
+def distance_name(dataset, es):
+    return distance_prefix + dataset
+
+def fstats_name(dataset, es):
+    return fstats_prefix + dataset
 
 def mem_params_name(es):
     return memory_parameters_prefix

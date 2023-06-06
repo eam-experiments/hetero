@@ -17,12 +17,13 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -s <dataset> | -e | -r ) [--runpath=PATH ] [ -l (en | es) ]
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r ) [--runpath=PATH ] [ -l (en | es) ]
 
 Options:
   -h    Show this screen.
   -n    Trains the neural network for MNIST (mnist) or Fashion (fashion).
   -f    Generates Features for MNIST (mnist) or Fashion (fashion).
+  -d    Calculate distances intra/inter classes of features.
   -s    Run separated tests of memories performance for MNIST y Fashion.
   -e    Evaluation of recognition of hetero-associations.
   -r    Evaluation of hetero-recalling.
@@ -207,16 +208,110 @@ def get_min(arrays):
             _min = local_min
     return _min
 
+def features_distance(f, g):
+    return np.linalg.norm(f - g)
+
+def stats_measures(filling_features, filling_labels,
+        testing_features, testing_labels):
+    filling_fpl = {}
+    testing_fpl = {}
+    for label in range(constants.n_labels):
+        filling_fpl[label] = []
+        testing_fpl[label] = []
+    for f, l in zip (filling_features, filling_labels):
+        filling_fpl[l].append(f)
+    for f, l in zip (testing_features, testing_labels):
+        testing_fpl[l].append(f)
+    means = np.zeros((constants.n_labels+1, 2), dtype=float)
+    stdvs = np.zeros((constants.n_labels+1,2), dtype=float)
+    for l in range(constants.n_labels):
+        means[l,0] = np.mean(filling_fpl[l])
+        means[l,1] = np.mean(testing_fpl[l])
+        stdvs[l,0] = np.std(filling_fpl[l])
+        stdvs[l,1] = np.std(testing_fpl[l])
+    means[constants.n_labels,0] = np.mean(filling_features)
+    means[constants.n_labels,1] = np.mean(testing_features)
+    stdvs[constants.n_labels,0] = np.std(filling_features)
+    stdvs[constants.n_labels,1] = np.std(testing_features)
+    return means, stdvs
+
+
+def distance_matrices(filling_features, filling_labels,
+        testing_features, testing_labels):
+    ff_dist = {}
+    ft_dist = {}
+    for l1 in range(constants.n_labels):
+        for l2 in range(constants.n_labels):
+            ff_dist[(l1,l2)] = []
+            ft_dist[(l1,l2)] = []
+    f_len = len(filling_labels)
+    t_len = len(testing_labels)
+    counter = 0
+    for i in range(f_len):
+        for j in range(f_len):
+            if i != j:
+                l1 = filling_labels[i]
+                l2 = filling_labels[j]
+                d = features_distance(filling_features[i], filling_features[j])
+                ff_dist[(l1,l2)].append(d)
+        for j in range(t_len):
+            l1 = filling_labels[i]
+            l2 = testing_labels[j]
+            d = features_distance(filling_features[i], testing_features[j])
+            ft_dist[(l1,l2)].append(d)
+        constants.print_counter(counter, 1000, 100)
+        counter += 1
+    print(' end.')
+    ff_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    ff_stdvs = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    ft_means = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    ft_stdvs = np.zeros((constants.n_labels, constants.n_labels), dtype=float)
+    for l1 in range(constants.n_labels):
+        for l2 in range(constants.n_labels):
+            mean = np.mean(ff_dist[(l1,l2)])
+            stdv = np.std(ff_dist[(l1,l2)])
+
+            ff_means[l1,l2] = mean
+            ff_stdvs[l1,l2] = stdv
+            mean = np.mean(ft_dist[(l1,l2)])
+            stdv = np.std(ft_dist[(l1,l2)])
+            ft_means[l1,l2] = mean
+            ft_stdvs[l1,l2] = stdv
+    means = np.concatenate((ff_means, ft_means), axis=1)
+    stdvs = np.concatenate((ff_stdvs, ft_stdvs), axis=1)
+    return means, stdvs
 
 def msize_features(features, msize, min_value, max_value):
     return np.round((msize-1)*(features-min_value) / (max_value-min_value)).astype(int)
-
 
 def rsize_recall(recall, msize, min_value, max_value):
     if msize == 1:
         return (recall.astype(dtype=float) + 1.0)*(max_value - min_value)/2
     return (max_value - min_value) * recall.astype(dtype=float) \
         / (msize - 1.0) + min_value
+
+def features_per_fold(dataset, es, fold):
+    suffix = constants.filling_suffix
+    filling_features_filename = constants.features_name(dataset, es) + suffix
+    filling_features_filename = constants.data_filename(
+        filling_features_filename, es, fold)
+    filling_labels_filename = constants.labels_name(dataset, es) + suffix
+    filling_labels_filename = constants.data_filename(
+        filling_labels_filename, es, fold)
+
+    suffix = constants.testing_suffix
+    testing_features_filename = constants.features_name(dataset, es) + suffix
+    testing_features_filename = constants.data_filename(
+        testing_features_filename, es, fold)
+    testing_labels_filename = constants.labels_name(dataset, es) + suffix
+    testing_labels_filename = constants.data_filename(
+        testing_labels_filename, es, fold)
+
+    filling_features = np.load(filling_features_filename)
+    filling_labels = np.load(filling_labels_filename)
+    testing_features = np.load(testing_features_filename)
+    testing_labels = np.load(testing_labels_filename)
+    return filling_features, filling_labels, testing_features, testing_labels
 
 def match_labels(features, labels, half = False):
     right_features = []
@@ -312,6 +407,21 @@ def normality_test(relation):
         ps.append(shapiro_test.pvalue)
     return np.mean(ps), np.std(ps)
 
+def statistics_per_fold(dataset, es, fold):
+    filling_features, filling_labels, \
+    testing_features, testing_labels = features_per_fold(dataset, es, fold)
+    print(f'Calculating statistics for fold {fold}')
+    return stats_measures(filling_features, filling_labels,
+                                 testing_features, testing_labels)
+
+def distances_per_fold(dataset, es, fold):
+    filling_features, filling_labels, \
+    testing_features, testing_labels = features_per_fold(dataset, es, fold)
+
+    print(f'Calculating distances for fold {fold}')
+    means, stdvs = distance_matrices(filling_features, filling_labels,
+                                 testing_features, testing_labels)
+    return means, stdvs
 
 def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
     data = []
@@ -422,7 +532,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     behaviours = []
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(right_ds
+    confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
         eam.recall_from_left, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
         rows[right_ds], percent, minimum, maximum)
@@ -434,7 +544,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     np.save(filename, memories)
     print('Remembering from right by hetero memory')
     minimum, maximum = min_maxs[left_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(
+    confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
         eam.recall_from_right, left_classifier,
         testing_features[right_ds], testing_labels[left_ds],
         rows[left_ds], percent, minimum, maximum)
@@ -488,6 +598,49 @@ def get_ams_results(
     behaviour[constants.precision_idx] = precision
     behaviour[constants.recall_idx] = recall
     return midx, eam.entropy, behaviour, confrix
+
+def statistics(dataset, es):
+    list_results = []
+    for fold in range(constants.n_folds):
+        results = statistics_per_fold(dataset, es, fold)
+        print(f'Results: {results}')
+        list_results.append(results)
+    means = []
+    stdvs = []
+    for mean, stdv in list_results:
+        means.append(mean)
+        stdvs.append(stdv)
+    means = np.concatenate(means, axis=1)
+    stdvs = np.concatenate(stdvs, axis=1)
+    data = [means, stdvs]
+    suffixes = ['-means', '-stdvs']
+    for d, suffix in zip(data, suffixes):
+        print(f'Shape{suffix[0]},{suffix[1]}: {d.shape}')
+        filename = constants.fstats_name(dataset, es)
+        filename += suffix
+        filename = constants.csv_filename(filename, es)
+        np.savetxt(filename, d, delimiter=',')
+
+def distances(dataset, es):
+    list_results = []
+    for fold in range(constants.n_folds):
+        results = distances_per_fold(dataset, es, fold)
+        list_results.append(results)
+    distance_means = []
+    distance_stdvs = []
+    for mean, stdv in list_results:
+        distance_means.append(mean)
+        distance_stdvs.append(stdv)
+    distance_means = np.concatenate(distance_means, axis=1)
+    distance_stdvs = np.concatenate(distance_stdvs, axis=1)
+    data = [distance_means, distance_stdvs]
+    suffixes = ['-means', '-stdvs']
+    for d, suffix in zip(data, suffixes):
+        print(f'Shape{suffix[0]},{suffix[1]}: {d.shape}')
+        filename = constants.distance_name(dataset, es)
+        filename += suffix
+        filename = constants.csv_filename(filename, es)
+        np.savetxt(filename, d, delimiter=',')
 
 def test_memory_sizes(dataset, es):
     domain = constants.domain(dataset)
@@ -625,7 +778,7 @@ def test_filling_percent(
     return behaviour, eam.entropy
 
 def test_hetero_filling_percent(
-        eam, trfs, tefs, tels, percent):
+        eam: HeteroAssociativeMemory, trfs, tefs, tels, percent):
     # Register filling data.
     print('Filling hetero memory')
     counter = 0
@@ -636,6 +789,7 @@ def test_hetero_filling_percent(
         constants.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
+    print(f'Memory full at {100*eam.fullness}%')
     confrix = recognize_by_hetero_memory(eam, tefs, tels)
     return confrix, eam.entropy
 
@@ -730,7 +884,6 @@ def test_hetero_filling_per_fold(es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    params = constants.ExperimentSettings()
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                 rows[left_ds], rows[right_ds], es)
     filling_features = {}
@@ -787,8 +940,6 @@ def test_hetero_filling_per_fold(es, fold):
         confrix, entropy = \
                 test_hetero_filling_percent(
                     eam, features, testing_features, testing_labels, percent)
-        # A list of tuples (position, label, features)
-        # fold_recalls += recalls
         # An array with average entropy per step.
         fold_entropies.append(entropy)
         # Arrays with precision, and recall.
@@ -1288,6 +1439,10 @@ def produce_features_from_data(dataset, es):
     neural_net.obtain_features(dataset,
         model_prefix, features_prefix, labels_prefix, data_prefix, es)
 
+def describe_dataset(dataset, es):
+    statistics(dataset, es)
+    distances(dataset, es)
+
 def run_separate_evaluation(dataset, es):
     best_memory_sizes = test_memory_sizes(dataset, es)
     print(f'Best memory sizes: {best_memory_sizes}')
@@ -1337,6 +1492,12 @@ if __name__ == "__main__":
         _dataset = args['<dataset>']
         if _dataset in constants.datasets:
             produce_features_from_data(_dataset, exp_settings)
+        else:
+            print(f'Dataset {_dataset} is not supported.')
+    elif args['-d']:
+        _dataset = args['<dataset>']
+        if _dataset in constants.datasets:
+            describe_dataset(_dataset, exp_settings)
         else:
             print(f'Dataset {_dataset} is not supported.')
     elif args['-s']:

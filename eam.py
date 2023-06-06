@@ -471,7 +471,10 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
 
 
 def recognize_by_hetero_memory(
-        eam: HeteroAssociativeMemory, tefs, tels):
+        hetero_eam: HeteroAssociativeMemory, 
+        left_eam: AssociativeMemory,
+        right_eam: AssociativeMemory, 
+        tefs, tels):
     confrix = np.zeros((2,2), dtype=int)
     weights = {'TP': [], 'FN': [], 'FP': [], 'TN': []} 
     print('Recognizing by hetero memory')
@@ -479,7 +482,10 @@ def recognize_by_hetero_memory(
     for left_feat, left_lab, right_feat, right_lab \
             in zip(tefs[constants.left_dataset], tels[constants.left_dataset],
                     tefs[constants.right_dataset], tels[constants.right_dataset]):
-        recognized, weight = eam.recognize(left_feat, right_feat)
+        _, left_weights = left_eam.recog_detailed_weights(left_feat)
+        _, right_weights = right_eam.recog_detailed_weights(right_feat)
+        recognized, weight = hetero_eam.recognize(
+            left_feat, right_feat, left_weights, right_weights)
         if recognized:
             if left_lab == right_lab:
                 confrix[0,0] += 1
@@ -792,20 +798,23 @@ def test_filling_percent(
     return behaviour, eam.entropy
 
 def test_hetero_filling_percent(
-        eam: HeteroAssociativeMemory, trfs, tefs, tels, percent):
+        hetero_eam: HeteroAssociativeMemory, 
+        left_eam: AssociativeMemory,
+        right_eam: AssociativeMemory,
+        trfs, tefs, tels, percent):
     # Register filling data.
     print('Filling hetero memory')
     counter = 0
     for left_feat, right_feat \
             in zip(trfs[constants.left_dataset], trfs[constants.right_dataset]):
-        eam.register(left_feat,right_feat)
+        hetero_eam.register(left_feat,right_feat)
         counter += 1
         constants.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
-    print(f'Memory full at {100*eam.fullness}%')
-    confrix = recognize_by_hetero_memory(eam, tefs, tels)
-    return confrix, eam.entropy
+    print(f'Memory full at {100*hetero_eam.fullness}%')
+    confrix = recognize_by_hetero_memory(hetero_eam, left_eam, right_eam, tefs, tels)
+    return confrix, hetero_eam.entropy
 
 def hetero_remember_percent(
         eam: HeteroAssociativeMemory, left_classifier, right_classifier,
@@ -898,7 +907,9 @@ def test_hetero_filling_per_fold(es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
+    left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], es)
+    right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], es)
+    hetero_eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                 rows[left_ds], rows[right_ds], es)
     filling_features = {}
     filling_labels = {}
@@ -935,6 +946,10 @@ def test_hetero_filling_per_fold(es, fold):
     describe(filling_features, filling_labels)
     match_labels(testing_features, testing_labels, half = True)
     describe(testing_features, testing_labels)
+    for f in filling_features[left_ds]:
+        left_eam.register(f)
+    for f in filling_features[right_ds]:
+        right_eam.register(f)    
     total = len(filling_features[left_ds])
     print(f'Filling hetero-associative memory with a total of {total} pairs.')
     percents = np.array(constants.memory_fills)
@@ -953,7 +968,8 @@ def test_hetero_filling_per_fold(es, fold):
         print(f'Filling from {start} to {end}.')
         confrix, entropy = \
                 test_hetero_filling_percent(
-                    eam, features, testing_features, testing_labels, percent)
+                    hetero_eam, left_eam, right_eam,
+                    features, testing_features, testing_labels, percent)
         # An array with average entropy per step.
         fold_entropies.append(entropy)
         # Arrays with precision, and recall.

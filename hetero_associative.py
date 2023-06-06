@@ -189,19 +189,22 @@ class HeteroAssociativeMemory:
         r_io = self.vectors_to_relation(vector_a, vector_b)
         self.abstract(r_io)
 
-    def recognize(self, vector_a, vector_b):
-        recognized, weights = self._recog(vector_a, vector_b)
-        return recognized, np.mean(weights)
+    def recognize(self, vector_a, vector_b, weights_a = None, weights_b = None):
+        if weights_a is None:
+            weights_a = np.full(len(vector_a), fill_value=1)
+        if weights_b is None:
+            weights_b = np.full(len(vector_b), fill_value=1)
+        recognized, weights = self._recog(vector_a, vector_b, weights_a, weights_b)
+        return recognized, np.sum(weights)
 
-    def _recog(self, vector_a, vector_b):
+    def _recog(self, vector_a, vector_b, weights_a, weights_b):
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b)
+        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
         implication = self.containment(r_io)
         recognized = np.count_nonzero(implication == False) <= self._xi
         weights = self._weights(r_io)
-        mean = self.mean
-        recognized = recognized and (self._kappa*mean <= np.mean(weights))
+        recognized = recognized and (self._kappa*self.mean <= np.sum(weights))
         return recognized, weights
 
     def recall_from_left(self, vector):
@@ -214,7 +217,7 @@ class HeteroAssociativeMemory:
         vector = self.validate(vector, dim)
         relation = self.project(vector, dim)
         r_io, weight = self.reduce(relation, self.alt(dim))
-        recognized = (np.count_nonzero(r_io != self.undefined) > 0)
+        recognized = (np.count_nonzero(r_io == self.undefined) == 0)
         r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, relation
 
@@ -284,11 +287,9 @@ class HeteroAssociativeMemory:
         num = math.exp(-(float(x)-float(mean))**2/(2*var))
         return scale*num/denom
 
-    def _weight(self, vector_a, vector_b):
-        return np.mean(self._weights(vector_a, vector_b))
-
     def _weights(self, r_io):
-        weights = np.sum(r_io[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
+        r = r_io/np.sum(r_io)
+        weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
         return weights
         
     def update(self):
@@ -349,13 +350,13 @@ class HeteroAssociativeMemory:
         v = np.where(vector == self.undefined(dim), np.nan, vector)
         return v
 
-    def vectors_to_relation(self, vector_a, vector_b):
+    def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=float)
         for i in range(self.n):
             k = vector_a[i]
             for j in range(self.p):
                 l = vector_b[j]
-                relation[i, j, k, l] = 1
+                relation[i, j, k, l] = weights_a[i]*weights_b[j]
         return relation
 
     @property

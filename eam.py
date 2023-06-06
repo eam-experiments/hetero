@@ -166,6 +166,7 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     fname = prefix + 'graph_behaviours-' + dataset + _('-english')
     graph_filename = constants.picture_filename(fname, es)
     plt.savefig(graph_filename, dpi=600)
+    plt.close()
 
 
 def plot_conf_matrix(matrix, tags, dataset, es, prefix = ''):
@@ -178,6 +179,7 @@ def plot_conf_matrix(matrix, tags, dataset, es, prefix = ''):
     fname = prefix + constants.matrix_suffix + '-' + dataset + _('-english')
     filename = constants.picture_filename(fname, es)
     plt.savefig(filename, dpi=600)
+    plt.close()
 
 
 def plot_relation(relation, prefix, es = None, fold = None):
@@ -190,6 +192,7 @@ def plot_relation(relation, prefix, es = None, fold = None):
         es = constants.ExperimentSettings()
     filename = constants.picture_filename(prefix, es, fold)
     plt.savefig(filename, dpi=600)
+    plt.close()
 
 
 def get_max(arrays):

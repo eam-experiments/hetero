@@ -195,6 +195,19 @@ def plot_relation(relation, prefix, es = None, fold = None):
     plt.close()
 
 
+def plot_distances(distances, prefix, es = None, fold = None):
+    plt.clf()
+    plt.figure(figsize=(6.4, 4.8))
+    seaborn.heatmap(distances, annot=False, cmap='rocket')
+    plt.xlabel(_('Label'))
+    plt.ylabel(_('Label'))
+    if es is None:
+        es = constants.ExperimentSettings()
+    filename = constants.picture_filename(prefix, es, fold)
+    plt.savefig(filename, dpi=600)
+    plt.close()
+
+
 def get_max(arrays):
     _max = float('-inf')
     for a in arrays:
@@ -625,15 +638,13 @@ def statistics(dataset, es):
         np.savetxt(filename, d, delimiter=',')
 
 def distances(dataset, es):
-    list_results = []
-    for fold in range(constants.n_folds):
-        results = distances_per_fold(dataset, es, fold)
-        list_results.append(results)
     distance_means = []
     distance_stdvs = []
-    for mean, stdv in list_results:
+    for fold in range(constants.n_folds):
+        mean, stdv = distances_per_fold(dataset, es, fold)
         distance_means.append(mean)
         distance_stdvs.append(stdv)
+        plot_distances(mean, f'distances_{dataset}', es, fold)
     distance_means = np.concatenate(distance_means, axis=1)
     distance_stdvs = np.concatenate(distance_stdvs, axis=1)
     data = [distance_means, distance_stdvs]

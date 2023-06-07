@@ -183,10 +183,14 @@ class HeteroAssociativeMemory:
     def core(self, full_relation):
         return full_relation[:, :, :self.m, :self.q]
 
-    def register(self, vector_a, vector_b) -> None:
+    def register(self, vector_a, vector_b, weights_a = None, weights_b = None) -> None:
+        if weights_a is None:
+            weights_a = np.full(len(vector_a), fill_value=1)
+        if weights_b is None:
+            weights_b = np.full(len(vector_b), fill_value=1)
         vector_a = self.validate(vector_a, 0)
         vector_b = self.validate(vector_b, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b)
+        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
         self.abstract(r_io)
 
     def recognize(self, vector_a, vector_b, weights_a = None, weights_b = None):

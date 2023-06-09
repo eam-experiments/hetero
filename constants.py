@@ -24,8 +24,8 @@ import numpy as np
 MNIST ='mnist'
 FASHION = 'fashion'
 datasets = [MNIST, FASHION]
-datasets_to_domains = {MNIST: 128, FASHION: 256}
-datasets_to_codomains = {MNIST: 8, FASHION: 8}
+datasets_to_domains = {MNIST: 64, FASHION: 128}
+datasets_to_codomains = {MNIST: 16, FASHION: 8}
 left_dataset = MNIST
 right_dataset = FASHION
 

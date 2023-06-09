@@ -240,8 +240,10 @@ class HeteroAssociativeMemory:
         projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
         for i in range(self.cols(dim)):
             k = vector[i]
-            projection = projection + (self._full_iota_relation[i, :, k, :] if dim == 0
+            slide = (self._full_iota_relation[i, :, k, :] if dim == 0
                 else self._full_iota_relation[:, i, :, k])
+            projection = np.where(
+                np.logical_and(projection > 0, slide > 0), projection + slide, 0)
         return projection
 
     # Reduces a relation to a function
@@ -355,7 +357,7 @@ class HeteroAssociativeMemory:
         return v
 
     def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
-        relation = np.zeros((self._n, self._p, self._m, self._q), dtype=float)
+        relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
         for i in range(self.n):
             k = vector_a[i]
             for j in range(self.p):

@@ -1138,7 +1138,7 @@ def test_memory_fills(mem_sizes, dataset, es):
         plot_pre_graph(main_avrge_precisions*100, main_avrge_recalls*100, main_avrge_entropies,
                 main_stdev_precisions*100, main_stdev_recalls *
                 100, dataset, es,
-                'homo_fills' + constants.numeric_suffix('sze', mem_size) + '-',
+                prefix='homo_fills' + constants.numeric_suffix('sze', mem_size) + '-',
                 xlabels=constants.memory_fills, xtitle=_('Percentage of memory corpus'))
 
         bf_idx = optimum_indexes(

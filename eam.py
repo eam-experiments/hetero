@@ -64,6 +64,12 @@ if typing.TYPE_CHECKING:
 # Translation
 gettext.install('eam', localedir=None, codeset=None, names=None)
 
+# Categories in binary confussion matrix
+TP = (0, 0)
+FN = (0, 1)
+FP = (1, 0)
+TN = (1, 1)
+
 def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
                    es, acc_mean = None, acc_std = None,
                    prefix='', xlabels=None,
@@ -488,17 +494,17 @@ def recognize_by_hetero_memory(
             left_feat, right_feat, left_weights, right_weights)
         if recognized:
             if left_lab == right_lab:
-                confrix[0,0] += 1
+                confrix[TP] += 1
                 weights['TP'].append(weight)
             else:
-                confrix[1,0] += 1
+                confrix[FP] += 1
                 weights['FP'].append(weight)
         else:
             if left_lab == right_lab:
-                confrix[0,1] += 1
+                confrix[FN] += 1
                 weights['FN'].append(weight)
             else:
-                confrix[1,1] += 1
+                confrix[TN] += 1
                 weights['TN'].append(weight)
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
@@ -509,8 +515,10 @@ def recognize_by_hetero_memory(
 
 def recall_by_hetero_memory(remembered_dataset,
         recall, classifier, testing_features, testing_labels, msize, mfill, minimum, maximum):
+    # Each row is a correct label and each column is the prediction, including
+    # no recognition.
     confrix = np.zeros(
-        (constants.n_labels, constants.n_labels), dtype='int')
+        (constants.n_labels, constants.n_labels+1), dtype='int')
     behaviour = np.zeros(constants.n_behaviours, dtype=int)
     memories = []
     correct = []
@@ -529,6 +537,7 @@ def recall_by_hetero_memory(remembered_dataset,
                 plot_relation(relation, prefix)        
         else:
             unknown += 1
+            confrix[label, constants.n_labels] += 1
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
@@ -576,7 +585,9 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     prefix += constants.int_suffix(percent, 'fll')
     filename = constants.data_filename(prefix, es, fold)
     np.save(filename, memories)
+    # confrixes has three dimensions: datasets, correct label, prediction.
     confrixes = np.array(confrixes, dtype=int)
+    # behaviours has two dimensions: datasets, behaviours.
     behaviours = np.array(behaviours, dtype=int)
     return confrixes, behaviours
 
@@ -973,10 +984,10 @@ def test_hetero_filling_per_fold(es, fold):
         # An array with average entropy per step.
         fold_entropies.append(entropy)
         # Arrays with precision, and recall.
-        positives = confrix[0,0]+confrix[1,0] 
-        fold_precision.append(1.0 if positives == 0 else confrix[0,0]/positives)
-        fold_recall.append(confrix[0,0]/(confrix[0,0]+confrix[0,1]))
-        fold_accuracy.append((confrix[0,0]+confrix[1,1])/np.sum(confrix))
+        positives = confrix[TP]+confrix[FP] 
+        fold_precision.append(1.0 if positives == 0 else confrix[TP]/positives)
+        fold_recall.append(confrix[TP]/(confrix[TP]+confrix[FN]))
+        fold_accuracy.append((confrix[TP]+confrix[TN])/np.sum(confrix))
         start = end
     fold_entropies = np.array(fold_entropies)
     fold_precision = np.array(fold_precision)

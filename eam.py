@@ -1347,7 +1347,9 @@ def remember(es):
         mean_correct_response = main_avrge_behaviours[i, :, constants.correct_response_idx]
         plot_behs_graph(mean_no_response, mean_no_correct_response,
                 mean_correct_response, dataset, es, xtags=constants.memory_fills, prefix='hetero_remember-')
-        save_conf_matrix(main_avrge_confrixes[i, len(constants.memory_fills)-1], dataset, 'hetero_remember-', es)
+        n = 0
+        for f in constants.memory_fills:
+            save_conf_matrix(main_avrge_confrixes[i, n], dataset, f'hetero_remember-fll_{str(f).zfill(3)}', es)
     print('Remembering done!')
 
 
@@ -1495,9 +1497,9 @@ def run_evaluation(es):
     test_hetero_fills(es)
 
 def generate_memories(es):
-    decode_test_features(es)
+    # decode_test_features(es)
     remember(es)
-    decode_memories(es)
+    # decode_memories(es)
 
 if __name__ == "__main__":
     args = docopt(__doc__)

@@ -449,7 +449,7 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
     data = []
     labels = []
     confrix = np.zeros(
-        (constants.n_labels, constants.n_labels), dtype='int')
+        (constants.n_labels, constants.n_labels+1), dtype='int')
     behaviour = np.zeros(constants.n_behaviours, dtype=np.float64)
     unknown = 0
     for features, label in zip(tef_rounded, tel):
@@ -460,11 +460,13 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
             labels.append(label)
         else:
             unknown += 1
-    data = np.array(data)
-    predictions = np.argmax(classifier.predict(data), axis=1)
-    for correct, prediction in zip(labels, predictions):
-        # For calculation of per memory precision and recall
-        confrix[correct, prediction] += 1
+            confrix[label, constants.n_labels] += 1
+    if len(data) > 0:
+        data = np.array(data)
+        predictions = np.argmax(classifier.predict(data), axis=1)
+        for correct, prediction in zip(labels, predictions):
+            # For calculation of per memory precision and recall
+            confrix[correct, prediction] += 1
     behaviour[constants.no_response_idx] = unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
@@ -541,11 +543,12 @@ def recall_by_hetero_memory(remembered_dataset,
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
-    memories = np.array(memories)
-    predictions = np.argmax(classifier.predict(memories), axis=1)
-    for correct, prediction in zip(correct, predictions):
-        # For calculation of per memory precision and recall
-        confrix[correct, prediction] += 1
+    if len(memories) > 0:
+        memories = np.array(memories)
+        predictions = np.argmax(classifier.predict(memories), axis=1)
+        for correct, prediction in zip(correct, predictions):
+            # For calculation of per memory precision and recall
+            confrix[correct, prediction] += 1
     behaviour[constants.no_response_idx] = unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])

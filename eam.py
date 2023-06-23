@@ -516,7 +516,7 @@ def recognize_by_hetero_memory(
     return confrix
 
 def recall_by_hetero_memory(remembered_dataset,
-        recall, classifier, testing_features, testing_labels, msize, mfill, minimum, maximum):
+        recall, eam, classifier, testing_features, testing_labels, msize, mfill, minimum, maximum):
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
     confrix = np.zeros(
@@ -527,7 +527,8 @@ def recall_by_hetero_memory(remembered_dataset,
     unknown = 0
     counter = 0
     for features, label in zip(testing_features, testing_labels):
-        memory, recognized, weight, relation = recall(features)
+        _, weights = eam.recog_detailed_weights(features)
+        memory, recognized, weight, relation = recall(features, weights)
         if recognized:
             memory = rsize_recall(memory, msize, minimum, maximum)
             memories.append(memory)
@@ -557,6 +558,7 @@ def recall_by_hetero_memory(remembered_dataset,
     return confrix, behaviour, memories
 
 def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
+            left_eam: AssociativeMemory, right_eam: AssociativeMemory,
             left_classifier, right_classifier,
             testing_features, testing_labels, min_maxs, percent, es, fold):
     left_ds = constants.left_dataset
@@ -567,7 +569,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
     confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
-        eam.recall_from_left, right_classifier,
+        eam.recall_from_left, left_eam, right_classifier,
         testing_features[left_ds], testing_labels[right_ds],
         rows[right_ds], percent, minimum, maximum)
     confrixes.append(confrix)
@@ -579,7 +581,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     print('Remembering from right by hetero memory')
     minimum, maximum = min_maxs[left_ds]
     confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
-        eam.recall_from_right, left_classifier,
+        eam.recall_from_right, right_eam, left_classifier,
         testing_features[right_ds], testing_labels[left_ds],
         rows[left_ds], percent, minimum, maximum)
     confrixes.append(confrix)
@@ -831,7 +833,9 @@ def test_hetero_filling_percent(
     return confrix, hetero_eam.entropy
 
 def hetero_remember_percent(
-        eam: HeteroAssociativeMemory, left_classifier, right_classifier,
+        eam: HeteroAssociativeMemory, 
+        left_eam: AssociativeMemory, right_eam: AssociativeMemory,
+        left_classifier, right_classifier,
         filling_features, testing_features, testing_labels, min_maxs, percent, es, fold):
     # Register filling data.
     print('Filling hetero memory')
@@ -844,7 +848,7 @@ def hetero_remember_percent(
         constants.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
-    confrixes, behaviours = remember_by_hetero_memory(eam, left_classifier, right_classifier,
+    confrixes, behaviours = remember_by_hetero_memory(eam, left_eam, right_eam, left_classifier, right_classifier,
             testing_features, testing_labels, min_maxs, percent, es, fold)
     return confrixes, behaviours, eam.entropy
 
@@ -921,8 +925,9 @@ def test_hetero_filling_per_fold(es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], es)
-    right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], es)
+    params = constants.ExperimentSettings()
+    left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
+    right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
     hetero_eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                 rows[left_ds], rows[right_ds], es)
     filling_features = {}
@@ -1007,6 +1012,8 @@ def hetero_remember_per_fold(es, fold):
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
     params = constants.ExperimentSettings()
+    left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], es)
+    right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], es)
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
             rows[left_ds], rows[right_ds], es)
 
@@ -1051,6 +1058,11 @@ def hetero_remember_per_fold(es, fold):
             f_features, rows[dataset], min_value, max_value)
         testing_features[dataset] = msize_features(
             t_features, rows[dataset], min_value, max_value)
+
+    for f in filling_features[left_ds]:
+        left_eam.register(f)
+    for f in filling_features[right_ds]:
+        right_eam.register(f)    
     match_labels(filling_features, filling_labels)
     describe(filling_features, filling_labels)
     match_labels(testing_features, testing_labels)
@@ -1074,7 +1086,7 @@ def hetero_remember_per_fold(es, fold):
         print(f'Filling from {start} to {end}.')
         confrixes, behaviours, entropy = \
                 hetero_remember_percent(
-                    eam, left_classifier, right_classifier,
+                    eam, left_eam, right_eam, left_classifier, right_classifier,
                     features, testing_features, testing_labels, min_maxs, percent, es, fold)
         fold_entropies.append(entropy)
         fold_behaviours.append(behaviours)

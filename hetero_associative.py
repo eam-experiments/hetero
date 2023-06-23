@@ -211,15 +211,19 @@ class HeteroAssociativeMemory:
         recognized = recognized and (self._kappa*self.mean <= np.sum(weights))
         return recognized, weights
 
-    def recall_from_left(self, vector):
-        return self._recall(vector, 0)
+    def recall_from_left(self, vector, weights = None):
+        if weights is None:
+            weights = np.full(len(vector), fill_value=1)
+        return self._recall(vector, weights, 0)
 
-    def recall_from_right(self, vector):
-        return self._recall(vector, 1)
+    def recall_from_right(self, vector, weights = None):
+        if weights is None:
+            weights = np.full(len(vector), fill_value=1)
+        return self._recall(vector, weights, 1)
     
-    def _recall(self, vector, dim):
+    def _recall(self, vector, weights, dim):
         vector = self.validate(vector, dim)
-        relation = self.project(vector, dim)
+        relation = self.project(vector, weights, dim)
         r_io, weight = self.reduce(relation, self.alt(dim))
         recognized = (np.count_nonzero(r_io == self.undefined) == 0)
         r_io = self.revalidate(r_io, self.alt(dim))
@@ -236,12 +240,18 @@ class HeteroAssociativeMemory:
         r_iota = self.iota_relation
         return np.where((r == 0) | (r_iota != 0), True, False)
 
-    def project(self, vector, dim):
+    def project(self, vector, weights, dim):
         projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
-        for i in range(self.cols(dim)):
+        columns = 1
+        used = []
+        n = 0
+        while n < columns:
+            i = self.choose_column_per_weight(weights, used)
             k = vector[i]
             projection = projection + (self._full_iota_relation[i, :, k, :] if dim == 0
                 else self._full_iota_relation[:, i, :, k])
+            used.append(i)
+            n += 1
         return projection
 
     # Reduces a relation to a function
@@ -354,6 +364,17 @@ class HeteroAssociativeMemory:
         v = np.where(vector == self.undefined(dim), np.nan, vector)
         return v
 
+    def choose_column_per_weight(self, weights, used):
+        options = [i for i in range(len(weights))]
+        random.shuffle(options)
+        maximum = 0
+        column = 0
+        for i in options:
+            if weights[i] > maximum:
+                maximum = weights[i]
+                column = i
+        return column
+    
     def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=float)
         for i in range(self.n):

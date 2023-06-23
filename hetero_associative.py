@@ -370,7 +370,7 @@ class HeteroAssociativeMemory:
         maximum = 0
         column = 0
         for i in options:
-            if weights[i] > maximum:
+            if (i not in used) and (weights[i] > maximum):
                 maximum = weights[i]
                 column = i
         return column

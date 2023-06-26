@@ -241,18 +241,21 @@ class HeteroAssociativeMemory:
         return np.where((r == 0) | (r_iota != 0), True, False)
 
     def project(self, vector, weights, dim):
-        projection = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
+        integration = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
         columns = 1
         used = []
         n = 0
         while n < columns:
             i = self.choose_column_per_weight(weights, used)
             k = vector[i]
-            projection = projection + (self._full_iota_relation[i, :, k, :] if dim == 0
+            projection = (self._full_iota_relation[i, :, k, :] if dim == 0
                 else self._full_iota_relation[:, i, :, k])
+            if np.count_nonzero(projection) == 0:
+                return np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
+            integration = integration + projection
             used.append(i)
             n += 1
-        return projection
+        return integration
 
     # Reduces a relation to a function
     def reduce(self, relation, dim):

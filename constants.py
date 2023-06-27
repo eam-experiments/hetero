@@ -25,7 +25,7 @@ MNIST ='mnist'
 FASHION = 'fashion'
 datasets = [MNIST, FASHION]
 datasets_to_domains = {MNIST: 64, FASHION: 128}
-datasets_to_codomains = {MNIST: 256, FASHION: 128}
+datasets_to_codomains = {MNIST: 64, FASHION: 32}
 left_dataset = MNIST
 right_dataset = FASHION
 

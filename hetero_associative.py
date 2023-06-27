@@ -225,7 +225,7 @@ class HeteroAssociativeMemory:
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
         r_io, weight = self.reduce(relation, self.alt(dim))
-        recognized = (np.count_nonzero(r_io == self.undefined) == 0)
+        recognized = (np.count_nonzero(r_io == self.undefined(self.alt(dim))) == 0)
         r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, relation
 
@@ -242,7 +242,8 @@ class HeteroAssociativeMemory:
 
     def project(self, vector, weights, dim):
         integration = np.zeros((self.cols_alt(dim), self.rows_alt(dim)+1), dtype=int)
-        columns = 1
+        columns = int(self.cols(dim)/10)
+        columns = (columns == 0) ? 1 : columns
         used = []
         n = 0
         while n < columns:

@@ -474,6 +474,7 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
     behaviour[constants.no_correct_response_idx] = \
         len(tel) - unknown - behaviour[constants.correct_response_idx]
     print(f'Confusion matrix:\n{confrix}')
+    print(f'Unknown elements: {unknown}')
     print(f'Behaviour: {behaviour}')
     return confrix, behaviour
 
@@ -555,6 +556,7 @@ def recall_by_hetero_memory(remembered_dataset,
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
     behaviour[constants.no_correct_response_idx] = \
         len(testing_labels) - unknown - behaviour[constants.correct_response_idx]
+    print(f'Unknown elements: {unknown}')
     return confrix, behaviour, memories
 
 def remember_by_hetero_memory(eam: HeteroAssociativeMemory,

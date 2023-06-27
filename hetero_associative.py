@@ -321,7 +321,8 @@ class HeteroAssociativeMemory:
             for j in range(self.p):
                 relation = self.relation[i, j, :, :]
                 total = np.sum(relation)
-                matrix = relation/total
+                if total > 0:
+                    matrix = relation/total
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
 

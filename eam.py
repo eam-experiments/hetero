@@ -1547,7 +1547,7 @@ def create_and_train_network(dataset, es):
     stats_prefix = constants.stats_model_name(dataset, es)
     history, conf_matrix = neural_net.train_network(dataset, model_prefix, es)
     save_history(history, stats_prefix, es)
-    save_conf_matrix(conf_matrix, '',  stats_prefix, es, vmax = 1.0)
+    save_conf_matrix(conf_matrix, '',  stats_prefix, es, vmax=1.0)
 
 
 def produce_features_from_data(dataset, es):

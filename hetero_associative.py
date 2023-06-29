@@ -249,9 +249,8 @@ class HeteroAssociativeMemory:
 
     def project(self, vector, weights, dim):
         integration = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=int)
-        # columns = int(self.cols(dim)/10)
-        # columns = 1 if columns == 0 else columns
-        columns = self.cols(dim)
+        columns = int(self.cols(dim)/2)
+        columns = 1 if columns == 0 else columns
         used = []
         n = 0
         while n < columns:

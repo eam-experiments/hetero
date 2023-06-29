@@ -177,11 +177,13 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     plt.close()
 
 
-def plot_conf_matrix(matrix, tags, dataset, es, prefix=''):
+def plot_conf_matrix(matrix, tags, dataset, es, prefix='', vmin=0.0, vmax=None):
     plt.clf()
     plt.figure(figsize=(6.4, 4.8))
+    if vmax is None:
+        vmax = np.max(matrix)
     seaborn.heatmap(matrix, xticklabels=tags, yticklabels=tags,
-                    vmin=0.0, vmax=1.0, annot=False, cmap='Blues')
+                    vmin=vmin, vmax=vmax, annot=False, cmap='Blues')
     plt.xlabel(_('Prediction'))
     plt.ylabel(_('Label'))
     fname = prefix + constants.matrix_suffix + '-' + dataset + _('-english')
@@ -1313,8 +1315,8 @@ def save_history(history, prefix, es):
         json.dump(stats, outfile)
 
 
-def save_conf_matrix(matrix, dataset, prefix, es):
-    plot_conf_matrix(matrix, range(constants.n_labels), dataset, es, prefix)
+def save_conf_matrix(matrix, dataset, prefix, es, vmax=None):
+    plot_conf_matrix(matrix, range(constants.n_labels), dataset, es, prefix, vmax=vmax)
     fname = prefix + constants.matrix_suffix + '-' + dataset
     filename = constants.data_filename(fname)
     np.save(filename, matrix)
@@ -1545,7 +1547,7 @@ def create_and_train_network(dataset, es):
     stats_prefix = constants.stats_model_name(dataset, es)
     history, conf_matrix = neural_net.train_network(dataset, model_prefix, es)
     save_history(history, stats_prefix, es)
-    save_conf_matrix(conf_matrix, '',  stats_prefix, es)
+    save_conf_matrix(conf_matrix, '',  stats_prefix, es, vmax = 1.0)
 
 
 def produce_features_from_data(dataset, es):

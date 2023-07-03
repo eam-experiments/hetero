@@ -550,15 +550,18 @@ def recall_by_hetero_memory(remembered_dataset,
     behaviour = np.zeros(constants.n_behaviours, dtype=int)
     memories = []
     correct = []
+    recog_weights = []
     unknown = 0
+    unknown_weights = []
     counter = 0
     for features, label in zip(testing_features, testing_labels):
         _, weights = eam.recog_detailed_weights(features)
-        memory, recognized, _, relation = recall(features, weights)
+        memory, recognized, weight, relation = recall(features, weights)
         if recognized:
             memory = rsize_recall(memory, msize, minimum, maximum)
             memories.append(memory)
             correct.append(label)
+            recog_weights.append(weight)
             if random.randrange(200) == 0:
                 prefix = 'projection-' + remembered_dataset + \
                     '-fill_' + str(int(mfill)).zfill(3) + \
@@ -567,15 +570,31 @@ def recall_by_hetero_memory(remembered_dataset,
         else:
             unknown += 1
             confrix[label, constants.n_labels] += 1
+            unknown_weights.append(weight)
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
+
+    n = 0
+    correct_weights = 0.0
+    incorrect_weights = 0.0
     if len(memories) > 0:
         memories = np.array(memories)
         predictions = np.argmax(classifier.predict(memories), axis=1)
-        for correct, prediction in zip(correct, predictions):
+        for correct, prediction, weight in zip(correct, predictions, recog_weights):
             # For calculation of per memory precision and recall
             confrix[correct, prediction] += 1
+            if correct == prediction:
+                correct_weights += weight
+                n += 1
+            else:
+                incorrect_weights += weight
+    m = len(memories) - n
+    n = 1 if n == 0 else n
+    m = 1 if m == 0 else m
+    correct_weights /= n
+    incorrect_weights /= m
+    unknown_weights = 0.0 if len(unknown_weights) == 0 else np.mean(unknown_weights)
     behaviour[constants.no_response_idx] = unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
@@ -585,6 +604,8 @@ def recall_by_hetero_memory(remembered_dataset,
     print(f'Unknown elements: {unknown}')
     print(f'Confusion matrix:\n{confrix}')
     print(f'Behaviour: {behaviour}')
+    print(f'Weights: correct = {correct_weights}, incorrect = {incorrect_weights}, ' +
+          f'unknown = {unknown_weights}')
     return confrix, behaviour, memories
 
 

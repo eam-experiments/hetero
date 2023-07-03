@@ -41,7 +41,7 @@ class HeteroAssociativeMemory:
         self._p = p
         self._q = q+1 # +1 to handle partial functions.
         self._xi = es.xi
-        self._absolute_max = 2**12 - 1
+        self._absolute_max = 2**16 - 1
         self._sigma = es.sigma
         self._iota = es.iota
         self._kappa = es.kappa
@@ -259,8 +259,6 @@ class HeteroAssociativeMemory:
             k = vector[i]
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
-            # if np.count_nonzero(projection) == 0:
-            #    return np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=int)
             integration = integration + projection
             used.append(i)
             n += 1
@@ -411,14 +409,12 @@ class HeteroAssociativeMemory:
     
     def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
-        threshold = np.mean(weights_a)*np.mean(weights_b)
         for i in range(self.n):
             k = vector_a[i]
             for j in range(self.p):
                 l = vector_b[j]
                 w = weights_a[i]*weights_b[j]
-                if threshold <= w:
-                    relation[i, j, k, l] = int(w)
+                relation[i, j, k, l] = int(w)
         return relation
 
     def _set_margins(self):

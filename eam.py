@@ -542,7 +542,7 @@ def recognize_by_hetero_memory(
 
 def recall_by_hetero_memory(remembered_dataset,
                             recall, eam, classifier, testing_features, testing_labels,
-                            msize, mfill, minimum, maximum):
+                            msize, mfill, minimum, maximum, mean_weight):
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
     confrix = np.zeros(
@@ -592,9 +592,9 @@ def recall_by_hetero_memory(remembered_dataset,
     m = len(memories) - n
     n = 1 if n == 0 else n
     m = 1 if m == 0 else m
-    correct_weights /= n
-    incorrect_weights /= m
-    unknown_weights = 0.0 if len(unknown_weights) == 0 else np.mean(unknown_weights)
+    correct_weights /= (n*mean_weight)
+    incorrect_weights /= (m*mean_weight)
+    unknown_weights = 0.0 if len(unknown_weights) == 0 else np.mean(unknown_weights)/mean_weight
     behaviour[constants.no_response_idx] = unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
@@ -618,12 +618,13 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     rows = constants.codomains()
     confrixes = []
     behaviours = []
+    mean_weight = eam.mean
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
     confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
             eam.recall_from_left, left_eam, right_classifier,
             testing_features[left_ds], testing_labels[right_ds],
-            rows[right_ds], percent, minimum, maximum)
+            rows[right_ds], percent, minimum, maximum, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = constants.memories_name(left_ds, es)
@@ -635,7 +636,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
             eam.recall_from_right, right_eam, left_classifier,
             testing_features[right_ds], testing_labels[left_ds],
-            rows[left_ds], percent, minimum, maximum)
+            rows[left_ds], percent, minimum, maximum, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = constants.memories_name(right_ds, es)

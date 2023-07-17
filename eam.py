@@ -109,7 +109,7 @@ def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
 
     plt.xlabel(xtitle)
     plt.ylabel(ytitle)
-    plt.legend(loc=4)
+    plt.legend(loc='best')
     plt.grid(True)
 
     entropy_labels = [str(e) for e in np.around(ent_mean, decimals=1)]
@@ -168,7 +168,7 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     plt.xlabel(_('Range Quantization Levels'))
     plt.ylabel(_('Labels'))
 
-    plt.legend(loc=0)
+    plt.legend(loc='best')
     plt.grid(axis='y')
 
     fname = prefix + 'graph_behaviours-' + dataset + _('-english')

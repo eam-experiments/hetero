@@ -575,9 +575,8 @@ def recall_by_hetero_memory(remembered_dataset,
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
 
-    n = 0
-    correct_weights = 0.0
-    incorrect_weights = 0.0
+    correct_weights = []
+    incorrect_weights = []
     if len(memories) > 0:
         memories = np.array(memories)
         predictions = np.argmax(classifier.predict(memories), axis=1)
@@ -585,27 +584,35 @@ def recall_by_hetero_memory(remembered_dataset,
             # For calculation of per memory precision and recall
             confrix[correct, prediction] += 1
             if correct == prediction:
-                correct_weights += weight
-                n += 1
+                correct_weights.append(weight)
             else:
-                incorrect_weights += weight
-    m = len(memories) - n
-    n = 1 if n == 0 else n
-    m = 1 if m == 0 else m
-    correct_weights /= (n*mean_weight)
-    incorrect_weights /= (m*mean_weight)
-    unknown_weights = 0.0 if len(unknown_weights) == 0 else np.mean(unknown_weights)/mean_weight
+                incorrect_weights.append(weight)
     behaviour[constants.no_response_idx] = unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
     behaviour[constants.no_correct_response_idx] = \
         len(testing_labels) - unknown - \
         behaviour[constants.correct_response_idx]
-    print(f'Unknown elements: {unknown}')
     print(f'Confusion matrix:\n{confrix}')
-    print(f'Behaviour: {behaviour}')
-    print(f'Weights: correct = {correct_weights}, incorrect = {incorrect_weights}, ' +
-          f'unknown = {unknown_weights}')
+    print(f'Behaviour: nr = {behaviour[constants.no_response_idx]}, ' +
+          f'ir = {behaviour[constants.no_correct_response_idx]}, ' +
+          f'cr = {behaviour[constants.correct_response_idx]}')
+    unknown_weights_mean = 0.0 if len(unknown_weights) == 0 \
+        else np.mean(unknown_weights)
+    unknown_weights_stdv = 0.0 if len(unknown_weights) == 0 \
+        else np.std(unknown_weights)
+    incorrect_weights_mean = 0.0 if len(incorrect_weights) == 0 \
+        else np.mean(incorrect_weights)
+    incorrect_weights_stdv = 0.0 if len(incorrect_weights) == 0 \
+        else np.std(incorrect_weights)
+    correct_weights_mean = 0.0 if len(correct_weights) == 0 \
+        else np.mean(correct_weights)
+    correct_weights_stdv = 0.0 if len(correct_weights) == 0 \
+        else np.std(correct_weights)
+    print(f'Homo mean weight: {mean_weight}')
+    print(f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), ' + 
+        f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
+          f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
     return confrix, behaviour, memories
 
 

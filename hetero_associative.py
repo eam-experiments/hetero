@@ -232,7 +232,9 @@ class HeteroAssociativeMemory:
     def _recall(self, vector, weights, dim):
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
-        r_io, weight = self.reduce(relation, self.alt(dim))
+        # r = self.logistic(relation)
+        r = relation
+        r_io, weight = self.reduce(r, self.alt(dim))
         weight /= 1.0 if np.sum(weights) == 0 else np.mean(weights)
         recognized = (np.count_nonzero(r_io == self.undefined(self.alt(dim))) <= self._xi)
         recognized = recognized and (self._kappa*self.mean <= weight)
@@ -249,8 +251,9 @@ class HeteroAssociativeMemory:
         return np.where((r_io == 0) | (self._full_iota_relation != 0), True, False)
 
     def project(self, vector, weights, dim):
+        c = 1.0     # Proportion of elements of vector taken into account.
         integration = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=float)
-        columns = int(self.cols(dim)/2)
+        columns = int(c*self.cols(dim))
         columns = 1 if columns == 0 else columns
         used = []
         n = 0
@@ -261,7 +264,7 @@ class HeteroAssociativeMemory:
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
             if n == 0:
-                integration = projection
+                integration = w*projection
             else:
                 integration = np.where((integration == 0) | (projection == 0), 0, integration + w*projection)
             used.append(i)
@@ -440,3 +443,9 @@ class HeteroAssociativeMemory:
             s = f'{s}{ss}\n'
         s = f'{s}{p}]'
         return s
+
+    def logistic(self, r):
+        L = np.max(r)
+        k = 1
+        x0 = L/2.0
+        return L / (1 + np.exp(-k*(r - x0)))

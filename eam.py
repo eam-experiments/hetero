@@ -598,18 +598,18 @@ def recall_by_hetero_memory(remembered_dataset,
           f'ir = {behaviour[constants.no_correct_response_idx]}, ' +
           f'cr = {behaviour[constants.correct_response_idx]}')
     unknown_weights_mean = 0.0 if len(unknown_weights) == 0 \
-        else np.mean(unknown_weights)
+        else np.mean(unknown_weights/mean_weight)
     unknown_weights_stdv = 0.0 if len(unknown_weights) == 0 \
-        else np.std(unknown_weights)
+        else np.std(unknown_weights/mean_weight)
     incorrect_weights_mean = 0.0 if len(incorrect_weights) == 0 \
-        else np.mean(incorrect_weights)
+        else np.mean(incorrect_weights/mean_weight)
     incorrect_weights_stdv = 0.0 if len(incorrect_weights) == 0 \
-        else np.std(incorrect_weights)
+        else np.std(incorrect_weights/mean_weight)
     correct_weights_mean = 0.0 if len(correct_weights) == 0 \
-        else np.mean(correct_weights)
+        else np.mean(correct_weights/mean_weight)
     correct_weights_stdv = 0.0 if len(correct_weights) == 0 \
-        else np.std(correct_weights)
-    print(f'Homo mean weight: {mean_weight}')
+        else np.std(correct_weights/mean_weight)
+    print(f'Mean weight: {mean_weight}')
     print(f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), ' + 
         f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')

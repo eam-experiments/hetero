@@ -232,7 +232,7 @@ class HeteroAssociativeMemory:
     def _recall(self, vector, weights, dim):
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
-        # r = self.logistic(relation)
+        r = self.transform(relation)
         r = relation
         r_io, weight = self.reduce(r, self.alt(dim))
         weight /= 1.0 if np.sum(weights) == 0 else np.mean(weights)
@@ -444,8 +444,24 @@ class HeteroAssociativeMemory:
         s = f'{s}{p}]'
         return s
 
+    def transform(self, r):
+        # return self.maximum(r)
+        return self.logistic(r)
+    
+    def maximum(self, r):
+        q = np.zeros(r.shape, dtype=float)
+        for i in range(r.shape[0]):
+            c = r[i]
+            L = np.max(c)
+            q[i] = np.where(c == L, c, 0.0)
+        return q
+            
     def logistic(self, r):
-        L = np.max(r)
-        k = 1
-        x0 = L/2.0
-        return L / (1 + np.exp(-k*(r - x0)))
+        q = np.zeros(r.shape, dtype=float)
+        for i in range(r.shape[0]):
+            c = r[i]
+            L = np.max(c)
+            k = 10
+            x0 = 0.5
+            q[i] = L / (1 + np.exp(-k*(c/L - x0)))
+        return q

@@ -54,15 +54,9 @@ from hetero_associative import HeteroAssociativeMemory
 
 sys.setrecursionlimit(10000)
 
-
-# A trick to avoid getting a lot of errors at edition time because of
-# undefined '_' gettext function.
-if typing.TYPE_CHECKING:
-    def _(_):
-        return f'{_}'
-
-# Translation
-gettext.install('eam', localedir=None, codeset=None, names=None)
+gettext.bindtextdomain('eam', 'locale')
+gettext.textdomain('eam')
+_ = gettext.gettext
 
 # Categories in binary confussion matrix
 TP = (0, 0)

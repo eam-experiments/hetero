@@ -555,18 +555,23 @@ def recall_by_hetero_memory(remembered_dataset,
     unknown_weights = []
     counter = 0
     for features, label in zip(testing_features, testing_labels):
-        _, weights = eam.recog_detailed_weights(features)
-        memory, recognized, weight, relation = recall(features, weights)
+        recognized, weights = eam.recog_detailed_weights(features)
         if recognized:
-            memory = rsize_recall(memory, msize, minimum, maximum)
-            memories.append(memory)
-            correct.append(label)
-            recog_weights.append(weight)
-            if random.randrange(200) == 0:
-                prefix = 'projection-' + remembered_dataset + \
-                    '-fill_' + str(int(mfill)).zfill(3) + \
-                    '-lbl_' + str(label).zfill(3)
-                plot_relation(relation, prefix)
+            memory, recognized, weight, relation = recall(features, weights)
+            if recognized:
+                memory = rsize_recall(memory, msize, minimum, maximum)
+                memories.append(memory)
+                correct.append(label)
+                recog_weights.append(weight)
+                if random.randrange(200) == 0:
+                    prefix = 'projection-' + remembered_dataset + \
+                        '-fill_' + str(int(mfill)).zfill(3) + \
+                        '-lbl_' + str(label).zfill(3)
+                    plot_relation(relation, prefix)
+            else:
+                unknown += 1
+                confrix[label, constants.n_labels] += 1
+                unknown_weights.append(weight)
         else:
             unknown += 1
             confrix[label, constants.n_labels] += 1

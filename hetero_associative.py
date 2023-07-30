@@ -445,8 +445,9 @@ class HeteroAssociativeMemory:
         return s
 
     def transform(self, r):
-        # return self.maximum(r)
-        return self.logistic(r)
+        return r if constants.projection_transform == constants.project_same \
+            else self.maximum(r) if constants.projection_transform == constants.project_maximum \
+            else self.logistic(r)
     
     def maximum(self, r):
         q = np.zeros(r.shape, dtype=float)

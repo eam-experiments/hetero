@@ -29,6 +29,10 @@ datasets_to_codomains = {MNIST: 32, FASHION: 16}
 left_dataset = MNIST
 right_dataset = FASHION
 
+project_same = 0
+project_logistic = 1
+project_maximum = 2
+projection_transform = project_same
 # Directory where all results are stored.
 data_path = 'data'
 run_path = 'runs'

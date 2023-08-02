@@ -45,8 +45,8 @@ class HeteroAssociativeMemory:
         self._sigma = es.sigma
         self._iota = es.iota
         self._kappa = es.kappa
-        self._relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)
-        self._iota_relation = np.zeros((self._n, self._p, self._m, self._q), dtype=np.int)
+        self._relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
+        self._iota_relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
         self._entropies = np.zeros((self._n, self._p), dtype=np.double)
         self._means = np.zeros((self._n, self._p), dtype=np.double)
         self._updated = True

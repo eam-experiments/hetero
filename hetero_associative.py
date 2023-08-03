@@ -233,8 +233,8 @@ class HeteroAssociativeMemory:
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
         r = self.transform(relation)
-        r_io, weight = self.optimal_recall(vector, r, dim)
-        weight /= 1.0 if np.sum(weights) == 0 else np.mean(weights)
+        r_io, weights = self.optimal_recall(vector, r, dim)
+        weight = np.mean(weights)
         recognized = (np.count_nonzero(r_io == self.undefined(self.alt(dim))) <= self._xi)
         recognized = recognized and (self._kappa*self.mean <= weight)
         r_io = self.revalidate(r_io, self.alt(dim))
@@ -255,6 +255,7 @@ class HeteroAssociativeMemory:
                 r_io = q_io
                 weights = q_ws
                 distance = d
+            i += 1
         return r_io, weights
 
     def abstract(self, r_io):
@@ -299,7 +300,7 @@ class HeteroAssociativeMemory:
             else:
                 weights.append(relation[i, v[i]])
         weights = np.array(weights)
-        return v, np.mean(weights)
+        return v, weights
 
     
     def choose(self, column, value, dim):

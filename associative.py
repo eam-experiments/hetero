@@ -57,9 +57,9 @@ class AssociativeMemory:
         self._scale = 1.0/normpdf(0, 0, self._sigma_scaled)
 
         # It is m+1 to handle partial functions.
-        self._relation = np.zeros((self._n, self._m), dtype=np.int)
+        self._relation = np.zeros((self._n, self._m), dtype=int)
         # Iota moderated relation
-        self._iota_relation = np.zeros((self._n, self._m), dtype=np.int)
+        self._iota_relation = np.zeros((self._n, self._m), dtype=int)
         self._entropies = np.zeros(self._n, dtype=float)
         self._means = np.zeros(self._n, dtype=float)
 
@@ -181,10 +181,10 @@ class AssociativeMemory:
         self.abstract(r_io)
 
     def recognize(self, cue, validate = True):
-        recognized, weights = self.recog_detailed_weights(cue, validate)
+        recognized, weights = self.recog_weights(cue, validate)
         return recognized, np.mean(weights)
 
-    def recog_detailed_weights(self, cue, validate = True):
+    def recog_weights(self, cue, validate = True):
         vector = self.validate(cue) if validate else cue
         recognized = self._mismatches(vector) <= self.xi
         weights = self._weights(vector)
@@ -192,12 +192,12 @@ class AssociativeMemory:
         return recognized, weights
 
     def recall(self, cue):
-        r_io, recognized, weights = self.recall_detailed_weights(cue)
+        r_io, recognized, weights = self.recall_weights(cue)
         return r_io, recognized, np.mean(weights)
 
-    def recall_detailed_weights(self, cue, validate = True):
+    def recall_weights(self, cue, validate = True):
         vector = self.validate(cue) if validate else cue
-        recognized, _ = self.recog_detailed_weights(vector, validate = False)
+        recognized, _ = self.recog_weights(vector, validate = False)
         r_io = self.produce(vector) if recognized else np.full(self.n, self.undefined)
         weights = self._weights(r_io)
         r_io = self.revalidate(r_io)

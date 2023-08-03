@@ -508,8 +508,8 @@ def recognize_by_hetero_memory(
     for left_feat, left_lab, right_feat, right_lab \
             in zip(tefs[constants.left_dataset], tels[constants.left_dataset],
                    tefs[constants.right_dataset], tels[constants.right_dataset]):
-        _, left_weights = left_eam.recog_detailed_weights(left_feat)
-        _, right_weights = right_eam.recog_detailed_weights(right_feat)
+        _, left_weights = left_eam.recog_weights(left_feat)
+        _, right_weights = right_eam.recog_weights(right_feat)
         recognized, weight = hetero_eam.recognize(
             left_feat, right_feat, left_weights, right_weights)
         if recognized:
@@ -534,9 +534,11 @@ def recognize_by_hetero_memory(
     return confrix
 
 
-def recall_by_hetero_memory(remembered_dataset,
-                            recall, eam, classifier, testing_features, testing_labels,
-                            msize, mfill, minimum, maximum, mean_weight):
+def recall_by_hetero_memory(remembered_dataset, recall,
+        eam_origin: AssociativeMemory,
+        eam_destination: AssociativeMemory,
+        classifier, testing_features, testing_labels,
+        msize, mfill, minimum, maximum, mean_weight):
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
     confrix = np.zeros(
@@ -549,7 +551,7 @@ def recall_by_hetero_memory(remembered_dataset,
     unknown_weights = []
     counter = 0
     for features, label in zip(testing_features, testing_labels):
-        recognized, weights = eam.recog_detailed_weights(features)
+        recognized, weights = eam_origin.recog_weights(features)
         if recognized:
             memory, recognized, weight, relation = recall(features, weights)
             if recognized:
@@ -557,16 +559,12 @@ def recall_by_hetero_memory(remembered_dataset,
                 memories.append(memory)
                 correct.append(label)
                 recog_weights.append(weight)
-                if random.randrange(200) == 0:
+                if random.randrange(100) == 0:
                     prefix = 'projection-' + remembered_dataset + \
                         '-fill_' + str(int(mfill)).zfill(3) + \
                         '-lbl_' + str(label).zfill(3)
                     plot_relation(relation, prefix)
-            else:
-                unknown += 1
-                confrix[label, constants.n_labels] += 1
-                unknown_weights.append(weight)
-        else:
+        if not recognized:
             unknown += 1
             confrix[label, constants.n_labels] += 1
             unknown_weights.append(weight)
@@ -628,7 +626,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     print('Remembering from left by hetero memory')
     minimum, maximum = min_maxs[right_ds]
     confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
-            eam.recall_from_left, left_eam, right_classifier,
+            eam.recall_from_left, left_eam, right_eam, right_classifier,
             testing_features[left_ds], testing_labels[right_ds],
             rows[right_ds], percent, minimum, maximum, mean_weight)
     confrixes.append(confrix)
@@ -640,7 +638,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     print('Remembering from right by hetero memory')
     minimum, maximum = min_maxs[left_ds]
     confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
-            eam.recall_from_right, right_eam, left_classifier,
+            eam.recall_from_right, right_eam, left_eam, left_classifier,
             testing_features[right_ds], testing_labels[left_ds],
             rows[left_ds], percent, minimum, maximum, mean_weight)
     confrixes.append(confrix)
@@ -904,7 +902,8 @@ def test_hetero_filling_percent(
 
 def hetero_remember_percent(
         eam: HeteroAssociativeMemory,
-        left_eam: AssociativeMemory, right_eam: AssociativeMemory,
+        left_eam: AssociativeMemory,
+        right_eam: AssociativeMemory,
         left_classifier, right_classifier,
         filling_features, testing_features, testing_labels, min_maxs, percent, es, fold):
     # Register filling data.
@@ -1364,14 +1363,12 @@ def remember(es):
     total_precisions = np.zeros((testing_folds, 2, len(memory_fills)))
     total_recalls = np.zeros((testing_folds, 2, len(memory_fills)))
     total_accuracies = np.zeros((testing_folds, 2, len(memory_fills)))
-    list_results = []
     total_confrixes = []
     total_behaviours = []
 
     for fold in range(testing_folds):
-        results = hetero_remember_per_fold(es, fold)
-        list_results.append(results)
-    for fold, entropies, precisions, recalls, confrixes, behaviours in list_results:
+        fold, entropies, precisions, recalls, confrixes, behaviours = \
+            hetero_remember_per_fold(es, fold)
         total_precisions[fold] = precisions
         total_recalls[fold] = recalls
         total_entropies[fold] = entropies

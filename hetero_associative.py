@@ -243,19 +243,21 @@ class HeteroAssociativeMemory:
     def optimal_recall(self, vector, projection, dim):
         r_io = None
         weights = None
-        distance = float("inf")
-        i = 0
-        while (i < constants.n_sims):
+        distance = float('inf')
+        for i in range(constants.n_sims):
             q_io, q_ws = self.reduce(projection, self.alt(dim))
             p_io = self.project(q_io, q_ws, self.alt(dim))
-            p_io, _ = self.reduce(p_io, dim)
-            # We are not using weights in calculating distances.
-            d = np.linalg.norm(vector - p_io)
-            if d < distance:
+            dist = 0
+            for j in range(constants.n_sims):
+                o_io, _ = self.reduce(p_io, dim)
+                # We are not using weights in calculating distances.
+                d = np.linalg.norm(vector - o_io)
+                dist += d
+            dist /= constants.n_sims
+            if dist < distance:
                 r_io = q_io
                 weights = q_ws
-                distance = d
-            i += 1
+                distance = dist
         return r_io, weights
 
     def abstract(self, r_io):

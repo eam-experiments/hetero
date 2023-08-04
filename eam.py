@@ -564,10 +564,13 @@ def recall_by_hetero_memory(remembered_dataset, recall,
                         '-fill_' + str(int(mfill)).zfill(3) + \
                         '-lbl_' + str(label).zfill(3)
                     plot_relation(relation, prefix)
-        if not recognized:
+            else:
+                unknown += 1
+                confrix[label, constants.n_labels] += 1
+                unknown_weights.append(weight)
+        else:
             unknown += 1
             confrix[label, constants.n_labels] += 1
-            unknown_weights.append(weight)
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
@@ -1169,11 +1172,10 @@ def hetero_remember_per_fold(es, fold):
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)
         # Arrays with precision, and recall.
-        total_recalls = \
-            behaviours[:, constants.correct_response_idx] + \
-            behaviours[:, constants.no_correct_response_idx]
-        fold_precision.append(behaviours[:, constants.correct_response_idx]
-                              /np.where(total_recalls == 0, 1, total_recalls))
+        correct = behaviours[:, constants.correct_response_idx]
+        incorrect = behaviours[:, constants.no_correct_response_idx]
+        fold_precision.append(np.where(correct + incorrect == 0,
+            1.0, correct/(correct+incorrect)))
         fold_recall.append(
             behaviours[:, constants.correct_response_idx]/total_test)
         start = end

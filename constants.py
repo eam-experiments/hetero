@@ -99,7 +99,7 @@ learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
     [nnetwork_suffix], [original_suffix, amsystem_suffix]]
 
 n_folds = 1
-n_jobs = 1
+n_jobs = 4
 dreaming_cycles = 6
 
 nn_training_percent = 0.70

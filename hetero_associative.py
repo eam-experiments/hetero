@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import math
-import time
 import random
+from joblib import Parallel, delayed
 import numpy as np
 
 import constants
@@ -244,21 +244,27 @@ class HeteroAssociativeMemory:
         r_io = None
         weights = None
         distance = float('inf')
-        for i in range(constants.n_sims):
-            q_io, q_ws = self.reduce(projection, self.alt(dim))
-            p_io = self.project(q_io, q_ws, self.alt(dim))
-            dist = 0
-            for j in range(constants.n_sims):
-                o_io, _ = self.reduce(p_io, dim)
-                # We are not using weights in calculating distances.
-                d = np.linalg.norm(vector - o_io)
-                dist += d
-            dist /= constants.n_sims
-            if dist < distance:
+        results = Parallel(n_jobs=constants.n_jobs)(
+            delayed(self.distance_recall)(vector, projection, dim)
+                for i in range(constants.n_sims))
+        for q_io, q_ws, d in results:
+            if d < distance:
                 r_io = q_io
                 weights = q_ws
-                distance = dist
+                distance = d
         return r_io, weights
+
+    def distance_recall(self, vector, projection, dim):
+        q_io, q_ws = self.reduce(projection, dim)
+        p_io = self.project(q_io, q_ws, self.alt(dim))
+        dist = 0
+        for j in range(constants.n_sims):
+            o_io, _ = self.reduce(p_io, dim)
+            # We are not using weights in calculating distances.
+            d = np.linalg.norm(vector - o_io)
+            dist += d
+        dist /= constants.n_sims
+        return q_io, q_ws, dist
 
     def abstract(self, r_io):
         self._relation = np.where(

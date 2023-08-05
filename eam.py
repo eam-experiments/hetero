@@ -34,7 +34,6 @@ Options:
 import os
 import sys
 import gc
-import typing
 import gettext
 import json
 import random

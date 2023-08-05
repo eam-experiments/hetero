@@ -244,7 +244,7 @@ class HeteroAssociativeMemory:
         r_io = None
         weights = None
         distance = float('inf')
-        results = Parallel(n_jobs=constants.n_jobs)(
+        results = Parallel(n_jobs=constants.n_jobs, return_as="generator")(
             delayed(self.distance_recall)(vector, projection, dim)
                 for i in range(constants.n_sims))
         for q_io, q_ws, d in results:
@@ -255,7 +255,7 @@ class HeteroAssociativeMemory:
         return r_io, weights
 
     def distance_recall(self, vector, projection, dim):
-        q_io, q_ws = self.reduce(projection, dim)
+        q_io, q_ws = self.reduce(projection, self.alt(dim))
         p_io = self.project(q_io, q_ws, self.alt(dim))
         dist = 0
         for j in range(constants.n_sims):

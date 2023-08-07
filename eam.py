@@ -344,50 +344,47 @@ def features_per_fold(dataset, es, fold):
     testing_labels = np.load(testing_labels_filename)
     return filling_features, filling_labels, testing_features, testing_labels
 
-
 def match_labels(features, labels, half=False):
+    left_features = []
+    left_labels = []
     right_features = []
     right_labels = []
-    used_idx = set()
-    last = 0
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
     # Assuming ten clases on each dataset.
-    midx = round(len(labels[left_ds]) * 4.0 / 9.0)
-    matching_labels = labels[left_ds][:midx] if half else labels[left_ds]
-    counter = 0
-    print('Matching:')
-    for left_label in matching_labels:
-        while last in used_idx:
-            last += 1
-        i = last
-        found = False
-        for right_feat, right_lab in zip(features[right_ds][i:], labels[right_ds][i:]):
-            if (i not in used_idx) and (left_label == right_lab):
-                used_idx.add(i)
-                right_features.append(right_feat)
-                right_labels.append(right_lab)
-                found = True
-                break
-            i += 1
-        if not found:
-            break
-        counter += 1
-        constants.print_counter(counter, 1000, 100, symbol='-')
-    print(' end')
+    midx = round(len(labels[left_ds])/2.0)
+    feat_left = features[left_ds,:midx] if half else features[left_ds] 
+    labl_left = labels[left_ds,:midx] if half else labels[left_ds] 
+    feat_right = features[right_ds,:midx] if half else features[right_ds] 
+    labl_right = labels[right_ds,:midx] if half else labels[right_ds] 
+    for fl, ll in zip(feat_left, labl_left):
+        for fr, lr in zip(feat_right, labl_right):
+            if ll == lr:
+                left_features.append(fl)
+                left_labels.append(ll)
+                right_features.append(fr)
+                right_labels.append(lr)
     if half:
-        i = 0
-        for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
-            if i not in used_idx:
-                right_features.append(right_feat)
-                right_labels.append(right_lab)
-            i += 1
-    n = len(right_features)
-    features[left_ds] = features[left_ds][:n]
-    labels[left_ds] = labels[left_ds][:n]
-    features[right_ds] = np.array(right_features, dtype=int)
-    labels[right_ds] = np.array(right_labels, dtype=int)
-
+        feat_left = features[left_ds,midx:]
+        labl_left = labels[left_ds,midx:]
+        feat_right = features[right_ds,midx:]
+        labl_right = labels[right_ds,midx:]
+        max_match = round(len(labl_left)/constants.n_labels)
+        for fl, ll in zip(feat_left, labl_left):
+            i = 0
+            for fr, lr in random.shuffle(list(zip(feat_right, labl_right))):
+                if ll != lr:
+                    left_features.append(fl)
+                    left_labels.append(ll)
+                    right_features.append(fr)
+                    right_labels.append(lr)
+                    i += 1
+                if i == max_match:
+                    break
+    features[left_ds] = np.array(left_features)
+    labels[left_ds] = np.array(left_labels)
+    features[right_ds] = np.array(right_features)
+    labels[right_ds] = np.array(right_labels)
 
 def describe(features, labels):
     left_ds = constants.left_dataset

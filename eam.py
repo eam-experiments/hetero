@@ -356,7 +356,9 @@ def match_labels(features, labels, half=False):
     feat_left = features[left_ds][:midx] if half else features[left_ds] 
     labl_left = labels[left_ds][:midx] if half else labels[left_ds] 
     feat_right = features[right_ds][:midx] if half else features[right_ds] 
-    labl_right = labels[right_ds][:midx] if half else labels[right_ds] 
+    labl_right = labels[right_ds][:midx] if half else labels[right_ds]
+    counter = 0
+    print('Matching:', end='')
     for fl, ll in zip(feat_left, labl_left):
         for fr, lr in zip(feat_right, labl_right):
             if ll == lr:
@@ -364,6 +366,8 @@ def match_labels(features, labels, half=False):
                 left_labels.append(ll)
                 right_features.append(fr)
                 right_labels.append(lr)
+                counter += 1
+                constants.print_counter(counter,1000,step=100, symbol='-')
     if half:
         feat_left = features[left_ds][midx:]
         labl_left = labels[left_ds][midx:]
@@ -379,8 +383,11 @@ def match_labels(features, labels, half=False):
                     right_features.append(fr)
                     right_labels.append(lr)
                     i += 1
+                    counter += 1
+                    constants.print_counter(counter,1000,step=100, symbol='-')
                 if i == max_match:
                     break
+    print('done!')
     features[left_ds] = np.array(left_features)
     labels[left_ds] = np.array(left_labels)
     features[right_ds] = np.array(right_features)

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import math
-import time
 import random
+from joblib import Parallel, delayed
 import numpy as np
 
 import constants
@@ -233,13 +233,41 @@ class HeteroAssociativeMemory:
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
         r = self.transform(relation)
-        r = relation
-        r_io, weight = self.reduce(r, self.alt(dim))
-        weight /= 1.0 if np.sum(weights) == 0 else np.mean(weights)
+        r_io, weights = self.optimal_recall(vector, r, dim)
+        weight = np.mean(weights)
         recognized = (np.count_nonzero(r_io == self.undefined(self.alt(dim))) <= self._xi)
         recognized = recognized and (self._kappa*self.mean <= weight)
         r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, relation
+
+    def optimal_recall(self, vector, projection, dim):
+        r_io = None
+        weights = None
+        distance = float('inf')
+        candidates = [self.reduce(projection, self.alt(dim))
+            for i in range(constants.n_sims)]
+        results = Parallel(n_jobs=constants.n_jobs, return_as="generator")(
+            delayed(self.distance_recall)(
+                vector, candidate, dim)
+                    for candidate in candidates)
+        for q_io, q_ws, d in results:
+            if d < distance:
+                r_io = q_io
+                weights = q_ws
+                distance = d
+        return r_io, weights
+
+    def distance_recall(self, vector, q, dim):
+        q_io, q_ws = q
+        p_io = self.project(q_io, q_ws, self.alt(dim))
+        dist = 0
+        for j in range(constants.n_sims):
+            o_io, _ = self.reduce(p_io, dim)
+            # We are not using weights in calculating distances.
+            d = np.linalg.norm(vector - o_io)
+            dist += d
+        dist /= constants.n_sims
+        return q_io, q_ws, dist
 
     def abstract(self, r_io):
         self._relation = np.where(
@@ -283,7 +311,7 @@ class HeteroAssociativeMemory:
             else:
                 weights.append(relation[i, v[i]])
         weights = np.array(weights)
-        return v, np.mean(weights)
+        return v, weights
 
     
     def choose(self, column, value, dim):

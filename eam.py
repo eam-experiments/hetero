@@ -353,10 +353,10 @@ def match_labels(features, labels, half=False):
     right_ds = constants.right_dataset
     # Assuming ten clases on each dataset.
     midx = round(len(labels[left_ds])/2.0)
-    feat_left = features[left_ds,:midx] if half else features[left_ds] 
-    labl_left = labels[left_ds,:midx] if half else labels[left_ds] 
-    feat_right = features[right_ds,:midx] if half else features[right_ds] 
-    labl_right = labels[right_ds,:midx] if half else labels[right_ds] 
+    feat_left = features[left_ds][:midx] if half else features[left_ds] 
+    labl_left = labels[left_ds][:midx] if half else labels[left_ds] 
+    feat_right = features[right_ds][:midx] if half else features[right_ds] 
+    labl_right = labels[right_ds][:midx] if half else labels[right_ds] 
     for fl, ll in zip(feat_left, labl_left):
         for fr, lr in zip(feat_right, labl_right):
             if ll == lr:
@@ -365,10 +365,10 @@ def match_labels(features, labels, half=False):
                 right_features.append(fr)
                 right_labels.append(lr)
     if half:
-        feat_left = features[left_ds,midx:]
-        labl_left = labels[left_ds,midx:]
-        feat_right = features[right_ds,midx:]
-        labl_right = labels[right_ds,midx:]
+        feat_left = features[left_ds][midx:]
+        labl_left = labels[left_ds][midx:]
+        feat_right = features[right_ds][midx:]
+        labl_right = labels[right_ds][midx:]
         max_match = round(len(labl_left)/constants.n_labels)
         for fl, ll in zip(feat_left, labl_left):
             i = 0

@@ -357,26 +357,32 @@ def match_labels(features, labels, half=False):
     labl_left = labels[left_ds][:midx] if half else labels[left_ds] 
     feat_right = features[right_ds][:midx] if half else features[right_ds] 
     labl_right = labels[right_ds][:midx] if half else labels[right_ds]
+    feat_lab_right = list(zip(feat_right, labl_right))
+    max_match = round(len(labl_left)/(constants.n_labels*100))
     counter = 0
     print('Matching:', end='')
     for fl, ll in zip(feat_left, labl_left):
-        for fr, lr in zip(feat_right, labl_right):
+        i = 0
+        while i < max_match:
+            fr, lr = random.choice(feat_lab_right)
             if ll == lr:
                 left_features.append(fl)
                 left_labels.append(ll)
                 right_features.append(fr)
                 right_labels.append(lr)
+                i += 1
                 counter += 1
                 constants.print_counter(counter,100000,step=10000, symbol='-')
     if half:
+        print(f' end of first part ({midx}) ', end='')
         feat_left = features[left_ds][midx:]
         labl_left = labels[left_ds][midx:]
         feat_right = features[right_ds][midx:]
         labl_right = labels[right_ds][midx:]
-        max_match = round(len(labl_left)/constants.n_labels)
+        feat_lab_right = list(zip(feat_right, labl_right))
+        max_match = round(len(labl_left)/(constants.n_labels*100))
         for fl, ll in zip(feat_left, labl_left):
             i = 0
-            feat_lab_right = list(zip(feat_right, labl_right))
             while i < max_match:
                 fr, lr = random.choice(feat_lab_right)
                 if ll != lr:
@@ -388,10 +394,27 @@ def match_labels(features, labels, half=False):
                     counter += 1
                     constants.print_counter(counter,100000,step=10000, symbol='-')
     print('done!')
+    print('Shuffling... ', end='')
+    tuples = list(zip(left_features, left_labels, right_features, right_labels))
+    random.shuffle(tuples)
+    print('done!')
+    print('Separating... ', end='')
+    left_features = []
+    left_labels = []
+    right_features = []
+    right_labels = []
+    for fl, ll, fr, lr in tuples:
+        left_features.append(fl)
+        left_labels.append(ll)
+        right_features.append(fr)
+        right_labels.append(lr)
+    print('done!')
+    print('Back to array... ', end='')
     features[left_ds] = np.array(left_features)
     labels[left_ds] = np.array(left_labels)
     features[right_ds] = np.array(right_features)
     labels[right_ds] = np.array(right_labels)
+    print('done!')
 
 def describe(features, labels):
     left_ds = constants.left_dataset

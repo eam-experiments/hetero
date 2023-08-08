@@ -367,7 +367,7 @@ def match_labels(features, labels, half=False):
                 right_features.append(fr)
                 right_labels.append(lr)
                 counter += 1
-                constants.print_counter(counter,1000,step=100, symbol='-')
+                constants.print_counter(counter,100000,step=10000, symbol='-')
     if half:
         feat_left = features[left_ds][midx:]
         labl_left = labels[left_ds][midx:]
@@ -376,7 +376,9 @@ def match_labels(features, labels, half=False):
         max_match = round(len(labl_left)/constants.n_labels)
         for fl, ll in zip(feat_left, labl_left):
             i = 0
-            for fr, lr in random.shuffle(list(zip(feat_right, labl_right))):
+            feat_lab_right = list(zip(feat_right, labl_right))
+            while i < max_match:
+                fr, lr = random.choice(feat_lab_right)
                 if ll != lr:
                     left_features.append(fl)
                     left_labels.append(ll)
@@ -384,9 +386,7 @@ def match_labels(features, labels, half=False):
                     right_labels.append(lr)
                     i += 1
                     counter += 1
-                    constants.print_counter(counter,1000,step=100, symbol='-')
-                if i == max_match:
-                    break
+                    constants.print_counter(counter,100000,step=10000, symbol='-')
     print('done!')
     features[left_ds] = np.array(left_features)
     labels[left_ds] = np.array(left_labels)

@@ -31,6 +31,7 @@ right_dataset = FASHION
 
 n_sims = 10
 dist_estims = 50
+matches_ratio = 0.01
 project_same = 0
 project_logistic = 1
 project_maximum = 2

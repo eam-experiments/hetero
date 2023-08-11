@@ -358,7 +358,7 @@ def match_labels(features, labels, half=False):
     feat_right = features[right_ds][:midx] if half else features[right_ds] 
     labl_right = labels[right_ds][:midx] if half else labels[right_ds]
     feat_lab_right = list(zip(feat_right, labl_right))
-    max_match = round(len(labl_left)/(constants.n_labels*100))
+    max_match = round(constants.matches_ratio*len(labl_left)/constants.n_labels)
     counter = 0
     print('Matching:', end='')
     for fl, ll in zip(feat_left, labl_left):
@@ -380,7 +380,7 @@ def match_labels(features, labels, half=False):
         feat_right = features[right_ds][midx:]
         labl_right = labels[right_ds][midx:]
         feat_lab_right = list(zip(feat_right, labl_right))
-        max_match = round(len(labl_left)/(constants.n_labels*100))
+        max_match = round(constants.matches_ratio*len(labl_left)/constants.n_labels)
         for fl, ll in zip(feat_left, labl_left):
             i = 0
             while i < max_match:

@@ -41,7 +41,7 @@ class HeteroAssociativeMemory:
         self._p = p
         self._q = q+1 # +1 to handle partial functions.
         self._xi = es.xi
-        self._absolute_max = 2**16 - 1
+        self._absolute_max = 2**32 - 1
         self._sigma = es.sigma
         self._iota = es.iota
         self._kappa = es.kappa
@@ -244,29 +244,31 @@ class HeteroAssociativeMemory:
         r_io = None
         weights = None
         distance = float('inf')
-        candidates = [self.reduce(projection, self.alt(dim))
-            for i in range(constants.n_sims)]
-        results = Parallel(n_jobs=constants.n_jobs, return_as="generator")(
-            delayed(self.distance_recall)(
-                vector, candidate, dim)
-                    for candidate in candidates)
-        for q_io, q_ws, d in results:
-            if d < distance:
-                r_io = q_io
-                weights = q_ws
-                distance = d
+        update = True
+        while update:
+            update = False
+            for i in range(constants.n_sims):
+                candidate = self.reduce(projection, self.alt(dim))
+                q_io, q_ws, d = self.distance_recall(vector, candidate, dim)
+                if d < distance:
+                    r_io = q_io
+                    weights = q_ws
+                    distance = d
+                    update = True
         return r_io, weights
 
     def distance_recall(self, vector, q, dim):
         q_io, q_ws = q
         p_io = self.project(q_io, q_ws, self.alt(dim))
         dist = 0
-        for j in range(constants.n_sims):
-            o_io, _ = self.reduce(p_io, dim)
+        candidates = Parallel(n_jobs=constants.n_jobs, return_as="generator")(
+                    delayed(self.reduce)(p_io, dim)
+                            for j in range(constants.dist_estims))
+        for o_io, _ in candidates:
             # We are not using weights in calculating distances.
             d = np.linalg.norm(vector - o_io)
             dist += d
-        dist /= constants.n_sims
+        dist /= constants.dist_estims
         return q_io, q_ws, dist
 
     def abstract(self, r_io):
@@ -302,7 +304,7 @@ class HeteroAssociativeMemory:
     # Reduces a relation to a function
     def reduce(self, relation, dim):
         cols = self.cols(dim)
-        v = np.array([self.choose(column, self.cue(column, dim), dim)
+        v = np.array([self.choose(column, dim)
                 for column in relation])
         weights = []
         for i in range(cols):
@@ -314,37 +316,21 @@ class HeteroAssociativeMemory:
         return v, weights
 
     
-    def choose(self, column, value, dim):
+    def choose(self, column, dim):
         """Choose a value from the column given a cue
         
         It assumes the column as a probabilistic distribution.
         """
-        # dist =  column if value == self.undefined(dim) \
-        #     else self._normalize(column, value, dim)
         dist = column
         s = dist.sum()
         if s == 0:
             return self.undefined(dim)
-        options = [i for i in range(dist.size)]
-        random.shuffle(options)
-        n = s*random.random()
-        for j in options:
-            if n < dist[j]:
+        r = s*random.random()
+        for j in range(dist.size):
+            if r < dist[j]:
                 return j
-            n -= dist[j]
+            r -= dist[j]
         return self.rows(dim) - 1
-
-    def cue(self, column, dim):
-        """ Returns the median of the column.
-        """
-        s = np.sum(column)
-        if s == 0:
-            return self.undefined(dim)
-        n = s/2.0
-        for i, f in enumerate(column):
-            if n < f:
-                return i
-            n -= f
 
     def _normalize(self, column, cue, dim):
         mean = cue
@@ -378,6 +364,8 @@ class HeteroAssociativeMemory:
                 total = np.sum(relation)
                 if total > 0:
                     matrix = relation/total
+                else:
+                    matrix = relation
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
 

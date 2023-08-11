@@ -29,7 +29,8 @@ datasets_to_codomains = {MNIST: 32, FASHION: 16}
 left_dataset = MNIST
 right_dataset = FASHION
 
-n_sims = 50
+n_sims = 10
+dist_estims = 50
 project_same = 0
 project_logistic = 1
 project_maximum = 2

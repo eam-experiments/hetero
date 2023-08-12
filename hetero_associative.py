@@ -261,7 +261,7 @@ class HeteroAssociativeMemory:
         q_io, q_ws = q
         p_io = self.project(q_io, q_ws, self.alt(dim))
         dist = 0
-        candidates = Parallel(n_jobs=constants.n_jobs, return_as="generator")(
+        candidates = Parallel(n_jobs=constants.n_jobs)(
                     delayed(self.reduce)(p_io, dim)
                             for j in range(constants.dist_estims))
         for o_io, _ in candidates:

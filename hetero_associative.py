@@ -368,6 +368,8 @@ class HeteroAssociativeMemory:
                     matrix = relation
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
+        print(f'Entropy updated to mean = {np.mean(self._entropies)}, ' 
+              + f'stdev = {np.std(self._entropies)}')
 
     def _update_means(self):
         for i in range(self.n):

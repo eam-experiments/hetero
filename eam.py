@@ -371,6 +371,8 @@ def match_labels(features, labels, half=False):
             fr, lr = feat_lab_right[j]
             if ll == lr:
                 rights_incompleted.add(j)
+        if len(rights_incompleted) == 0:
+            continue
         for i in range(max_match):
             j = rights_incompleted.choose()
             fr, lr = feat_lab_right[j]
@@ -399,6 +401,8 @@ def match_labels(features, labels, half=False):
                 fr, lr = feat_lab_right[j]
                 if ll != lr:
                     rights_incompleted.add(j)
+            if len(rights_incompleted) == 0:
+                continue
             for i in range(max_match):
                 j = rights_incompleted.choose()
                 fr, lr = feat_lab_right[j]

@@ -50,6 +50,7 @@ import dataset as ds
 import neural_net
 from associative import AssociativeMemory
 from hetero_associative import HeteroAssociativeMemory
+from custom_set import CustomSet
 
 sys.setrecursionlimit(10000)
 
@@ -363,7 +364,7 @@ def match_labels(features, labels, half=False):
     counter = 0
     print('Matching:', end='')
     for fl, ll in zip(feat_left, labl_left):
-        rights_incompleted = set()
+        rights_incompleted = CustomSet()
         for j in range(len(feat_lab_right)):
             if right_matches[j] == max_match:
                 continue
@@ -371,7 +372,7 @@ def match_labels(features, labels, half=False):
             if ll == lr:
                 rights_incompleted.add(j)
         for i in range(max_match):
-            j = random.choice(rights_incompleted)
+            j = rights_incompleted.choose()
             fr, lr = feat_lab_right[j]
             left_features.append(fl)
             left_labels.append(ll)
@@ -391,7 +392,7 @@ def match_labels(features, labels, half=False):
         feat_lab_right = list(zip(feat_right, labl_right))
         right_matches = np.zeros(len(feat_lab_right), dtype=int)
         for fl, ll in zip(feat_left, labl_left):
-            rights_incompleted = set()
+            rights_incompleted = CustomSet()
             for j in range(len(feat_lab_right)):
                 if right_matches[j] == max_match:
                     continue
@@ -399,7 +400,7 @@ def match_labels(features, labels, half=False):
                 if ll != lr:
                     rights_incompleted.add(j)
             for i in range(max_match):
-                j = random.choice(rights_incompleted)
+                j = rights_incompleted.choose()
                 fr, lr = feat_lab_right[j]
                 left_features.append(fl)
                 left_labels.append(ll)

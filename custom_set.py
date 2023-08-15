@@ -19,7 +19,7 @@
 
 import random
 
-class CustomSet(object):
+class CustomSet:
     def __init__(self):
         self.item_to_position = {}
         self.items = []
@@ -48,3 +48,10 @@ class CustomSet(object):
 
     def choose(self):
         return random.choice(self.items)
+    
+if __name__ == "__main__":
+    s = CustomSet()
+    s.add(1)
+    s.add(2)
+    s.remove(1)
+    print(s.choose())

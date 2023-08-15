@@ -358,21 +358,30 @@ def match_labels(features, labels, half=False):
     feat_right = features[right_ds][:midx] if half else features[right_ds] 
     labl_right = labels[right_ds][:midx] if half else labels[right_ds]
     feat_lab_right = list(zip(feat_right, labl_right))
-    max_match = round(constants.matches_ratio*len(labl_left)/constants.n_labels)
+    max_match = constants.n_matches
+    right_matches = np.zeros(len(feat_lab_right), dtype=int)
     counter = 0
     print('Matching:', end='')
     for fl, ll in zip(feat_left, labl_left):
-        i = 0
-        while i < max_match:
-            fr, lr = random.choice(feat_lab_right)
+        rights_incompleted = set()
+        for j in range(len(feat_lab_right)):
+            if right_matches[j] == max_match:
+                continue
+            fr, lr = feat_lab_right[j]
             if ll == lr:
-                left_features.append(fl)
-                left_labels.append(ll)
-                right_features.append(fr)
-                right_labels.append(lr)
-                i += 1
-                counter += 1
-                constants.print_counter(counter,100000,step=10000, symbol='-')
+                rights_incompleted.add(j)
+        for i in range(max_match):
+            j = random.choice(rights_incompleted)
+            fr, lr = feat_lab_right[j]
+            left_features.append(fl)
+            left_labels.append(ll)
+            right_features.append(fr)
+            right_labels.append(lr)
+            right_matches[j] += 1
+            if right_matches[j] == max_match:
+                rights_incompleted.remove(j)
+            counter += 1
+            constants.print_counter(counter,100000,step=10000, symbol='-')
     if half:
         print(f' end of first part ({midx}) ', end='')
         feat_left = features[left_ds][midx:]
@@ -380,19 +389,27 @@ def match_labels(features, labels, half=False):
         feat_right = features[right_ds][midx:]
         labl_right = labels[right_ds][midx:]
         feat_lab_right = list(zip(feat_right, labl_right))
-        max_match = round(constants.matches_ratio*len(labl_left)/constants.n_labels)
+        right_matches = np.zeros(len(feat_lab_right), dtype=int)
         for fl, ll in zip(feat_left, labl_left):
-            i = 0
-            while i < max_match:
-                fr, lr = random.choice(feat_lab_right)
+            rights_incompleted = set()
+            for j in range(len(feat_lab_right)):
+                if right_matches[j] == max_match:
+                    continue
+                fr, lr = feat_lab_right[j]
                 if ll != lr:
-                    left_features.append(fl)
-                    left_labels.append(ll)
-                    right_features.append(fr)
-                    right_labels.append(lr)
-                    i += 1
-                    counter += 1
-                    constants.print_counter(counter,100000,step=10000, symbol='-')
+                    rights_incompleted.add(j)
+            for i in range(max_match):
+                j = random.choice(rights_incompleted)
+                fr, lr = feat_lab_right[j]
+                left_features.append(fl)
+                left_labels.append(ll)
+                right_features.append(fr)
+                right_labels.append(lr)
+                right_matches[j] += 1
+                if right_matches[j] == max_match:
+                    rights_incompleted.remove(j)
+                counter += 1
+                constants.print_counter(counter,100000,step=10000, symbol='-')
     print('done!')
     print('Shuffling... ', end='')
     tuples = list(zip(left_features, left_labels, right_features, right_labels))

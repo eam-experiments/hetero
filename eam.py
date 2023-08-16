@@ -17,7 +17,8 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r ) [--runpath=PATH ] [ -l (en | es) ]
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r )
+    [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
   -h    Show this screen.
@@ -27,6 +28,8 @@ Options:
   -s    Run separated tests of memories performance for MNIST y Fashion.
   -e    Evaluation of recognition of hetero-associations.
   -r    Evaluation of hetero-recalling.
+  --relsmean=MEAN   Average number of relations per data element.
+  --relsstdv=STDV   Standard deviation of the number of relations per data element.
   --runpath=PATH   Path to directory where everything will be saved [default: runs]
   -l        Chooses Language for graphs.
 """
@@ -346,80 +349,30 @@ def features_per_fold(dataset, es, fold):
     return filling_features, filling_labels, testing_features, testing_labels
 
 def match_labels(features, labels, half=False):
-    left_features = []
-    left_labels = []
-    right_features = []
-    right_labels = []
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
+
     # Assuming ten clases on each dataset.
     midx = round(len(labels[left_ds])/2.0)
     feat_left = features[left_ds][:midx] if half else features[left_ds] 
     labl_left = labels[left_ds][:midx] if half else labels[left_ds] 
     feat_right = features[right_ds][:midx] if half else features[right_ds] 
     labl_right = labels[right_ds][:midx] if half else labels[right_ds]
-    feat_lab_right = list(zip(feat_right, labl_right))
-    max_match = constants.n_matches
-    right_matches = np.zeros(len(feat_lab_right), dtype=int)
-    counter = 0
-    print('Matching:', end='')
-    for fl, ll in zip(feat_left, labl_left):
-        rights_incompleted = CustomSet()
-        for j in range(len(feat_lab_right)):
-            if right_matches[j] == max_match:
-                continue
-            fr, lr = feat_lab_right[j]
-            if ll == lr:
-                rights_incompleted.add(j)
-        if len(rights_incompleted) == 0:
-            continue
-        for i in range(max_match):
-            j = rights_incompleted.choose()
-            fr, lr = feat_lab_right[j]
-            left_features.append(fl)
-            left_labels.append(ll)
-            right_features.append(fr)
-            right_labels.append(lr)
-            right_matches[j] += 1
-            if right_matches[j] == max_match:
-                rights_incompleted.remove(j)
-                if len(rights_incompleted) == 0:
-                    break
-            counter += 1
-            constants.print_counter(counter,100000,step=10000, symbol='-')
+
+    left_features, left_labels, right_features, right_labels = \
+        get_matches(feat_left, labl_left, feat_right, labl_right)
     if half:
         print(f' end of first part ({midx}) ', end='')
         feat_left = features[left_ds][midx:]
         labl_left = labels[left_ds][midx:]
         feat_right = features[right_ds][midx:]
         labl_right = labels[right_ds][midx:]
-        feat_lab_right = list(zip(feat_right, labl_right))
-        right_matches = np.zeros(len(feat_lab_right), dtype=int)
-        for fl, ll in zip(feat_left, labl_left):
-            rights_incompleted = CustomSet()
-            for j in range(len(feat_lab_right)):
-                if right_matches[j] == max_match:
-                    continue
-                fr, lr = feat_lab_right[j]
-                if ll != lr:
-                    rights_incompleted.add(j)
-            if len(rights_incompleted) == 0:
-                continue
-            for i in range(max_match):
-                j = rights_incompleted.choose()
-                fr, lr = feat_lab_right[j]
-                left_features.append(fl)
-                left_labels.append(ll)
-                right_features.append(fr)
-                right_labels.append(lr)
-                right_matches[j] += 1
-                if right_matches[j] == max_match:
-                    rights_incompleted.remove(j)
-                    if len(rights_incompleted) == 0:
-                        break
-                counter += 1
-                constants.print_counter(counter,100000,step=10000, symbol='-')
-    print('done!')
+        lfs, lls, rfs, rls = \
+            get_matches(feat_left, labl_left, feat_right, labl_right, equals=False)
+        left_features += lfs
+        left_labels += lls
+        right_features += rfs
+        right_labels += rls
     print('Shuffling... ', end='')
     tuples = list(zip(left_features, left_labels, right_features, right_labels))
     random.shuffle(tuples)
@@ -441,6 +394,73 @@ def match_labels(features, labels, half=False):
     features[right_ds] = np.array(right_features)
     labels[right_ds] = np.array(right_labels)
     print('done!')
+
+def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
+    left_features = []
+    left_labels = []
+    right_features = []
+    right_labels = []
+
+    feat_lab_right = list(zip(feat_right, labl_right))
+    feat_lab_left = list(zip(feat_left, labl_left))
+    right_matches = {i:0 for i in range(len(feat_lab_right))}
+    left_matches = {i:0 for i in range(len(feat_lab_left))}
+
+    counter = 0
+    left_turn = True
+    num_matches = []
+    print('Matching equals' if equals else 'Matching differents:', end='')
+    while len(right_matches) and len(left_matches):
+        num = int(random.gauss(
+            mu=constants.n_matches, sigma=constants.s_matches))
+        matches, m = get_num_matches(num, left_matches, right_matches, equals) \
+            if left_turn else get_num_matches(num, right_matches, left_matches, equals)
+        num_matches.append(m)
+        for k, l in matches:
+            i = k if left_turn else l
+            j = l if left_turn else k
+            fl, ll = feat_lab_left[i]
+            fr, lr = feat_lab_right[j]
+            left_features.append(fl)
+            left_labels.append(ll)
+            right_features.append(fr)
+            right_labels.append(lr)
+            counter += 1
+            constants.print_counter(counter,10000,step=1000, symbol='-')
+        left_turn = not left_turn
+    print('done!')
+    print(f'Matches mean: {np.mean(num_matches)}')
+    print(f'Matches stdv: {np.std(num_matches)}')
+    return left_features, left_labels, right_features, right_labels
+
+def get_num_matches(num, left: dict, right:dict, equals):
+    indexes = []
+    l = best_match_idx(num, left)
+    m = left[l]
+    if num <= m:
+        left.pop(l)
+        return indexes, m
+    right_indexes = list(right)
+    random.shuffle(right_indexes)
+    total = 0
+    for _ in range(m, num):
+        if len(right_indexes) == 0:
+            break
+        r = right_indexes.pop()
+        indexes.append((l, r))
+        left[l] += 1
+        right[r] += 1
+        total += 1
+    left.pop(l)
+    return indexes, m + total
+
+def best_match_idx(num: int, idx_num: dict):
+    d = sys.maxsize
+    idx = 0
+    for k in idx_num:
+        if abs(num - idx_num[k]) < d:
+            idx = k
+    return idx
 
 def describe(features, labels):
     left_ds = constants.left_dataset
@@ -1664,7 +1684,22 @@ def generate_memories(es):
 if __name__ == "__main__":
     args = docopt(__doc__)
 
-    # Processing language.
+    if args['--relsmean']:
+        n = int(args['--relsmean'])
+        if n <= 0:
+            print('The mean of relations must be a positive integer.')
+            exit(1)
+        else:
+            constants.n_matches = n
+    if args['--relsstdv']:
+        s = float(args['--relsstdv'])
+        if s <= 0:
+            print('The standard deviation of relations must be a positive number.')
+            exit(1)
+        else:
+            constants.s_matches = n
+    if args['--runpath']:
+        constants.run_path = args['--runpath']
     if args['es']:
         es_lang = gettext.translation(
             'eam', localedir='locale', languages=['es'])

@@ -383,6 +383,8 @@ def match_labels(features, labels, half=False):
             right_matches[j] += 1
             if right_matches[j] == max_match:
                 rights_incompleted.remove(j)
+                if len(rights_incompleted) == 0:
+                    break
             counter += 1
             constants.print_counter(counter,100000,step=10000, symbol='-')
     if half:
@@ -413,6 +415,8 @@ def match_labels(features, labels, half=False):
                 right_matches[j] += 1
                 if right_matches[j] == max_match:
                     rights_incompleted.remove(j)
+                    if len(rights_incompleted) == 0:
+                        break
                 counter += 1
                 constants.print_counter(counter,100000,step=10000, symbol='-')
     print('done!')

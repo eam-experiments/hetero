@@ -413,8 +413,10 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
     while len(right_matches) and len(left_matches):
         num = int(random.gauss(
             mu=constants.n_matches, sigma=constants.s_matches))
-        matches, m = get_num_matches(num, left_matches, right_matches, equals) \
-            if left_turn else get_num_matches(num, right_matches, left_matches, equals)
+        matches, m = get_num_matches(num, left_matches, right_matches,
+                feat_lab_left, feat_lab_right, equals) \
+            if left_turn else get_num_matches(num, right_matches, left_matches,
+                feat_lab_right, feat_lab_left, equals)
         num_matches.append(m)
         for k, l in matches:
             i = k if left_turn else l
@@ -433,14 +435,20 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
     print(f'Matches stdv: {np.std(num_matches)}')
     return left_features, left_labels, right_features, right_labels
 
-def get_num_matches(num, left: dict, right:dict, equals):
+def get_num_matches(num, left: dict, right:dict, feat_lab_left, feat_lab_right, equals):
     indexes = []
     l = best_match_idx(num, left)
     m = left[l]
     if num <= m:
         left.pop(l)
         return indexes, m
-    right_indexes = list(right)
+    _, left_label = feat_lab_left[l]
+    right_indexes = []
+    for k in right:
+        _, right_label = feat_lab_right[k]
+        if (equals and (left_label == right_label)) \
+            or (not equals and (left_label != right_label)):
+            right_indexes.append(k)
     random.shuffle(right_indexes)
     total = 0
     for _ in range(m, num):

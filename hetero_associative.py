@@ -283,7 +283,7 @@ class HeteroAssociativeMemory:
             d = np.linalg.norm(vector - o_io)
             dist += d
         dist /= constants.dist_estims
-        return q_io, q_ws, dist
+        return dist
 
     def abstract(self, r_io):
         self._relation = np.where(

@@ -167,14 +167,20 @@ class HeteroAssociativeMemory:
     def rel_string(self):
         return self._to_string(self.relation)
 
+    def is_undefined(self, value, dim):
+        return value == self.undefined(dim)
+
     def undefined(self, dim: int):
         return self.m if dim == 0 else self.q
 
     def undefined_alt(self, dim: int):
         return self.q if dim == 0 else self.m
+    
+    def undefined_function(self, dim):
+        return np.full(self.cols(dim), self.undefined(dim), dtype=int)
 
-    def is_undefined(self, value, dim):
-        return value == self.undefined(dim)
+    def undefined_function_alt(self, dim):
+        return np.full(self.cols_alt(dim), self.undefined_alt(dim), dtype=int)
 
     def alt(self, dim):
         return (dim + 1) % 2
@@ -232,12 +238,17 @@ class HeteroAssociativeMemory:
     def _recall(self, vector, weights, dim):
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
-        r = self.transform(relation)
-        r_io, weights, iterations = self.optimal_recall(vector, r, dim)
-        weight = np.mean(weights)
-        recognized = (np.count_nonzero(r_io == self.undefined(self.alt(dim))) <= self._xi)
-        recognized = recognized and (self._kappa*self.mean <= weight)
-        r_io = self.revalidate(r_io, self.alt(dim))
+        relation = self.transform(relation)
+        recognized = (np.count_nonzero(np.sum(relation, axis=1) == 0) <= self._xi)
+        if not recognized:
+            r_io = self.undefined_function_alt(dim)
+            weight = 0.0
+            iterations = 0
+        else:
+            r_io, weights, iterations = self.optimal_recall(vector, relation, dim)
+            weight = np.mean(weights)
+            recognized = recognized and (self._kappa*self.mean <= weight)
+            r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, relation, iterations
 
     def optimal_recall(self, vector, projection, dim):
@@ -327,7 +338,7 @@ class HeteroAssociativeMemory:
         dist = column
         s = dist.sum()
         if s == 0:
-            return self.undefined(dim)
+            return random.randrange(dist.size)
         r = s*random.random()
         for j in range(dist.size):
             if r < dist[j]:

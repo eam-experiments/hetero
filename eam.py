@@ -629,11 +629,13 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     recog_weights = []
     unknown = 0
     unknown_weights = []
+    iterations = []
     counter = 0
     for features, label in zip(testing_features, testing_labels):
         recognized, weights = eam_origin.recog_weights(features)
         if recognized:
-            memory, recognized, weight, relation = recall(features, weights)
+            memory, recognized, weight, relation, n = recall(features, weights)
+            iterations.append(n)
             if recognized:
                 memory = rsize_recall(memory, msize, minimum, maximum)
                 memories.append(memory)
@@ -654,6 +656,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         counter += 1
         constants.print_counter(counter, 1000, 100, symbol='*')
     print(' end')
+    print(f'Iterations: mean = {np.mean(iterations)}, stdev = {np.std(iterations)}')
 
     correct_weights = []
     incorrect_weights = []

@@ -245,20 +245,21 @@ class HeteroAssociativeMemory:
         weights = None
         distance = float('inf')
         update = True
+        iterations = 0
         while update:
-            update = False
-            for i in range(constants.n_sims):
-                candidate = self.reduce(projection, self.alt(dim))
-                q_io, q_ws, d = self.distance_recall(vector, candidate, dim)
-                if d < distance:
-                    r_io = q_io
-                    weights = q_ws
-                    distance = d
-                    update = True
+            q_io, q_ws = self.reduce(projection, self.alt(dim))
+            d = self.distance_recall(vector, q_io, q_ws, dim)
+            if d < distance:
+                r_io = q_io
+                weights = q_ws
+                distance = d
+                iterations = 0
+            else:
+                iterations += 1
+            update = (iterations < constants.n_sims)
         return r_io, weights
 
-    def distance_recall(self, vector, q, dim):
-        q_io, q_ws = q
+    def distance_recall(self, vector, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
         dist = 0
         candidates = Parallel(n_jobs=constants.n_jobs)(

@@ -607,7 +607,7 @@ def recognize_by_hetero_memory(
                 confrix[TN] += 1
                 weights['TN'].append(weight)
         counter += 1
-        constants.print_counter(counter, 1000, 100, symbol='*')
+        constants.print_counter(counter, 10000, 1000, symbol='*')
     print(' end')
     show_weights_stats(weights)
     print(f'Confusion matrix:\n{confrix}')
@@ -655,7 +655,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             unknown += 1
             confrix[label, constants.n_labels] += 1
         counter += 1
-        constants.print_counter(counter, 10000, 1000, symbol='*')
+        constants.print_counter(counter, 10000, 1000, symbol='+')
     print(' end')
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)

@@ -640,7 +640,6 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             if n > 0:
                 iterations.append(n)
             if recognized:
-                memory = rsize_recall(memory, msize, minimum, maximum)
                 associations.append(memory)
                 correct_labels.append(label)
                 recog_weights.append(weight)
@@ -674,9 +673,10 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         weights = []
         counter = 0
         for features, label, w in zip(associations, correct_labels, recog_weights):
-            feat, recognized, _ = eam_destination.recall(features)
+            memory, recognized, _ = eam_destination.recall(features)
             if recognized:
-                memories.append(feat)
+                memory = rsize_recall(memory, msize, minimum, maximum)
+                memories.append(memory)
                 correct.append(label)
                 weights.append(w)
             else:
@@ -684,15 +684,16 @@ def recall_by_hetero_memory(remembered_dataset, recall,
                 confrix[label, constants.n_labels] += 1
             counter += 1
             constants.print_counter(counter, 10000, 1000, symbol='+')
-        memories = np.array(memories)
-        predictions = np.argmax(classifier.predict(memories), axis=1)
-        for label, prediction, weight in zip(correct, predictions, weights):
-            # For calculation of per memory precision and recall
-            confrix[label, prediction] += 1
-            if label == prediction:
-                correct_weights.append(weight)
-            else:
-                incorrect_weights.append(weight)
+        if len(memories) > 0:
+            memories = np.array(memories)
+            predictions = np.argmax(classifier.predict(memories), axis=1)
+            for label, prediction, weight in zip(correct, predictions, weights):
+                # For calculation of per memory precision and recall
+                confrix[label, prediction] += 1
+                if label == prediction:
+                    correct_weights.append(weight)
+                else:
+                    incorrect_weights.append(weight)
     print(' done')
     print(' end')
     behaviour[constants.no_response_idx] = unknown

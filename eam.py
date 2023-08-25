@@ -621,6 +621,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         msize, mfill, minimum, maximum, mean_weight):
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
+    gc.collect()
     confrix = np.zeros(
         (constants.n_labels, constants.n_labels+1), dtype='int')
     behaviour = np.zeros(constants.n_behaviours, dtype=int)

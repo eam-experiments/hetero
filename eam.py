@@ -1002,7 +1002,7 @@ def test_hetero_filling_percent(
             in zip(trfs[constants.left_dataset], trfs[constants.right_dataset]):
         hetero_eam.register(left_feat, right_feat)
         counter += 1
-        constants.print_counter(counter, 1000, 100)
+        constants.print_counter(counter, 10000, 1000)
     print(' end')
     print(f'Filling of memories done at {percent}%')
     print(f'Memory full at {100*hetero_eam.fullness}%')

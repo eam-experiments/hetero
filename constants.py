@@ -29,7 +29,10 @@ datasets_to_codomains = {MNIST: 32, FASHION: 16}
 left_dataset = MNIST
 right_dataset = FASHION
 
-n_sims = 50
+n_sims = 10
+dist_estims = 50
+n_matches = 10
+s_matches = 4
 project_same = 0
 project_logistic = 1
 project_maximum = 2
@@ -124,7 +127,7 @@ correct_response_idx = 6
 n_behaviours = 7
 
 memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
-memory_fills = [1.0, 2.0, 4.0, 8.0, 16.0, 24.0, 32.0, 48.0, 64.0, 80.0, 100.0]
+memory_fills = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 100.0]
 n_best_memory_sizes = 3
 n_samples = 10
 learned_data_groups = 6

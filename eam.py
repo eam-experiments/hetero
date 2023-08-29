@@ -17,7 +17,8 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r ) [--runpath=PATH ] [ -l (en | es) ]
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r )
+    [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
   -h    Show this screen.
@@ -27,6 +28,8 @@ Options:
   -s    Run separated tests of memories performance for MNIST y Fashion.
   -e    Evaluation of recognition of hetero-associations.
   -r    Evaluation of hetero-recalling.
+  --relsmean=MEAN   Average number of relations per data element.
+  --relsstdv=STDV   Standard deviation of the number of relations per data element.
   --runpath=PATH   Path to directory where everything will be saved [default: runs]
   -l        Chooses Language for graphs.
 """
@@ -50,6 +53,7 @@ import dataset as ds
 import neural_net
 from associative import AssociativeMemory
 from hetero_associative import HeteroAssociativeMemory
+from custom_set import CustomSet
 
 sys.setrecursionlimit(10000)
 
@@ -344,50 +348,127 @@ def features_per_fold(dataset, es, fold):
     testing_labels = np.load(testing_labels_filename)
     return filling_features, filling_labels, testing_features, testing_labels
 
-
 def match_labels(features, labels, half=False):
-    right_features = []
-    right_labels = []
-    used_idx = set()
-    last = 0
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    # Assuming ten clases on each dataset.
-    midx = round(len(labels[left_ds]) * 4.0 / 9.0)
-    matching_labels = labels[left_ds][:midx] if half else labels[left_ds]
-    counter = 0
-    print('Matching:')
-    for left_label in matching_labels:
-        while last in used_idx:
-            last += 1
-        i = last
-        found = False
-        for right_feat, right_lab in zip(features[right_ds][i:], labels[right_ds][i:]):
-            if (i not in used_idx) and (left_label == right_lab):
-                used_idx.add(i)
-                right_features.append(right_feat)
-                right_labels.append(right_lab)
-                found = True
-                break
-            i += 1
-        if not found:
-            break
-        counter += 1
-        constants.print_counter(counter, 1000, 100, symbol='-')
-    print(' end')
-    if half:
-        i = 0
-        for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
-            if i not in used_idx:
-                right_features.append(right_feat)
-                right_labels.append(right_lab)
-            i += 1
-    n = len(right_features)
-    features[left_ds] = features[left_ds][:n]
-    labels[left_ds] = labels[left_ds][:n]
-    features[right_ds] = np.array(right_features, dtype=int)
-    labels[right_ds] = np.array(right_labels, dtype=int)
 
+    # Assuming ten clases on each dataset.
+    midx = round(len(labels[left_ds])/2.0)
+    feat_left = features[left_ds][:midx] if half else features[left_ds] 
+    labl_left = labels[left_ds][:midx] if half else labels[left_ds] 
+    feat_right = features[right_ds][:midx] if half else features[right_ds] 
+    labl_right = labels[right_ds][:midx] if half else labels[right_ds]
+
+    left_features, left_labels, right_features, right_labels = \
+        get_matches(feat_left, labl_left, feat_right, labl_right)
+    if half:
+        print(f' end of first part ({midx}) ', end='')
+        feat_left = features[left_ds][midx:]
+        labl_left = labels[left_ds][midx:]
+        feat_right = features[right_ds][midx:]
+        labl_right = labels[right_ds][midx:]
+        lfs, lls, rfs, rls = \
+            get_matches(feat_left, labl_left, feat_right, labl_right, equals=False)
+        left_features += lfs
+        left_labels += lls
+        right_features += rfs
+        right_labels += rls
+    print('Shuffling... ', end='')
+    tuples = list(zip(left_features, left_labels, right_features, right_labels))
+    random.shuffle(tuples)
+    print('done!')
+    print('Separating... ', end='')
+    left_features = []
+    left_labels = []
+    right_features = []
+    right_labels = []
+    for fl, ll, fr, lr in tuples:
+        left_features.append(fl)
+        left_labels.append(ll)
+        right_features.append(fr)
+        right_labels.append(lr)
+    print('done!')
+    print('Back to array... ', end='')
+    features[left_ds] = np.array(left_features)
+    labels[left_ds] = np.array(left_labels)
+    features[right_ds] = np.array(right_features)
+    labels[right_ds] = np.array(right_labels)
+    print('done!')
+
+def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
+    left_features = []
+    left_labels = []
+    right_features = []
+    right_labels = []
+
+    feat_lab_right = list(zip(feat_right, labl_right))
+    feat_lab_left = list(zip(feat_left, labl_left))
+    right_matches = {i:0 for i in range(len(feat_lab_right))}
+    left_matches = {i:0 for i in range(len(feat_lab_left))}
+
+    counter = 0
+    left_turn = True
+    num_matches = []
+    print('Matching equals' if equals else 'Matching differents:', end='')
+    while len(right_matches) and len(left_matches):
+        num = int(random.gauss(
+            mu=constants.n_matches, sigma=constants.s_matches))
+        matches, m = get_num_matches(num, left_matches, right_matches,
+                feat_lab_left, feat_lab_right, equals) \
+            if left_turn else get_num_matches(num, right_matches, left_matches,
+                feat_lab_right, feat_lab_left, equals)
+        num_matches.append(m)
+        for k, l in matches:
+            i = k if left_turn else l
+            j = l if left_turn else k
+            fl, ll = feat_lab_left[i]
+            fr, lr = feat_lab_right[j]
+            left_features.append(fl)
+            left_labels.append(ll)
+            right_features.append(fr)
+            right_labels.append(lr)
+            counter += 1
+            constants.print_counter(counter,10000,step=1000, symbol='-')
+        left_turn = not left_turn
+    print('done!')
+    print(f'Matches mean: {np.mean(num_matches)}')
+    print(f'Matches stdv: {np.std(num_matches)}')
+    return left_features, left_labels, right_features, right_labels
+
+def get_num_matches(num, left: dict, right:dict, feat_lab_left, feat_lab_right, equals):
+    indexes = []
+    l = best_match_idx(num, left)
+    m = left[l]
+    if num <= m:
+        left.pop(l)
+        return indexes, m
+    _, left_label = feat_lab_left[l]
+    right_indexes = []
+    for k in right:
+        _, right_label = feat_lab_right[k]
+        if (equals and (left_label == right_label)) \
+            or (not equals and (left_label != right_label)):
+            right_indexes.append(k)
+    random.shuffle(right_indexes)
+    total = 0
+    for _ in range(m, num):
+        if len(right_indexes) == 0:
+            break
+        r = right_indexes.pop()
+        indexes.append((l, r))
+        left[l] += 1
+        right[r] += 1
+        total += 1
+    left.pop(l)
+    return indexes, m + total
+
+def best_match_idx(num: int, idx_num: dict):
+    d = sys.maxsize
+    idx = 0
+    for k in idx_num:
+        if abs(num - idx_num[k]) < d:
+            idx = k
+    return idx
 
 def describe(features, labels):
     left_ds = constants.left_dataset
@@ -526,7 +607,7 @@ def recognize_by_hetero_memory(
                 confrix[TN] += 1
                 weights['TN'].append(weight)
         counter += 1
-        constants.print_counter(counter, 1000, 100, symbol='*')
+        constants.print_counter(counter, 10000, 1000, symbol='*')
     print(' end')
     show_weights_stats(weights)
     print(f'Confusion matrix:\n{confrix}')
@@ -540,23 +621,27 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         msize, mfill, minimum, maximum, mean_weight):
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
+    gc.collect()
     confrix = np.zeros(
         (constants.n_labels, constants.n_labels+1), dtype='int')
     behaviour = np.zeros(constants.n_behaviours, dtype=int)
-    memories = []
-    correct = []
+    associations = []
+    correct_labels = []
     recog_weights = []
     unknown = 0
     unknown_weights = []
+    iterations = []
+    print('Remembering ', end='')
     counter = 0
     for features, label in zip(testing_features, testing_labels):
-        recognized, weights = eam_origin.recog_weights(features)
+        feat, recognized, weights = eam_origin.recall_weights(features)
         if recognized:
-            memory, recognized, weight, relation = recall(features, weights)
+            memory, recognized, weight, relation, n = recall(feat, weights)
+            if n > 0:
+                iterations.append(n)
             if recognized:
-                memory = rsize_recall(memory, msize, minimum, maximum)
-                memories.append(memory)
-                correct.append(label)
+                associations.append(memory)
+                correct_labels.append(label)
                 recog_weights.append(weight)
                 if random.randrange(100) == 0:
                     prefix = 'projection-' + remembered_dataset + \
@@ -571,21 +656,46 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             unknown += 1
             confrix[label, constants.n_labels] += 1
         counter += 1
-        constants.print_counter(counter, 1000, 100, symbol='*')
-    print(' end')
+        constants.print_counter(counter, 10000, 1000, symbol='+')
+    print(' done')
+    iter_total = len(iterations)
+    iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
+    iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
+    print(f'Iterations: total = {iter_total}' + 
+          f'mean = {iter_mean}, stdev = {iter_stdv}')
 
     correct_weights = []
     incorrect_weights = []
-    if len(memories) > 0:
-        memories = np.array(memories)
-        predictions = np.argmax(classifier.predict(memories), axis=1)
-        for correct, prediction, weight in zip(correct, predictions, recog_weights):
-            # For calculation of per memory precision and recall
-            confrix[correct, prediction] += 1
-            if correct == prediction:
-                correct_weights.append(weight)
+    print('Validating ', end='')
+    if len(associations) > 0:
+        memories = []
+        correct = []
+        weights = []
+        counter = 0
+        for features, label, w in zip(associations, correct_labels, recog_weights):
+            memory, recognized, _ = eam_destination.recall(features)
+            if recognized:
+                memory = rsize_recall(memory, msize, minimum, maximum)
+                memories.append(memory)
+                correct.append(label)
+                weights.append(w)
             else:
-                incorrect_weights.append(weight)
+                unknown += 1
+                confrix[label, constants.n_labels] += 1
+            counter += 1
+            constants.print_counter(counter, 10000, 1000, symbol='+')
+        if len(memories) > 0:
+            memories = np.array(memories)
+            predictions = np.argmax(classifier.predict(memories), axis=1)
+            for label, prediction, weight in zip(correct, predictions, weights):
+                # For calculation of per memory precision and recall
+                confrix[label, prediction] += 1
+                if label == prediction:
+                    correct_weights.append(weight)
+                else:
+                    incorrect_weights.append(weight)
+    print(' done')
+    print(' end')
     behaviour[constants.no_response_idx] = unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
@@ -893,7 +1003,7 @@ def test_hetero_filling_percent(
             in zip(trfs[constants.left_dataset], trfs[constants.right_dataset]):
         hetero_eam.register(left_feat, right_feat)
         counter += 1
-        constants.print_counter(counter, 1000, 100)
+        constants.print_counter(counter, 10000, 1000)
     print(' end')
     print(f'Filling of memories done at {percent}%')
     print(f'Memory full at {100*hetero_eam.fullness}%')
@@ -914,7 +1024,13 @@ def hetero_remember_percent(
     for left_feat, right_feat \
             in zip(filling_features[constants.left_dataset],
                    filling_features[constants.right_dataset]):
-        eam.register(left_feat, right_feat)
+        lf, recognized, lw = left_eam.recall_weights(left_feat)
+        if not recognized:
+            continue
+        rf, recognized, rw = right_eam.recall_weights(right_feat)
+        if not recognized:
+            continue
+        eam.register(lf, rf, lw, rw)
         counter += 1
         constants.print_counter(counter, 1000, 100)
     print(' end')
@@ -1611,7 +1727,22 @@ def generate_memories(es):
 if __name__ == "__main__":
     args = docopt(__doc__)
 
-    # Processing language.
+    if args['--relsmean']:
+        n = int(args['--relsmean'])
+        if n <= 0:
+            print('The mean of relations must be a positive integer.')
+            exit(1)
+        else:
+            constants.n_matches = n
+    if args['--relsstdv']:
+        s = float(args['--relsstdv'])
+        if s <= 0:
+            print('The standard deviation of relations must be a positive number.')
+            exit(1)
+        else:
+            constants.s_matches = n
+    if args['--runpath']:
+        constants.run_path = args['--runpath']
     if args['es']:
         es_lang = gettext.translation(
             'eam', localedir='locale', languages=['es'])

@@ -41,7 +41,7 @@ class HeteroAssociativeMemory:
         self._p = p
         self._q = q+1 # +1 to handle partial functions.
         self._xi = es.xi
-        self._absolute_max = 2**16 - 1
+        self._absolute_max = 2**32 - 1
         self._sigma = es.sigma
         self._iota = es.iota
         self._kappa = es.kappa
@@ -167,14 +167,20 @@ class HeteroAssociativeMemory:
     def rel_string(self):
         return self._to_string(self.relation)
 
+    def is_undefined(self, value, dim):
+        return value == self.undefined(dim)
+
     def undefined(self, dim: int):
         return self.m if dim == 0 else self.q
 
     def undefined_alt(self, dim: int):
         return self.q if dim == 0 else self.m
+    
+    def undefined_function(self, dim):
+        return np.full(self.cols(dim), self.undefined(dim), dtype=int)
 
-    def is_undefined(self, value, dim):
-        return value == self.undefined(dim)
+    def undefined_function_alt(self, dim):
+        return np.full(self.cols_alt(dim), self.undefined_alt(dim), dtype=int)
 
     def alt(self, dim):
         return (dim + 1) % 2
@@ -232,42 +238,50 @@ class HeteroAssociativeMemory:
     def _recall(self, vector, weights, dim):
         vector = self.validate(vector, dim)
         relation = self.project(vector, weights, dim)
-        r = self.transform(relation)
-        r_io, weights = self.optimal_recall(vector, r, dim)
-        weight = np.mean(weights)
-        recognized = (np.count_nonzero(r_io == self.undefined(self.alt(dim))) <= self._xi)
-        recognized = recognized and (self._kappa*self.mean <= weight)
-        r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, relation
+        relation = self.transform(relation)
+        recognized = (np.count_nonzero(np.sum(relation, axis=1) == 0) <= self._xi)
+        if not recognized:
+            r_io = self.undefined_function_alt(dim)
+            weight = 0.0
+            iterations = 0
+        else:
+            r_io, weights, iterations = self.optimal_recall(vector, relation, dim)
+            weight = np.mean(weights)
+            recognized = recognized and (self._kappa*self.mean <= weight)
+            r_io = self.revalidate(r_io, self.alt(dim))
+        return r_io, recognized, weight, relation, iterations
 
     def optimal_recall(self, vector, projection, dim):
         r_io = None
         weights = None
         distance = float('inf')
-        candidates = [self.reduce(projection, self.alt(dim))
-            for i in range(constants.n_sims)]
-        results = Parallel(n_jobs=constants.n_jobs, return_as="generator")(
-            delayed(self.distance_recall)(
-                vector, candidate, dim)
-                    for candidate in candidates)
-        for q_io, q_ws, d in results:
+        update = True
+        iterations = 0
+        n = 0
+        while update:
+            q_io, q_ws = self.reduce(projection, self.alt(dim))
+            d = self.distance_recall(vector, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
-        return r_io, weights
+                n = 0
+            else:
+                n += 1
+            iterations += 1
+            update = (n < constants.n_sims)
+        return r_io, weights, iterations
 
-    def distance_recall(self, vector, q, dim):
-        q_io, q_ws = q
+    def distance_recall(self, vector, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
         dist = 0
-        for j in range(constants.n_sims):
+        for _ in range(constants.dist_estims):
             o_io, _ = self.reduce(p_io, dim)
             # We are not using weights in calculating distances.
             d = np.linalg.norm(vector - o_io)
             dist += d
-        dist /= constants.n_sims
-        return q_io, q_ws, dist
+        dist /= constants.dist_estims
+        return dist
 
     def abstract(self, r_io):
         self._relation = np.where(
@@ -302,7 +316,7 @@ class HeteroAssociativeMemory:
     # Reduces a relation to a function
     def reduce(self, relation, dim):
         cols = self.cols(dim)
-        v = np.array([self.choose(column, self.cue(column, dim), dim)
+        v = np.array([self.choose(column, dim)
                 for column in relation])
         weights = []
         for i in range(cols):
@@ -314,37 +328,21 @@ class HeteroAssociativeMemory:
         return v, weights
 
     
-    def choose(self, column, value, dim):
+    def choose(self, column, dim):
         """Choose a value from the column given a cue
         
         It assumes the column as a probabilistic distribution.
         """
-        # dist =  column if value == self.undefined(dim) \
-        #     else self._normalize(column, value, dim)
         dist = column
         s = dist.sum()
         if s == 0:
-            return self.undefined(dim)
-        options = [i for i in range(dist.size)]
-        random.shuffle(options)
-        n = s*random.random()
-        for j in options:
-            if n < dist[j]:
+            return random.randrange(dist.size)
+        r = s*random.random()
+        for j in range(dist.size):
+            if r < dist[j]:
                 return j
-            n -= dist[j]
+            r -= dist[j]
         return self.rows(dim) - 1
-
-    def cue(self, column, dim):
-        """ Returns the median of the column.
-        """
-        s = np.sum(column)
-        if s == 0:
-            return self.undefined(dim)
-        n = s/2.0
-        for i, f in enumerate(column):
-            if n < f:
-                return i
-            n -= f
 
     def _normalize(self, column, cue, dim):
         mean = cue
@@ -378,8 +376,12 @@ class HeteroAssociativeMemory:
                 total = np.sum(relation)
                 if total > 0:
                     matrix = relation/total
+                else:
+                    matrix = relation
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
+        print(f'Entropy updated to mean = {np.mean(self._entropies)}, ' 
+              + f'stdev = {np.std(self._entropies)}')
 
     def _update_means(self):
         for i in range(self.n):

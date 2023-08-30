@@ -752,7 +752,7 @@ def check_hetero_memory(remembered_dataset,
             iterations.append(iters)
         if recognized:
             n, m = relation.shape
-            params = constants.ExperimentSettings()
+            params = constants.ExperimentSettings(sigma=0.1)
             homo = AssociativeMemory(n, m, params, relation)
             memory, recognized, weight = homo.recall(cue)
             if recognized:
@@ -2112,7 +2112,7 @@ if __name__ == "__main__":
     except:
         pass
 
-    exp_settings = constants.ExperimentSettings(parameters)
+    exp_settings = constants.ExperimentSettings(params = parameters)
     print(f'Working directory: {constants.run_path}')
     print(f'Experimental settings: {exp_settings}')
 

@@ -1472,9 +1472,9 @@ def check_consistency_per_fold(filling, es, fold):
     # Retrieve the classifiers.
     model_prefix = constants.model_name(left_ds, es)
     filename = constants.classifier_filename(model_prefix, es, fold)
+    left_classifier = tf.keras.models.load_model(filename)
     model_prefix = constants.model_name(right_ds, es)
     filename = constants.classifier_filename(model_prefix, es, fold)
-    left_classifier = tf.keras.models.load_model(filename)
     right_classifier = tf.keras.models.load_model(filename)
 
     filling_features = {}

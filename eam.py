@@ -1921,7 +1921,7 @@ def check_consistency(filling, es):
         mean_correct_response = main_avrge_behaviours[i,
                                                       :, constants.correct_response_idx]
         plot_behs_graph(mean_no_response, mean_no_correct_response,
-                        mean_correct_response, dataset, es, xtags=constants.memory_fills, prefix='hetero_remember-')
+                        mean_correct_response, dataset, es, xtags=constants.memory_fills, prefix='hetero_validate-')
         for j, f in enumerate(constants.memory_fills):
             save_conf_matrix(
                 main_avrge_confrixes[i, j], dataset, f'hetero_validate-fll_{str(f).zfill(3)}', es)

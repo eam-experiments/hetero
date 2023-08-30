@@ -297,12 +297,13 @@ class HeteroAssociativeMemory:
         integration = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=float)
         columns = int(c*self.cols(dim))
         columns = 1 if columns == 0 else columns
+        sum_weights = np.sum(weights)
         used = []
         n = 0
         while n < columns:
             i = self.choose_column_per_weight(weights, used)
             k = vector[i]
-            w = weights[i]
+            w = weights[i]/sum_weights
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
             if n == 0:

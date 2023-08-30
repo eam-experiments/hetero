@@ -1359,8 +1359,8 @@ def hetero_remember_per_fold(es, fold):
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
     params = constants.ExperimentSettings()
-    left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], es)
-    right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], es)
+    left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
+    right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                                   rows[left_ds], rows[right_ds], es)
 

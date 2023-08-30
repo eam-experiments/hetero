@@ -217,10 +217,22 @@ def plot_distances(distances, prefix, es=None, fold=None):
 
 
 def get_min_max(arrays):
-    a = np.concatenate(arrays)
-    m = np.mean(a)
-    s = np.std(a)
-    return m - 2*s, m + 2*s
+    minimum = float('inf')
+    maximum = -float('inf')
+    for a in arrays:
+        max = np.max(a)
+        if maximum < max:
+            maximum = max
+        min = np.min(a)
+        if min < minimum:
+            minimum = min
+        mean = np.mean(a)
+        stdv = np.std(a)
+        five_percent = np.percentile(a, 5)
+        nfive_percent = np.percentile(a, 95)
+        print(f'Min_maxs array stats: min = {min}, 5% = {five_percent}, ' +
+              f'mean = {mean}, 95% = {nfive_percent}, max = {max}, stdev = {stdv}')
+    return minimum, maximum
 
 def get_max(arrays):
     _max = float('-inf')
@@ -321,7 +333,7 @@ def msize_features(features, msize, min_value, max_value):
 
 def rsize_recall(recall, msize, min_value, max_value):
     if msize == 1:
-        return (recall.astype(dtype=float) + 1.0)*(max_value - min_value)/2
+        return np.full(recall.size, (min_value + max_value)/2.0)
     return (max_value - min_value) * recall.astype(dtype=float) \
         / (msize - 1.0) + min_value
 
@@ -742,12 +754,12 @@ def check_hetero_memory(remembered_dataset,
     unknown_homo = 0
     unknown_weights = []
     iterations = []
-    print('Checking ', end='')
     print(f'Features shape: {testing_features.shape}')
     print(f'Cues shape: {testing_cues.shape}')
+    print('Checking ', end='')
     counter = 0
     for features, cue, label in zip(testing_features, testing_cues, testing_labels):
-        memory, recognized, weight, relation, iters = recall(features)
+        _, recognized, weight, relation, iters = recall(features)
         if iters > 0:
             iterations.append(iters)
         if recognized:
@@ -756,7 +768,7 @@ def check_hetero_memory(remembered_dataset,
             homo = AssociativeMemory(n, m, params, relation)
             memory, recognized, weight = homo.recall(cue)
             if recognized:
-                memories.append(memory)
+                memories.append(cue)
                 correct_labels.append(label)
                 recog_weights.append(weight)
             else:
@@ -782,7 +794,7 @@ def check_hetero_memory(remembered_dataset,
     incorrect_weights = []
     print('Validating ', end='')
     if len(memories) > 0:
-        memories = np.array(memories)
+        memories = rsize_recall(np.array(memories), msize, minimum, maximum)
         predictions = np.argmax(classifier.predict(memories), axis=1)
         for label, prediction, weight in zip(correct_labels, predictions, recog_weights):
             # For calculation of per memory precision and recall
@@ -1186,7 +1198,7 @@ def hetero_check_consistency_percent(
                    filling_features[constants.right_dataset]):
         eam.register(left_feat, right_feat)
         counter += 1
-        constants.print_counter(counter, 10000, 1000)
+        constants.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
     confrixes, behaviours = check_consistency_hetero_memory(
@@ -1401,13 +1413,11 @@ def hetero_remember_per_fold(es, fold):
         f_features = np.load(filling_features_filename)
         t_features = np.load(testing_features_filename)
         min_value, max_value = get_min_max((f_features, t_features))
-        # min_value = get_min((f_features, t_features))
-        # max_value = get_max((f_features, t_features))
-        min_maxs[dataset] = [min_value, max_value]
         filling_features[dataset] = msize_features(
             f_features, rows[dataset], min_value, max_value)
         testing_features[dataset] = msize_features(
             t_features, rows[dataset], min_value, max_value)
+        min_maxs[dataset] = [min_value, max_value]
 
     for f in filling_features[left_ds]:
         left_eam.register(f)
@@ -1477,6 +1487,10 @@ def check_consistency_per_fold(filling, es, fold):
     filename = constants.classifier_filename(model_prefix, es, fold)
     right_classifier = tf.keras.models.load_model(filename)
 
+    classifiers = {
+        left_ds: left_classifier,
+        right_ds: right_classifier
+    }
     filling_features = {}
     filling_labels = {}
     testing_features = {}
@@ -1505,14 +1519,18 @@ def check_consistency_per_fold(filling, es, fold):
         testing_labels[dataset] = np.load(testing_labels_filename)
         f_features = np.load(filling_features_filename)
         t_features = np.load(testing_features_filename)
+        validating_network_data(
+            f_features, filling_labels[dataset], classifiers[dataset],
+            dataset, 'filling data')
+        validating_network_data(
+            t_features, testing_labels[dataset], classifiers[dataset],
+            dataset, 'testing data')
         min_value, max_value = get_min_max((f_features, t_features))
-        # min_value = get_min((f_features, t_features))
-        # max_value = get_max((f_features, t_features))
-        min_maxs[dataset] = [min_value, max_value]
         filling_features[dataset] = msize_features(
             f_features, rows[dataset], min_value, max_value)
         testing_features[dataset] = msize_features(
             t_features, rows[dataset], min_value, max_value)
+        min_maxs[dataset] = [min_value, max_value]
 
     match_labels(filling_features, filling_labels)
     describe(filling_features, filling_labels)
@@ -1700,6 +1718,12 @@ def test_hetero_fills(es):
                    xlabels=constants.memory_fills, xtitle=_('Percentage of memory corpus'))
     print('Testing fillings for hetero-associative done.')
 
+def validating_network_data(features, labels, classifier, dataset, description):
+    predictions = np.argmax(classifier.predict(features), axis=1)
+    total = labels.size
+    agreements = np.count_nonzero(np.where(predictions == labels, 1, 0))
+    print(f'Validating coherence between data and network for {description} of {dataset}')
+    print(f'Agreement percentage: {100*agreements/total}')
 
 def save_history(history, prefix, es):
     """ Saves the stats of neural networks.

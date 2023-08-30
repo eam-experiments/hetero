@@ -302,7 +302,7 @@ class HeteroAssociativeMemory:
         while n < columns:
             i = self.choose_column_per_weight(weights, used)
             k = vector[i]
-            w = weights[i]/columns
+            w = weights[i]
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
             if n == 0:

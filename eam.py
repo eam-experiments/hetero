@@ -17,7 +17,7 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r | -v)
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r | -v | -w)
     [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
@@ -28,7 +28,8 @@ Options:
   -s    Run separated tests of memories performance for MNIST y Fashion.
   -e    Evaluation of recognition of hetero-associations.
   -r    Evaluation of hetero-recalling.
-  -v    Validation of hetero-recalling using the other in the pair as cue on projection.
+  -v    Validation of hetero-recalling using filling data (easier).
+  -w    Validation of hetero-recalling using testing data (harder).
   --relsmean=MEAN   Average number of relations per data element.
   --relsstdv=STDV   Standard deviation of the number of relations per data element.
   --runpath=PATH   Path to directory where everything will be saved [default: runs]
@@ -768,7 +769,7 @@ def check_hetero_memory(remembered_dataset,
             homo = AssociativeMemory(n, m, params, relation)
             memory, recognized, weight = homo.recall(cue)
             if recognized:
-                memories.append(cue)
+                memories.append(memory)
                 correct_labels.append(label)
                 recog_weights.append(weight)
             else:
@@ -1540,7 +1541,6 @@ def check_consistency_per_fold(filling, es, fold):
     match_labels(testing_features, testing_labels)
     describe(testing_features, testing_labels)
     total = len(filling_labels[left_ds])
-    total_test = len(testing_labels[left_ds])
     percents = np.array(constants.memory_fills)
     steps = np.round(total*percents/100.0).astype(int)
 
@@ -1567,12 +1567,14 @@ def check_consistency_per_fold(filling, es, fold):
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)
         # Arrays with precision, and recall.
+        noresponse = behaviours[:, constants.no_response_idx]
         correct = behaviours[:, constants.correct_response_idx]
         incorrect = behaviours[:, constants.no_correct_response_idx]
         fold_precision.append(np.where(correct + incorrect == 0,
             1.0, correct/(correct+incorrect)))
         fold_recall.append(
-            behaviours[:, constants.correct_response_idx]/total_test)
+            behaviours[:,
+                constants.correct_response_idx]/(noresponse+correct+incorrect))
         start = end
     fold_entropies = np.array(fold_entropies)
     fold_precision = np.transpose(np.array(fold_precision))
@@ -2102,7 +2104,7 @@ def generate_memories(es):
     remember(es)
     # decode_memories(es)
 
-def validate(es, filling = True):
+def validate(filling, es):
     check_consistency(filling, es)
 
 if __name__ == "__main__":
@@ -2174,4 +2176,6 @@ if __name__ == "__main__":
     elif args['-r']:
         generate_memories(exp_settings)
     elif args['-v']:
-        validate(exp_settings, filling = True)
+        validate(True, exp_settings)
+    elif args['-w']:
+        validate(False, exp_settings)

@@ -1037,7 +1037,10 @@ def test_memory_sizes(dataset, es):
         filling_labels = np.load(filling_labels_filename)
         testing_features = np.load(testing_features_filename)
         testing_labels = np.load(testing_labels_filename)
-
+        validating_network_data(
+            filling_features, filling_labels, classifier, dataset, 'filling data')
+        validating_network_data(
+            testing_features, testing_labels, classifier, dataset, 'testing data')
         behaviours = np.zeros(
             (len(constants.memory_sizes), constants.n_behaviours))
         measures = []
@@ -1721,7 +1724,7 @@ def test_hetero_fills(es):
 def validating_network_data(features, labels, classifier, dataset, description):
     predictions = np.argmax(classifier.predict(features), axis=1)
     total = labels.size
-    agreements = np.count_nonzero(np.where(predictions == labels, 1, 0))
+    agreements = np.count_nonzero(predictions == labels)
     print(f'Validating coherence between data and network for {description} of {dataset}')
     print(f'Agreement percentage: {100*agreements/total}')
 

@@ -173,14 +173,8 @@ class HeteroAssociativeMemory:
     def undefined(self, dim: int):
         return self.m if dim == 0 else self.q
 
-    def undefined_alt(self, dim: int):
-        return self.q if dim == 0 else self.m
-    
     def undefined_function(self, dim):
         return np.full(self.cols(dim), self.undefined(dim), dtype=int)
-
-    def undefined_function_alt(self, dim):
-        return np.full(self.cols_alt(dim), self.undefined_alt(dim), dtype=int)
 
     def alt(self, dim):
         return (dim + 1) % 2
@@ -188,14 +182,8 @@ class HeteroAssociativeMemory:
     def cols(self, dim):
         return self.n if dim == 0 else self.p
 
-    def cols_alt(self, dim):
-        return self.p if dim == 0 else self.n
-
     def rows(self, dim):
         return self.m if dim == 0 else self.q
-
-    def rows_alt(self, dim):
-        return self.q if dim == 0 else self.m
 
     def register(self, vector_a, vector_b, weights_a = None, weights_b = None) -> None:
         if weights_a is None:
@@ -241,7 +229,7 @@ class HeteroAssociativeMemory:
         relation = self.transform(relation)
         recognized = (np.count_nonzero(np.sum(relation, axis=1) == 0) <= self._xi)
         if not recognized:
-            r_io = self.undefined_function_alt(dim)
+            r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
             iterations = 0
         else:
@@ -293,24 +281,20 @@ class HeteroAssociativeMemory:
         return np.where((r_io == 0) | (self._full_iota_relation != 0), True, False)
 
     def project(self, vector, weights, dim):
-        c = 1.0     # Proportion of elements of vector taken into account.
-        integration = np.zeros((self.cols_alt(dim), self.rows_alt(dim)), dtype=float)
-        columns = int(c*self.cols(dim))
-        columns = 1 if columns == 0 else columns
-        used = []
-        n = 0
-        while n < columns:
-            i = self.choose_column_per_weight(weights, used)
+        integration = np.zeros((self.cols(self.alt(dim)), self.rows(self.alt(dim))), dtype=float)
+        # sum_weights = np.sum(weights)
+        first = True
+        for i in range(len(vector)):
             k = vector[i]
-            w = weights[i]/columns
+            # w = weights[i]/sum_weights
+            w = 1
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
-            if n == 0:
+            if first:
                 integration = w*projection
+                first = False
             else:
                 integration = np.where((integration == 0) | (projection == 0), 0, integration + w*projection)
-            used.append(i)
-            n += 1
         return integration
 
     # Reduces a relation to a function
@@ -430,20 +414,6 @@ class HeteroAssociativeMemory:
         v = np.where(vector == self.undefined(dim), np.nan, vector)
         return v
 
-    def choose_column_per_weight(self, weights, used):
-        options = []
-        for i in range(len(weights)):
-            if i not in used:
-                options.append(i)
-        random.shuffle(options)
-        maximum = -1.0
-        column = 0
-        for i in options:
-            if weights[i] > maximum:
-                maximum = weights[i]
-                column = i
-        return column
-    
     def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
         for i in range(self.n):

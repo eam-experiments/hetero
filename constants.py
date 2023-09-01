@@ -29,8 +29,8 @@ datasets_to_codomains = {MNIST: 32, FASHION: 16}
 left_dataset = MNIST
 right_dataset = FASHION
 
-n_sims = 10
-dist_estims = 50
+n_sims = 3
+dist_estims = 7
 n_matches = 10
 s_matches = 4
 project_same = 0
@@ -143,7 +143,8 @@ xi_idx = 2
 sigma_idx = 3
 
 class ExperimentSettings:
-    def __init__(self, params = None):
+    def __init__(self, *, params = None,
+            iota = None, kappa = None, xi = None, sigma = None):
         if params is None:
             self.mem_params = params_defaults
         else:
@@ -155,6 +156,14 @@ class ExperimentSettings:
             shape = params.shape
             assert(shape[0] == 4)
             self.mem_params = params
+        if iota is not None:
+            self.mem_params[iota_idx] = iota
+        if kappa is not None:
+            self.mem_params[kappa_idx] = kappa
+        if xi is not None:
+            self.mem_params[xi_idx] = xi
+        if sigma is not None:
+            self.mem_params[sigma_idx] = sigma
 
     @property
     def xi(self):

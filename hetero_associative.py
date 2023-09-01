@@ -225,19 +225,19 @@ class HeteroAssociativeMemory:
 
     def _recall(self, cue, weights, dim):
         cue = self.validate(cue, dim)
-        relation = self.project(cue, weights, dim)
-        relation = self.transform(relation)
-        recognized = (np.count_nonzero(np.sum(relation, axis=1) == 0) <= self._xi)
+        projection = self.project(cue, weights, dim)
+        projection = self.transform(projection)
+        recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) <= self._xi)
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
             iterations = 0
         else:
-            r_io, weights, iterations = self.optimal_recall(cue, relation, dim)
+            r_io, weights, iterations = self.optimal_recall(cue, projection, dim)
             weight = np.mean(weights)
             recognized = recognized and (self._kappa*self.mean <= weight)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, relation, iterations
+        return r_io, recognized, weight, projection, iterations
 
     def optimal_recall(self, cue, projection, dim):
         r_io = None

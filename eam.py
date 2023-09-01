@@ -648,7 +648,10 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     print('Remembering ', end='')
     counter = 0
     for features, label in zip(testing_features, testing_labels):
-        feat, recognized, weights = eam_origin.recall_weights(features)
+        # feat, recognized, weights = eam_origin.recall_weights(features)
+        feat = features
+        weights = None
+        recognized = True
         if recognized:
             memory, recognized, weight, relation, n = recall(feat, weights)
             if n > 0:
@@ -682,22 +685,25 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     incorrect_weights = []
     print('Validating ', end='')
     if len(associations) > 0:
-        memories = []
-        correct = []
-        weights = []
-        counter = 0
-        for features, label, w in zip(associations, correct_labels, recog_weights):
-            memory, recognized, _ = eam_destination.recall(features)
-            if recognized:
-                memory = rsize_recall(memory, msize, minimum, maximum)
-                memories.append(memory)
-                correct.append(label)
-                weights.append(w)
-            else:
-                unknown += 1
-                confrix[label, constants.n_labels] += 1
-            counter += 1
-            constants.print_counter(counter, 10000, 1000, symbol='+')
+        memories = associations
+        correct = correct_labels
+        weights = recog_weights
+        # memories = []
+        # correct = []
+        # weights = []
+        # counter = 0
+        # for features, label, w in zip(associations, correct_labels, recog_weights):
+        #     memory, recognized, _ = eam_destination.recall(features)
+        #     if recognized:
+        #         memory = rsize_recall(memory, msize, minimum, maximum)
+        #         memories.append(memory)
+        #         correct.append(label)
+        #         weights.append(w)
+        #     else:
+        #         unknown += 1
+        #         confrix[label, constants.n_labels] += 1
+        #     counter += 1
+        #     constants.print_counter(counter, 10000, 1000, symbol='+')
         if len(memories) > 0:
             memories = np.array(memories)
             predictions = np.argmax(classifier.predict(memories), axis=1)
@@ -1387,7 +1393,10 @@ def hetero_remember_per_fold(es, fold):
     model_prefix = constants.model_name(right_ds, es)
     filename = constants.classifier_filename(model_prefix, es, fold)
     right_classifier = tf.keras.models.load_model(filename)
-
+    classifiers = {
+        left_ds: left_classifier,
+        right_ds: right_classifier
+    }
     filling_features = {}
     filling_labels = {}
     testing_features = {}
@@ -1416,6 +1425,12 @@ def hetero_remember_per_fold(es, fold):
         testing_labels[dataset] = np.load(testing_labels_filename)
         f_features = np.load(filling_features_filename)
         t_features = np.load(testing_features_filename)
+        validating_network_data(
+            f_features, filling_labels[dataset], classifiers[dataset],
+            dataset, 'filling data')
+        validating_network_data(
+            t_features, testing_labels[dataset], classifiers[dataset],
+            dataset, 'testing data')
         min_value, max_value = get_min_max((f_features, t_features))
         filling_features[dataset] = msize_features(
             f_features, rows[dataset], min_value, max_value)
@@ -1490,7 +1505,6 @@ def check_consistency_per_fold(filling, es, fold):
     model_prefix = constants.model_name(right_ds, es)
     filename = constants.classifier_filename(model_prefix, es, fold)
     right_classifier = tf.keras.models.load_model(filename)
-
     classifiers = {
         left_ds: left_classifier,
         right_ds: right_classifier

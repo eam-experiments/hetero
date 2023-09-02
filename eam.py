@@ -648,9 +648,8 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     print('Remembering ', end='')
     counter = 0
     for features, label in zip(testing_features, testing_labels):
-        # feat, recognized, weights = eam_origin.recall_weights(features)
+        feat, recognized, weights = eam_origin.recall_weights(features)
         feat = features
-        weights = None
         recognized = True
         if recognized:
             memory, recognized, weight, relation, n = recall(feat, weights)

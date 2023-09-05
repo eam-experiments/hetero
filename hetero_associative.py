@@ -235,7 +235,7 @@ class HeteroAssociativeMemory:
         else:
             r_io, weights, iterations = self.optimal_recall(cue, projection, dim)
             weight = np.mean(weights)
-            recognized = recognized and (self._kappa*self.mean <= weight)
+            recognized = (self._kappa*self.mean <= weight)
             r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, projection, iterations
 
@@ -243,10 +243,9 @@ class HeteroAssociativeMemory:
         r_io = None
         weights = None
         distance = float('inf')
-        update = True
         iterations = 0
         n = 0
-        while update:
+        while n < constants.n_sims:
             q_io, q_ws = self.reduce(projection, self.alt(dim))
             d = self.distance_recall(cue, q_io, q_ws, dim)
             if d < distance:
@@ -257,7 +256,6 @@ class HeteroAssociativeMemory:
             else:
                 n += 1
             iterations += 1
-            update = (n < constants.n_sims)
         return r_io, weights, iterations
 
     def distance_recall(self, cue, q_io, q_ws, dim):
@@ -268,8 +266,7 @@ class HeteroAssociativeMemory:
             # We are not using weights in calculating distances.
             d = np.linalg.norm(cue - o_io)
             dist += d
-        dist /= constants.dist_estims
-        return dist
+        return dist / constants.dist_estims
 
     def abstract(self, r_io):
         self._relation = np.where(

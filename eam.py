@@ -649,13 +649,19 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     counter = 0
     for features, label in zip(testing_features, testing_labels):
         feat, recognized, weights = eam_origin.recall_weights(features)
+        # If the recalled features are not going to be used, uncomment the
+        # following line to keep the original ones.
         feat = features
+        # If there is interest only on the weights, not on whether the homo associatve
+        # memory recognizes, or not, the features, uncomment the following line.
         recognized = True
         if recognized:
+            # Recalling using weights.
             memory, recognized, weight, relation, n = recall(feat, weights)
-            if n > 0:
-                iterations.append(n)
+            # Recalling without using weights.
+            # memory, recognized, weight, relation, n = recall(feat)
             if recognized:
+                iterations.append(n)
                 associations.append(memory)
                 correct_labels.append(label)
                 recog_weights.append(weight)
@@ -677,16 +683,15 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
-    print(f'Iterations: total = {iter_total}' + 
+    print(f'Iterations: total = {iter_total}, ' + 
           f'mean = {iter_mean}, stdev = {iter_stdv}')
 
     correct_weights = []
     incorrect_weights = []
     print('Validating ', end='')
     if len(associations) > 0:
-        memories = associations
-        correct = correct_labels
-        weights = recog_weights
+        # The following code uses the homo-associative memory to process
+        # the memories recovered from the hetero-associative one.
         # memories = []
         # correct = []
         # weights = []
@@ -703,6 +708,11 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         #         confrix[label, constants.n_labels] += 1
         #     counter += 1
         #     constants.print_counter(counter, 10000, 1000, symbol='+')
+        #
+        # Otherwise, uncomment the three following lines, to skip the post-processing.
+        memories = associations
+        correct = correct_labels
+        weights = recog_weights
         if len(memories) > 0:
             memories = np.array(memories)
             predictions = np.argmax(classifier.predict(memories), axis=1)

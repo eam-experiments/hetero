@@ -14,6 +14,7 @@
 
 import math
 import random
+import string
 from joblib import Parallel, delayed
 from multiprocessing import shared_memory
 import numpy as np
@@ -58,6 +59,7 @@ class HeteroAssociativeMemory:
             f'm: {self.m}, q: {self.q}, ' +
             f'xi: {self.xi}, iota: {self.iota}, ' +
             f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
+
 
     def __str__(self):
         return f'{{n: {self.n}, p: {self.p}, m: {self.m}, q: {self.q},\n{self.rel_string}}}'
@@ -263,7 +265,7 @@ class HeteroAssociativeMemory:
         p_io = self.project(q_io, q_ws, self.alt(dim))
         shape = p_io.shape
         dtype = str(p_io.dtype)
-        name = 'shared_projection'
+        name = self.get_random_string()
         # Write data to shared memory
         shm = shared_memory.SharedMemory(name=name, create=True, size=p_io.nbytes)
         p_io_sm = np.ndarray(shape, dtype=dtype, buffer=shm.buf)
@@ -273,6 +275,7 @@ class HeteroAssociativeMemory:
             delayed(self.calculate_distances)(cue, name, shape, dtype, dim)
                     for j in range(constants.dist_estims))
         shm.close()
+        shm.unlink()
         return np.mean(distances)
 
     def calculate_distances(self, cue, name, shape, dtype, dim):
@@ -477,3 +480,9 @@ class HeteroAssociativeMemory:
             x0 = 0.5
             q[i] = L / (1 + np.exp(-k*(c/L - x0)))
         return q
+
+    def get_random_string(self):
+        # choose from all lowercase letter
+        letters = string.ascii_lowercase
+        random_string = ''.join(random.choice(letters) for i in range(constants.random_string_length))
+        return random_string

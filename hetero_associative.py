@@ -15,6 +15,7 @@
 import math
 import random
 from joblib import Parallel, delayed
+from multiprocessing import shared_memory
 import numpy as np
 
 import constants
@@ -260,12 +261,23 @@ class HeteroAssociativeMemory:
 
     def distance_recall(self, cue, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
+        shape = p_io.shape
+        dtype = str(p_io.dtype)
+        name = 'shared_projection'
+        # Write data to shared memory
+        shm = shared_memory.SharedMemory(name=name, create=True, size=p_io.nbytes)
+        p_io_sm = np.ndarray(shape, dtype=dtype, buffer=shm.buf)
+        p_io_sm[:] = p_io[:]
+
         distances = Parallel(n_jobs=constants.n_jobs)(
-            delayed(self.calculate_distances)(cue, p_io, dim)
+            delayed(self.calculate_distances)(cue, name, shape, dtype, dim)
                     for j in range(constants.dist_estims))
+        shm.close()
         return np.mean(distances)
 
-    def calculate_distances(self, cue, p_io, dim):
+    def calculate_distances(self, cue, name, shape, dtype, dim):
+        p_io_sm = shared_memory.SharedMemory(name=name)
+        p_io = np.ndarray(shape, dtype=dtype, buffer=p_io_sm.buf)
         candidate, _ = self.reduce(p_io, dim)
         # We are not using weights in calculating distances.
         return np.linalg.norm(cue - candidate)

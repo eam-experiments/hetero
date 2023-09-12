@@ -260,13 +260,15 @@ class HeteroAssociativeMemory:
 
     def distance_recall(self, cue, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        dist = 0
-        for _ in range(constants.dist_estims):
-            o_io, _ = self.reduce(p_io, dim)
-            # We are not using weights in calculating distances.
-            d = np.linalg.norm(cue - o_io)
-            dist += d
-        return dist / constants.dist_estims
+        distances = Parallel(n_jobs=constants.n_jobs)(
+            delayed(self.calculate_distances)(cue, p_io, dim)
+                    for j in range(constants.dist_estims))
+        return np.mean(distances)
+
+    def calculate_distances(self, cue, p_io, dim):
+        candidate, _ = self.reduce(p_io, dim)
+        # We are not using weights in calculating distances.
+        return np.linalg.norm(cue - candidate)
 
     def abstract(self, r_io):
         self._relation = np.where(

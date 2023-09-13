@@ -14,7 +14,9 @@
 
 import math
 import random
+import string
 from joblib import Parallel, delayed
+from multiprocessing import shared_memory
 import numpy as np
 
 import constants
@@ -57,6 +59,7 @@ class HeteroAssociativeMemory:
             f'm: {self.m}, q: {self.q}, ' +
             f'xi: {self.xi}, iota: {self.iota}, ' +
             f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
+
 
     def __str__(self):
         return f'{{n: {self.n}, p: {self.p}, m: {self.m}, q: {self.q},\n{self.rel_string}}}'
@@ -185,70 +188,69 @@ class HeteroAssociativeMemory:
     def rows(self, dim):
         return self.m if dim == 0 else self.q
 
-    def register(self, vector_a, vector_b, weights_a = None, weights_b = None) -> None:
+    def register(self, cue_a, cue_b, weights_a = None, weights_b = None) -> None:
         if weights_a is None:
-            weights_a = np.full(len(vector_a), fill_value=1)
+            weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
-            weights_b = np.full(len(vector_b), fill_value=1)
-        vector_a = self.validate(vector_a, 0)
-        vector_b = self.validate(vector_b, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
+            weights_b = np.full(len(cue_b), fill_value=1)
+        cue_a = self.validate(cue_a, 0)
+        cue_b = self.validate(cue_b, 1)
+        r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
         self.abstract(r_io)
 
-    def recognize(self, vector_a, vector_b, weights_a = None, weights_b = None):
+    def recognize(self, cue_a, cue_b, weights_a = None, weights_b = None):
         if weights_a is None:
-            weights_a = np.full(len(vector_a), fill_value=1)
+            weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
-            weights_b = np.full(len(vector_b), fill_value=1)
-        recognized, weights = self._recog(vector_a, vector_b, weights_a, weights_b)
+            weights_b = np.full(len(cue_b), fill_value=1)
+        recognized, weights = self._recog(cue_a, cue_b, weights_a, weights_b)
         return recognized, np.sum(weights)
 
-    def _recog(self, vector_a, vector_b, weights_a, weights_b):
-        vector_a = self.validate(vector_a, 0)
-        vector_b = self.validate(vector_b, 1)
-        r_io = self.vectors_to_relation(vector_a, vector_b, weights_a, weights_b)
+    def _recog(self, cue_a, cue_b, weights_a, weights_b):
+        cue_a = self.validate(cue_a, 0)
+        cue_b = self.validate(cue_b, 1)
+        r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
         implication = self.containment(r_io)
         recognized = np.count_nonzero(implication == False) <= self._xi
         weights = self._weights(r_io)
         recognized = recognized and (self._kappa*self.mean <= np.mean(weights))
         return recognized, weights
 
-    def recall_from_left(self, vector, weights = None):
+    def recall_from_left(self, cue, weights = None):
         if weights is None:
-            weights = np.full(len(vector), fill_value=1)
-        return self._recall(vector, weights, 0)
+            weights = np.full(len(cue), fill_value=1)
+        return self._recall(cue, weights, 0)
 
-    def recall_from_right(self, vector, weights = None):
+    def recall_from_right(self, cue, weights = None):
         if weights is None:
-            weights = np.full(len(vector), fill_value=1)
-        return self._recall(vector, weights, 1)
+            weights = np.full(len(cue), fill_value=1)
+        return self._recall(cue, weights, 1)
 
-    def _recall(self, vector, weights, dim):
-        vector = self.validate(vector, dim)
-        relation = self.project(vector, weights, dim)
-        relation = self.transform(relation)
-        recognized = (np.count_nonzero(np.sum(relation, axis=1) == 0) <= self._xi)
+    def _recall(self, cue, weights, dim):
+        cue = self.validate(cue, dim)
+        projection = self.project(cue, weights, dim)
+        projection = self.transform(projection)
+        recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) <= self._xi)
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
             iterations = 0
         else:
-            r_io, weights, iterations = self.optimal_recall(vector, relation, dim)
+            r_io, weights, iterations = self.optimal_recall(cue, projection, dim)
             weight = np.mean(weights)
-            recognized = recognized and (self._kappa*self.mean <= weight)
+            recognized = (self._kappa*self.mean <= weight)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, relation, iterations
+        return r_io, recognized, weight, projection, iterations
 
-    def optimal_recall(self, vector, projection, dim):
+    def optimal_recall(self, cue, projection, dim):
         r_io = None
         weights = None
         distance = float('inf')
-        update = True
         iterations = 0
         n = 0
-        while update:
+        while n < constants.n_sims:
             q_io, q_ws = self.reduce(projection, self.alt(dim))
-            d = self.distance_recall(vector, q_io, q_ws, dim)
+            d = self.distance_recall(cue, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -257,19 +259,31 @@ class HeteroAssociativeMemory:
             else:
                 n += 1
             iterations += 1
-            update = (n < constants.n_sims)
         return r_io, weights, iterations
 
-    def distance_recall(self, vector, q_io, q_ws, dim):
+    def distance_recall(self, cue, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        dist = 0
-        for _ in range(constants.dist_estims):
-            o_io, _ = self.reduce(p_io, dim)
-            # We are not using weights in calculating distances.
-            d = np.linalg.norm(vector - o_io)
-            dist += d
-        dist /= constants.dist_estims
-        return dist
+        shape = p_io.shape
+        dtype = str(p_io.dtype)
+        name = self.get_random_string()
+        # Write data to shared memory
+        shm = shared_memory.SharedMemory(name=name, create=True, size=p_io.nbytes)
+        p_io_sm = np.ndarray(shape, dtype=dtype, buffer=shm.buf)
+        p_io_sm[:] = p_io[:]
+
+        distances = Parallel(n_jobs=constants.n_jobs)(
+            delayed(self.calculate_distances)(cue, name, shape, dtype, dim)
+                    for j in range(constants.dist_estims))
+        shm.close()
+        shm.unlink()
+        return np.mean(distances)
+
+    def calculate_distances(self, cue, name, shape, dtype, dim):
+        p_io_sm = shared_memory.SharedMemory(name=name)
+        p_io = np.ndarray(shape, dtype=dtype, buffer=p_io_sm.buf)
+        candidate, _ = self.reduce(p_io, dim)
+        # We are not using weights in calculating distances.
+        return np.linalg.norm(cue - candidate)
 
     def abstract(self, r_io):
         self._relation = np.where(
@@ -280,12 +294,12 @@ class HeteroAssociativeMemory:
     def containment(self, r_io):
         return np.where((r_io == 0) | (self._full_iota_relation != 0), True, False)
 
-    def project(self, vector, weights, dim):
+    def project(self, cue, weights, dim):
         integration = np.zeros((self.cols(self.alt(dim)), self.rows(self.alt(dim))), dtype=float)
         # sum_weights = np.sum(weights)
         first = True
-        for i in range(len(vector)):
-            k = vector[i]
+        for i in range(len(cue)):
+            k = cue[i]
             # w = weights[i]/sum_weights
             w = 1
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
@@ -391,35 +405,35 @@ class HeteroAssociativeMemory:
         turned_off = np.count_nonzero(self._relation) - np.count_nonzero(self._iota_relation)
         print(f'Iota relation updated, and {turned_off} cells have been turned off')
 
-    def validate(self, vector, dim):
+    def validate(self, cue, dim):
         """ It asumes vector is an array of floats, and np.nan
             is used to register an undefined value, but it also
             considerers any negative number or out of range number
             as undefined.
         """
         expected_length = self.cols(dim)
-        if len(vector.shape) > 1:
+        if len(cue.shape) > 1:
             raise ValueError(f'Expected shape ({expected_length},) ' +
                     'but got shape {vector.shape}')
-        if vector.size != expected_length:
+        if cue.size != expected_length:
             raise ValueError('Invalid lenght of the input data. Expected' +
-                    f'{expected_length} and given {vector.size}')
+                    f'{expected_length} and given {cue.size}')
         undefined = self.undefined(dim)
-        v = np.nan_to_num(vector, copy=True, nan=undefined)
+        v = np.nan_to_num(cue, copy=True, nan=undefined)
         v = np.where((v < 0) | (undefined < v), undefined, v)
         v = v.round()
         return v.astype('int')
 
-    def revalidate(self, vector, dim):
-        v = np.where(vector == self.undefined(dim), np.nan, vector)
+    def revalidate(self, memory, dim):
+        v = np.where(memory == self.undefined(dim), np.nan, memory)
         return v
 
-    def vectors_to_relation(self, vector_a, vector_b, weights_a, weights_b):
+    def vectors_to_relation(self, cue_a, cue_b, weights_a, weights_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
         for i in range(self.n):
-            k = vector_a[i]
+            k = cue_a[i]
             for j in range(self.p):
-                l = vector_b[j]
+                l = cue_b[j]
                 w = weights_a[i]*weights_b[j]
                 relation[i, j, k, l] = int(w)
         return relation
@@ -466,3 +480,9 @@ class HeteroAssociativeMemory:
             x0 = 0.5
             q[i] = L / (1 + np.exp(-k*(c/L - x0)))
         return q
+
+    def get_random_string(self):
+        # choose from all lowercase letter
+        letters = string.ascii_lowercase
+        random_string = ''.join(random.choice(letters) for i in range(constants.random_string_length))
+        return random_string

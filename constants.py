@@ -29,8 +29,8 @@ datasets_to_codomains = {MNIST: 32, FASHION: 16}
 left_dataset = MNIST
 right_dataset = FASHION
 
-n_sims = 3
-dist_estims = 7
+n_sims = 10
+dist_estims = 50
 n_matches = 10
 s_matches = 4
 project_same = 0
@@ -103,6 +103,7 @@ learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
 
 n_folds = 1
 n_jobs = 4
+random_string_length = 30
 dreaming_cycles = 6
 
 nn_training_percent = 0.70

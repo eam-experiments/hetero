@@ -221,8 +221,8 @@ class AssociativeMemory:
         return ~r_io[:,:self.m] | self.iota_relation
 
     # Reduces the relation in memory to a function, given a cue
-    def produce(self, vector):
-        v = np.array([self.choose(i, vector[i]) for i in range(self.n)])
+    def produce(self, cue):
+        v = np.array([self.choose(i, cue[i]) for i in range(self.n)])
         return v
 
     # Choose a value for feature i.
@@ -244,21 +244,21 @@ class AssociativeMemory:
         norm = np.array([normpdf(i, mean, std, scale) for i in range(self.m)])
         return norm*column
 
-    def to_relation(self, vector):
+    def to_relation(self, cue):
         relation = np.zeros((self._n, self._m), dtype=bool)
-        relation[range(self.n), vector] = True
+        relation[range(self.n), cue] = True
         return relation
 
-    def validate(self, vector):
+    def validate(self, cue):
         """ It asumes vector is an array of floats, and np.nan
             may be used to register an undefined value, but it also
             considerers any negative number or out of range number
             as undefined.
         """
-        if len(vector) != self.n:
+        if len(cue) != self.n:
             raise ValueError('Invalid size of the input data. ' +
-                f'Expected {self.n} and given {vector.size}')
-        v = np.nan_to_num(vector, copy=True, nan=self.undefined)
+                f'Expected {self.n} and given {cue.size}')
+        v = np.nan_to_num(cue, copy=True, nan=self.undefined)
         v = np.where((v > self.m) | (v < 0), self.undefined, v)
         return v.astype('int')
 

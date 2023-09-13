@@ -15,13 +15,13 @@
 
 import numpy as np
 import constants
-from hetero_associative import *
+from hetero_associative_4d import *
 
 # Memory for associations between functions of two characteristics and three values,
 # to functions of three characteristics and two values
 print('h = HeteroAssociativeMemory(2,3,3,2)')
 es = constants.ExperimentSettings()
-h = HeteroAssociativeMemory(2,3,3,2, es)
+h = HeteroAssociativeMemory4D(2,3,3,2, es)
 print("Original state:")
 print(h)
 

@@ -21,7 +21,7 @@ import numpy as np
 
 import constants
 
-class HeteroAssociativeMemory:
+class HeteroAssociativeMemory4D:
     def __init__(self, n: int, p: int, m: int, q: int,
         es: constants.ExperimentSettings):
         """

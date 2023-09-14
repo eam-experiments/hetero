@@ -54,7 +54,7 @@ import constants
 import dataset as ds
 import neural_net
 from associative import AssociativeMemory
-from hetero_associative_4d import HeteroAssociativeMemory4D
+from hetero_associative import HeteroAssociativeMemory
 from custom_set import CustomSet
 
 sys.setrecursionlimit(10000)
@@ -591,7 +591,7 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
 
 
 def recognize_by_hetero_memory(
-        hetero_eam: HeteroAssociativeMemory4D,
+        hetero_eam: HeteroAssociativeMemory,
         left_eam: AssociativeMemory,
         right_eam: AssociativeMemory,
         tefs, tels):
@@ -849,7 +849,7 @@ def check_hetero_memory(remembered_dataset,
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
     return confrix, behaviour, memories
 
-def remember_by_hetero_memory(eam: HeteroAssociativeMemory4D,
+def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
                               left_eam: AssociativeMemory, right_eam: AssociativeMemory,
                               left_classifier, right_classifier,
                               testing_features, testing_labels, min_maxs, percent, es, fold):
@@ -1157,7 +1157,7 @@ def test_filling_percent(
 
 
 def test_hetero_filling_percent(
-        hetero_eam: HeteroAssociativeMemory4D,
+        hetero_eam: HeteroAssociativeMemory,
         left_eam: AssociativeMemory,
         right_eam: AssociativeMemory,
         trfs, tefs, tels, percent):
@@ -1178,7 +1178,7 @@ def test_hetero_filling_percent(
 
 
 def hetero_remember_percent(
-        eam: HeteroAssociativeMemory4D,
+        eam: HeteroAssociativeMemory,
         left_eam: AssociativeMemory,
         right_eam: AssociativeMemory,
         left_classifier, right_classifier,
@@ -1206,7 +1206,7 @@ def hetero_remember_percent(
     return confrixes, behaviours, eam.entropy
 
 def hetero_check_consistency_percent(
-        eam: HeteroAssociativeMemory4D, left_classifier, right_classifier,
+        eam: HeteroAssociativeMemory, left_classifier, right_classifier,
         filling_features, filling_labels, testing_features, testing_labels, min_maxs,
         percent, filling, es, fold):
     # Register filling data.
@@ -1303,7 +1303,7 @@ def test_hetero_filling_per_fold(es, fold):
     params = constants.ExperimentSettings()
     left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
     right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
-    hetero_eam = HeteroAssociativeMemory4D(domains[left_ds], domains[right_ds],
+    hetero_eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                                          rows[left_ds], rows[right_ds], es)
     filling_features = {}
     filling_labels = {}
@@ -1392,7 +1392,7 @@ def hetero_remember_per_fold(es, fold):
     params = constants.ExperimentSettings()
     left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
     right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
-    eam = HeteroAssociativeMemory4D(domains[left_ds], domains[right_ds],
+    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                                   rows[left_ds], rows[right_ds], es)
 
     # Retrieve the classifiers.
@@ -1454,9 +1454,14 @@ def hetero_remember_per_fold(es, fold):
     match_labels(filling_features, filling_labels)
     describe(filling_features, filling_labels)
     match_labels(testing_features, testing_labels)
-    describe(testing_features, testing_labels)
     total = len(filling_labels[left_ds])
     total_test = len(testing_labels[left_ds])
+    top = int(total_test/10)
+    testing_labels[left_ds] = testing_labels[left_ds][:top]
+    testing_features[left_ds] = testing_features[left_ds][:top]
+    testing_labels[right_ds] = testing_labels[right_ds][:top]
+    testing_features[right_ds] = testing_features[right_ds][:top]
+    describe(testing_features, testing_labels)
     print(f'Filling hetero-associative memory with a total of {total} pairs.')
     percents = np.array(constants.memory_fills)
     steps = np.round(total*percents/100.0).astype(int)
@@ -1504,7 +1509,7 @@ def check_consistency_per_fold(filling, es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    eam = HeteroAssociativeMemory4D(domains[left_ds], domains[right_ds],
+    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                                   rows[left_ds], rows[right_ds], es)
 
     # Retrieve the classifiers.

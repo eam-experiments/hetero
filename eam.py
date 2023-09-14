@@ -648,6 +648,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     dist_iters = []
     print('Remembering ', end='')
     counter = 0
+    counter_name = constants.set_counter()
     for features, label in zip(testing_features, testing_labels):
         feat, recognized, weights = eam_origin.recall_weights(features)
         # If the recalled features are not going to be used, uncomment the
@@ -664,7 +665,6 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             if recognized:
                 iterations.append(n)
                 dist_iters.append(i)
-                print(i)
                 associations.append(memory)
                 correct_labels.append(label)
                 recog_weights.append(weight)
@@ -681,13 +681,18 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             unknown += 1
             confrix[label, constants.n_labels] += 1
         counter += 1
-        constants.print_counter(counter, 10000, 1000, symbol='+')
+        constants.print_counter(counter, 1000, 10, symbol='+', name = counter_name)
     print(' done')
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
     print(f'Iterations: total = {iter_total}, ' + 
           f'mean = {iter_mean}, stdev = {iter_stdv}')
+    dist_iter_total = len(dist_iters)
+    dist_iter_mean = 0.0 if dist_iter_total == 0 else np.mean(dist_iters)
+    dist_iter_stdv = 0.0 if dist_iter_total == 0 else np.std(dist_iters)
+    print(f'Distance iterations: total = {dist_iter_total}, ' + 
+          f'mean = {dist_iter_mean}, stdev = {dist_iter_stdv}')
 
     correct_weights = []
     incorrect_weights = []

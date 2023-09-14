@@ -19,6 +19,9 @@ import os
 import re
 from signal import Sigmasks
 import sys
+import random
+import string
+import time
 import numpy as np
 
 MNIST ='mnist'
@@ -210,7 +213,14 @@ def print_warning(*s):
 def print_error(*s):
     print('ERROR:', *s, file = sys.stderr)
 
-def print_counter(n, every, step = 1, symbol = '.', prefix = ''):
+counters_times = {}
+
+def set_counter():
+    name = get_random_string()
+    counters_times[name] = time.time()
+    return name
+
+def print_counter(n, every, step = 1, symbol = '.', prefix = '', name = None):
     if n == 0:
         return
     e = n % every
@@ -219,8 +229,19 @@ def print_counter(n, every, step = 1, symbol = '.', prefix = ''):
         return
     counter = symbol
     if e == 0:
-        counter =  ' ' + prefix + str(n) + ' '
+        suffix = ''
+        if (name is not None) and (name in counters_times.keys()):
+            t = time.time()
+            suffix = f' {t- counters_times[name]}'
+            counters_times[name] = t
+        counter =  ' ' + prefix + str(n) + suffix + ' '
     print(counter, end = '', flush=True)
+
+def get_random_string():
+    # choose from all lowercase letter
+    letters = string.ascii_lowercase
+    random_string = ''.join(random.choice(letters) for i in range(random_string_length))
+    return random_string
 
 def int_suffix(n, prefix=None):
     prefix = '-' if prefix is None else '-' + prefix + '_'

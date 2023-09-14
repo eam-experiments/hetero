@@ -30,7 +30,7 @@ left_dataset = MNIST
 right_dataset = FASHION
 
 n_sims = 10
-dist_estims = 50
+dist_estims = 10
 n_matches = 10
 s_matches = 4
 project_same = 0

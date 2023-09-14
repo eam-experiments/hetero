@@ -16,7 +16,6 @@ import math
 import random
 import string
 from joblib import Parallel, delayed
-from multiprocessing import shared_memory
 import numpy as np
 
 import constants
@@ -235,22 +234,24 @@ class HeteroAssociativeMemory4D:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
             iterations = 0
+            dist_iters_mean = 0
         else:
-            r_io, weights, iterations = self.optimal_recall(cue, projection, dim)
+            r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, projection, dim)
             weight = np.mean(weights)
             recognized = (self._kappa*self.mean <= weight)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, iterations
+        return r_io, recognized, weight, projection, iterations, dist_iters_mean
 
     def optimal_recall(self, cue, projection, dim):
         r_io = None
         weights = None
         distance = float('inf')
         iterations = 0
+        iter_sum = 0
         n = 0
         while n < constants.n_sims:
             q_io, q_ws = self.reduce(projection, self.alt(dim))
-            d = self.distance_recall(cue, q_io, q_ws, dim)
+            d, iters = self.distance_recall(cue, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -259,28 +260,27 @@ class HeteroAssociativeMemory4D:
             else:
                 n += 1
             iterations += 1
-        return r_io, weights, iterations
+            iter_sum += iters
+        return r_io, weights, iterations, iter_sum/iterations
 
     def distance_recall(self, cue, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        shape = p_io.shape
-        dtype = str(p_io.dtype)
-        name = self.get_random_string()
-        # Write data to shared memory
-        shm = shared_memory.SharedMemory(name=name, create=True, size=p_io.nbytes)
-        p_io_sm = np.ndarray(shape, dtype=dtype, buffer=shm.buf)
-        p_io_sm[:] = p_io[:]
+        sum = self.calculate_distance(cue, p_io, dim)
+        distance = sum
+        iterations = 1
+        n = 0
+        while n < constants.dist_estims:
+            sum += self.calculate_distance(cue, p_io, dim)
+            iterations += 1
+            d = sum/iterations
+            if abs(d-distance) > 0.05*distance:
+                distance = d
+                n = 0
+            else:
+                n += 1
+        return d, iterations
 
-        distances = Parallel(n_jobs=constants.n_jobs)(
-            delayed(self.calculate_distances)(cue, name, shape, dtype, dim)
-                    for j in range(constants.dist_estims))
-        shm.close()
-        shm.unlink()
-        return np.mean(distances)
-
-    def calculate_distances(self, cue, name, shape, dtype, dim):
-        p_io_sm = shared_memory.SharedMemory(name=name)
-        p_io = np.ndarray(shape, dtype=dtype, buffer=p_io_sm.buf)
+    def calculate_distance(self, cue, p_io, dim):
         candidate, _ = self.reduce(p_io, dim)
         # We are not using weights in calculating distances.
         return np.linalg.norm(cue - candidate)
@@ -296,12 +296,11 @@ class HeteroAssociativeMemory4D:
 
     def project(self, cue, weights, dim):
         integration = np.zeros((self.cols(self.alt(dim)), self.rows(self.alt(dim))), dtype=float)
-        # sum_weights = np.sum(weights)
+        sum_weights = np.sum(weights)
         first = True
         for i in range(len(cue)):
             k = cue[i]
-            # w = weights[i]/sum_weights
-            w = 1
+            w = weights[i]/sum_weights
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
             if first:

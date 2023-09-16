@@ -307,6 +307,8 @@ class HeteroAssociativeMemory4D:
     def project(self, cue, weights, dim):
         integration = np.zeros((self.cols(self.alt(dim)), self.rows(self.alt(dim))), dtype=float)
         sum_weights = np.sum(weights)
+        if sum_weights == 0:
+            return integration
         first = True
         for i in range(cue.size):
             k = cue[i]

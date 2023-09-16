@@ -202,17 +202,24 @@ class HeteroAssociativeMemory4D:
             weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
             weights_b = np.full(len(cue_b), fill_value=1)
-        recognized, weights = self._recog(cue_a, cue_b, weights_a, weights_b)
-        return recognized, np.sum(weights)
+        recognized, weights = self.recog_full_weights(cue_a, cue_b, weights_a, weights_b, final = False)
+        mean_weight = np.mean(weights)
+        recognized = recognized and (self._kappa*self.mean <= mean_weight)
+        return recognized, mean_weight
 
-    def _recog(self, cue_a, cue_b, weights_a, weights_b):
+    def recog_full_weights(self, cue_a, cue_b, weights_a = None, weights_b = None, final = True):
+        if weights_a is None:
+            weights_a = np.full(len(cue_a), fill_value=1)
+        if weights_b is None:
+            weights_b = np.full(len(cue_b), fill_value=1)
         cue_a = self.validate(cue_a, 0)
         cue_b = self.validate(cue_b, 1)
         r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
         implication = self.containment(r_io)
-        recognized = np.count_nonzero(implication == False) <= self._xi
+        recognized = np.count_nonzero(implication == 0) <= self._xi
         weights = self._weights(r_io)
-        recognized = recognized and (self._kappa*self.mean <= np.mean(weights))
+        if final:
+            recognized = recognized and (self._kappa*self.mean <= np.mean(weights))
         return recognized, weights
 
     def recall_from_left(self, cue, weights = None):
@@ -236,13 +243,13 @@ class HeteroAssociativeMemory4D:
             iterations = 0
             dist_iters_mean = 0
         else:
-            r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, projection, dim)
+            r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, weights, projection, dim)
             weight = np.mean(weights)
             recognized = (self._kappa*self.mean <= weight)
             r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, projection, iterations, dist_iters_mean
 
-    def optimal_recall(self, cue, projection, dim):
+    def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
         weights = None
         distance = float('inf')
@@ -251,7 +258,7 @@ class HeteroAssociativeMemory4D:
         n = 0
         while n < constants.n_sims:
             q_io, q_ws = self.reduce(projection, self.alt(dim))
-            d, iters = self.distance_recall(cue, q_io, q_ws, dim)
+            d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -263,14 +270,14 @@ class HeteroAssociativeMemory4D:
             iter_sum += iters
         return r_io, weights, iterations, iter_sum/iterations
 
-    def distance_recall(self, cue, q_io, q_ws, dim):
+    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        sum = self.calculate_distance(cue, p_io, dim)
+        sum = self.calculate_distance(cue, cue_weights, p_io, dim)
         distance = sum
         iterations = 1
         n = 0
         while n < constants.dist_estims:
-            sum += self.calculate_distance(cue, p_io, dim)
+            sum += self.calculate_distance(cue, cue_weights, p_io, dim)
             iterations += 1
             d = sum/iterations
             if abs(d-distance) > 0.05*distance:
@@ -280,10 +287,13 @@ class HeteroAssociativeMemory4D:
                 n += 1
         return d, iterations
 
-    def calculate_distance(self, cue, p_io, dim):
-        candidate, _ = self.reduce(p_io, dim)
+    def calculate_distance(self, cue, cue_weights, p_io, dim):
+        candidate, weights = self.reduce(p_io, dim)
+        p = np.dot(cue_weights, weights)
+        w = cue_weights*weights/p
+        d = (cue-candidate)*w
         # We are not using weights in calculating distances.
-        return np.linalg.norm(cue - candidate)
+        return np.linalg.norm(d)
 
     def abstract(self, r_io):
         self._relation = np.where(
@@ -292,15 +302,15 @@ class HeteroAssociativeMemory4D:
         self._updated = False
 
     def containment(self, r_io):
-        return np.where((r_io == 0) | (self._full_iota_relation != 0), True, False)
+        return np.where((r_io == 0) | (self._full_iota_relation != 0), 1, 0)
 
     def project(self, cue, weights, dim):
         integration = np.zeros((self.cols(self.alt(dim)), self.rows(self.alt(dim))), dtype=float)
         sum_weights = np.sum(weights)
         first = True
-        for i in range(len(cue)):
+        for i in range(cue.size):
             k = cue[i]
-            w = weights[i]/sum_weights
+            w = cue.size*weights[i]/sum_weights
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
             if first:
@@ -321,10 +331,9 @@ class HeteroAssociativeMemory4D:
                 weights.append(0)
             else:
                 weights.append(relation[i, v[i]])
-        weights = np.array(weights)
-        return v, weights
+        return v, np.array(weights)
 
-    
+
     def choose(self, column, dim):
         """Choose a value from the column given a cue
         
@@ -336,24 +345,10 @@ class HeteroAssociativeMemory4D:
             return random.randrange(dist.size)
         r = s*random.random()
         for j in range(dist.size):
-            if r < dist[j]:
+            if r <= dist[j]:
                 return j
             r -= dist[j]
-        return self.rows(dim) - 1
-
-    def _normalize(self, column, cue, dim):
-        mean = cue
-        rows = self.rows(dim)
-        stdv = self.sigma*rows
-        scale = 1.0/self.normpdf(0, 0, stdv)
-        norm = np.array([self.normpdf(i, mean, stdv, scale) for i in range(rows)])
-        return norm*column[:rows]
-
-    def normpdf(self, x, mean, stdv, scale = 1.0):
-        var = float(stdv)**2
-        denom = (2*math.pi*var)**.5
-        num = math.exp(-(float(x)-float(mean))**2/(2*var))
-        return scale*num/denom
+        return self.undefined(dim)
 
     def _weights(self, r_io):
         r = r_io*np.count_nonzero(r_io)/np.sum(r_io)
@@ -433,7 +428,7 @@ class HeteroAssociativeMemory4D:
             k = cue_a[i]
             for j in range(self.p):
                 l = cue_b[j]
-                w = weights_a[i]*weights_b[j]
+                w = math.sqrt(weights_a[i]*weights_b[j])
                 relation[i, j, k, l] = int(w)
         return relation
 
@@ -442,10 +437,10 @@ class HeteroAssociativeMemory4D:
 
         Margins are tuples (i, j, k, l) where either k = self.m or l = self.q.
         """
-        self._relation[:, :, self.m, :] = np.full((self.n, self.p, self._q), 1, dtype=int)
-        self._relation[:, :, :, self.q] = np.full((self.n, self.p, self._m), 1, dtype=int)
-        self._iota_relation[:, :, self.m, :] = np.full((self.n, self.p, self._q), 1, dtype=int)
-        self._iota_relation[:, :, :, self.q] = np.full((self.n, self.p, self._m), 1, dtype=int)
+        self._relation[:, :, self.m, :] = np.full((self._n, self._p, self._q), 1, dtype=int)
+        self._relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
+        self._iota_relation[:, :, self.m, :] = np.full((self._n, self._p, self._q), 1, dtype=int)
+        self._iota_relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
 
     def _to_string(self, a, p = ''):
         if a.ndim == 1:
@@ -479,9 +474,3 @@ class HeteroAssociativeMemory4D:
             x0 = 0.5
             q[i] = L / (1 + np.exp(-k*(c/L - x0)))
         return q
-
-    def get_random_string(self):
-        # choose from all lowercase letter
-        letters = string.ascii_lowercase
-        random_string = ''.join(random.choice(letters) for i in range(constants.random_string_length))
-        return random_string

@@ -697,12 +697,12 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     correct_weights = []
     incorrect_weights = []
     print('Validating ', end='')
+    memories = []
+    correct = []
+    weights = []
     if len(associations) > 0:
         # The following code uses the homo-associative memory to process
         # the memories recovered from the hetero-associative one.
-        # memories = []
-        # correct = []
-        # weights = []
         # counter = 0
         # for features, label, w in zip(associations, correct_labels, recog_weights):
         #     memory, recognized, _ = eam_destination.recall(features)

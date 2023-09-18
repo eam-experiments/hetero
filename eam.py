@@ -426,7 +426,7 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
     print('Matching equals' if equals else 'Matching differents:', end='')
     while len(right_matches) and len(left_matches):
         num = int(random.gauss(
-            mu=constants.n_matches, sigma=constants.s_matches))
+            mu=constants.mean_matches, sigma=constants.stdv_matches))
         matches, m = get_num_matches(num, left_matches, right_matches,
                 feat_lab_left, feat_lab_right, equals) \
             if left_turn else get_num_matches(num, right_matches, left_matches,
@@ -1464,7 +1464,7 @@ def hetero_remember_per_fold(es, fold):
     match_labels(testing_features, testing_labels)
     total = len(filling_labels[left_ds])
     total_test = len(testing_labels[left_ds])
-    top = int(total_test/10)
+    top = int(constants.exploration_percent*total_test)
     testing_labels[left_ds] = testing_labels[left_ds][:top]
     testing_features[left_ds] = testing_features[left_ds][:top]
     testing_labels[right_ds] = testing_labels[right_ds][:top]
@@ -2152,14 +2152,14 @@ if __name__ == "__main__":
             print('The mean of relations must be a positive integer.')
             exit(1)
         else:
-            constants.n_matches = n
+            constants.mean_matches = n
     if args['--relsstdv']:
         s = float(args['--relsstdv'])
         if s <= 0:
             print('The standard deviation of relations must be a positive number.')
             exit(1)
         else:
-            constants.s_matches = n
+            constants.stdv_matches = n
     if args['--runpath']:
         constants.run_path = args['--runpath']
     if args['es']:

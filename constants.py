@@ -34,8 +34,8 @@ right_dataset = FASHION
 
 n_sims = 10
 dist_estims = 10
-n_matches = 10
-s_matches = 4
+mean_matches = 2
+stdv_matches = 1
 project_same = 0
 project_logistic = 1
 project_maximum = 2
@@ -112,6 +112,8 @@ dreaming_cycles = 6
 nn_training_percent = 0.70
 am_filling_percent = 0.20
 am_testing_percent = 0.10
+# Proportion of testing data used for exploring (preliminary results)
+exploration_percent = 1.0
 noise_percent = 50
 
 n_labels = 10

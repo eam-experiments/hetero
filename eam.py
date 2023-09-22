@@ -1502,7 +1502,7 @@ def hetero_remember_per_fold(es, fold):
         # Arrays with precision, and recall.
         correct = behaviours[:, constants.correct_response_idx]
         incorrect = behaviours[:, constants.no_correct_response_idx]
-        fold_precision.append(np.where(correct + incorrect == 0,
+        fold_precision.append(np.where((correct + incorrect) == 0,
             1.0, correct/(correct+incorrect)))
         fold_recall.append(
             behaviours[:, constants.correct_response_idx]/total_test)

@@ -219,7 +219,9 @@ def plot_distances(distances, prefix, es=None, fold=None):
 
 def get_min_max(arrays):
     minimum = float('inf')
+    min_percent = minimum
     maximum = -float('inf')
+    max_percent = maximum
     for a in arrays:
         max = np.max(a)
         if maximum < max:
@@ -227,13 +229,18 @@ def get_min_max(arrays):
         min = np.min(a)
         if min < minimum:
             minimum = min
+        min_p = np.percentile(a, constants.minimum_percentile)
+        if min_p < min_percent:
+            min_percent = min_p
+        max_p = np.percentile(a, constants.maximum_percentile)
+        if max_p > max_percent:
+            max_percent = max_p
         mean = np.mean(a)
         stdv = np.std(a)
-        five_percent = np.percentile(a, 5)
-        nfive_percent = np.percentile(a, 95)
-        print(f'Min_maxs array stats: min = {min}, 5% = {five_percent}, ' +
-              f'mean = {mean}, 95% = {nfive_percent}, max = {max}, stdev = {stdv}')
-    return minimum, maximum
+        print(f'Min_maxs array stats: min = {min}, {constants.minimum_percentile}% = {min_p}, ' +
+              f'mean = {mean}, {constants.maximum_percentile}% = {max_p}, max = {max}, stdev = {stdv}')
+    # return minimum, maximum
+    return min_percent, max_percent
 
 def get_max(arrays):
     _max = float('-inf')

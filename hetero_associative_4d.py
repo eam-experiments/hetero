@@ -64,6 +64,10 @@ class HeteroAssociativeMemory4D:
         return f'{{n: {self.n}, p: {self.p}, m: {self.m}, q: {self.q},\n{self.rel_string}}}'
 
     @property
+    def model_name(self):
+        return constants.d4_model_name
+    
+    @property
     def n(self):
         return self._n
 

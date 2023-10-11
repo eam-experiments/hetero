@@ -15,13 +15,15 @@
 
 import numpy as np
 import constants
-from hetero_associative_4d import *
+# from hetero_associative_4d import *
+from hetero_associative_3d import *
 
 # Memory for associations between functions of two characteristics and three values,
 # to functions of three characteristics and two values
 print('h = HeteroAssociativeMemory(2,3,3,2)')
 es = constants.ExperimentSettings()
-h = HeteroAssociativeMemory4D(2,3,3,2, es)
+# h = HeteroAssociativeMemory4D(2,3,3,2, es)
+h = HeteroAssociativeMemory3D(2,3,3,2, es)
 print("Original state:")
 print(h)
 
@@ -93,12 +95,13 @@ print(f'h.recognize(v1,w0):')
 r = h.recognize(v1,w0)
 print(f'Result: {r}')
 
-print(f'vu: {vu}')
-print(f'wn: {wn}')
+if h.model_name == constants.d4_model_name:
+    print(f'vu: {vu}')
+    print(f'wn: {wn}')
 
-print(f'h.recognize(vu,wn):')
-r = h.recognize(vu,wn)
-print(f'Result: {r}')
+    print(f'h.recognize(vu,wn):')
+    r = h.recognize(vu,wn)
+    print(f'Result: {r}')
 
 print(f'v0: {v0}')
 print('r = h.recall_from_left(v0)')
@@ -149,16 +152,17 @@ print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
 constants.print_csv(r[3])
 
-print(f'vu: {vu}')
-print('r = h.recall_from_left(vu)')
-r = h.recall_from_left(vu)
-print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    print(f'vu: {vu}')
+    print('r = h.recall_from_left(vu)')
+    r = h.recall_from_left(vu)
+    print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+    print('Projection:')
+    constants.print_csv(r[3])
 
-print(f'wn: {wn}')
-print('r = h.recall_from_right(wn)')
-r = h.recall_from_right(wn)
-print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-print('Projection:')
-constants.print_csv(r[3])
+    print(f'wn: {wn}')
+    print('r = h.recall_from_right(wn)')
+    r = h.recall_from_right(wn)
+    print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+    print('Projection:')
+    constants.print_csv(r[3])

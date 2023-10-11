@@ -219,7 +219,9 @@ def plot_distances(distances, prefix, es=None, fold=None):
 
 def get_min_max(arrays):
     minimum = float('inf')
+    min_percent = minimum
     maximum = -float('inf')
+    max_percent = maximum
     for a in arrays:
         max = np.max(a)
         if maximum < max:
@@ -227,13 +229,18 @@ def get_min_max(arrays):
         min = np.min(a)
         if min < minimum:
             minimum = min
+        min_p = np.percentile(a, constants.minimum_percentile)
+        if min_p < min_percent:
+            min_percent = min_p
+        max_p = np.percentile(a, constants.maximum_percentile)
+        if max_p > max_percent:
+            max_percent = max_p
         mean = np.mean(a)
         stdv = np.std(a)
-        five_percent = np.percentile(a, 5)
-        nfive_percent = np.percentile(a, 95)
-        print(f'Min_maxs array stats: min = {min}, 5% = {five_percent}, ' +
-              f'mean = {mean}, 95% = {nfive_percent}, max = {max}, stdev = {stdv}')
-    return minimum, maximum
+        print(f'Min_maxs array stats: min = {min}, {constants.minimum_percentile}% = {min_p}, ' +
+              f'mean = {mean}, {constants.maximum_percentile}% = {max_p}, max = {max}, stdev = {stdv}')
+    # return minimum, maximum
+    return min_percent, max_percent
 
 def get_max(arrays):
     _max = float('-inf')
@@ -426,7 +433,7 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
     print('Matching equals' if equals else 'Matching differents:', end='')
     while len(right_matches) and len(left_matches):
         num = int(random.gauss(
-            mu=constants.n_matches, sigma=constants.s_matches))
+            mu=constants.mean_matches, sigma=constants.stdv_matches))
         matches, m = get_num_matches(num, left_matches, right_matches,
                 feat_lab_left, feat_lab_right, equals) \
             if left_turn else get_num_matches(num, right_matches, left_matches,
@@ -645,8 +652,10 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     unknown = 0
     unknown_weights = []
     iterations = []
+    dist_iters = []
     print('Remembering ', end='')
     counter = 0
+    counter_name = constants.set_counter()
     for features, label in zip(testing_features, testing_labels):
         feat, recognized, weights = eam_origin.recall_weights(features)
         # If the recalled features are not going to be used, uncomment the
@@ -657,11 +666,12 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         recognized = True
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, n = recall(feat, weights)
+            memory, recognized, weight, relation, n, i = recall(feat, weights)
             # Recalling without using weights.
             # memory, recognized, weight, relation, n = recall(feat)
             if recognized:
                 iterations.append(n)
+                dist_iters.append(i)
                 associations.append(memory)
                 correct_labels.append(label)
                 recog_weights.append(weight)
@@ -678,23 +688,28 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             unknown += 1
             confrix[label, constants.n_labels] += 1
         counter += 1
-        constants.print_counter(counter, 10000, 1000, symbol='+')
+        constants.print_counter(counter, 1000, 100, symbol='+', name = counter_name)
     print(' done')
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
     print(f'Iterations: total = {iter_total}, ' + 
           f'mean = {iter_mean}, stdev = {iter_stdv}')
+    dist_iter_total = len(dist_iters)
+    dist_iter_mean = 0.0 if dist_iter_total == 0 else np.mean(dist_iters)
+    dist_iter_stdv = 0.0 if dist_iter_total == 0 else np.std(dist_iters)
+    print(f'Distance iterations: total = {dist_iter_total}, ' + 
+          f'mean = {dist_iter_mean}, stdev = {dist_iter_stdv}')
 
     correct_weights = []
     incorrect_weights = []
     print('Validating ', end='')
+    memories = []
+    correct = []
+    weights = []
     if len(associations) > 0:
         # The following code uses the homo-associative memory to process
         # the memories recovered from the hetero-associative one.
-        # memories = []
-        # correct = []
-        # weights = []
         # counter = 0
         # for features, label, w in zip(associations, correct_labels, recog_weights):
         #     memory, recognized, _ = eam_destination.recall(features)
@@ -1454,9 +1469,14 @@ def hetero_remember_per_fold(es, fold):
     match_labels(filling_features, filling_labels)
     describe(filling_features, filling_labels)
     match_labels(testing_features, testing_labels)
-    describe(testing_features, testing_labels)
     total = len(filling_labels[left_ds])
     total_test = len(testing_labels[left_ds])
+    top = int(constants.exploration_percent*total_test)
+    testing_labels[left_ds] = testing_labels[left_ds][:top]
+    testing_features[left_ds] = testing_features[left_ds][:top]
+    testing_labels[right_ds] = testing_labels[right_ds][:top]
+    testing_features[right_ds] = testing_features[right_ds][:top]
+    describe(testing_features, testing_labels)
     print(f'Filling hetero-associative memory with a total of {total} pairs.')
     percents = np.array(constants.memory_fills)
     steps = np.round(total*percents/100.0).astype(int)
@@ -1482,7 +1502,7 @@ def hetero_remember_per_fold(es, fold):
         # Arrays with precision, and recall.
         correct = behaviours[:, constants.correct_response_idx]
         incorrect = behaviours[:, constants.no_correct_response_idx]
-        fold_precision.append(np.where(correct + incorrect == 0,
+        fold_precision.append(np.where((correct + incorrect) == 0,
             1.0, correct/(correct+incorrect)))
         fold_recall.append(
             behaviours[:, constants.correct_response_idx]/total_test)
@@ -2139,14 +2159,14 @@ if __name__ == "__main__":
             print('The mean of relations must be a positive integer.')
             exit(1)
         else:
-            constants.n_matches = n
+            constants.mean_matches = n
     if args['--relsstdv']:
         s = float(args['--relsstdv'])
         if s <= 0:
             print('The standard deviation of relations must be a positive number.')
             exit(1)
         else:
-            constants.s_matches = n
+            constants.stdv_matches = n
     if args['--runpath']:
         constants.run_path = args['--runpath']
     if args['es']:

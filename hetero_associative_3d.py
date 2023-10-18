@@ -184,7 +184,7 @@ class HeteroAssociativeMemory3D:
 
     def _recall(self, cue, weights, dim):
         cue = self.validate(cue, dim)
-        projection = self.project(cue, weights, dim)
+        projection, intermediate = self.project(cue, weights, dim)
         projection = self.transform(projection)
         projection_weights = np.sum(projection[:,:,self.w_index], axis=1)
         recognized = (np.count_nonzero(projection_weights == 0) <= self.xi)
@@ -192,7 +192,7 @@ class HeteroAssociativeMemory3D:
         r_io_w = np.mean(r_io_weights)
         recognized = recognized and (self.kappa*self.mean <= r_io_w)
         r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, r_io_w, projection
+        return r_io, recognized, r_io_w, projection, intermediate
 
     def abstract(self, r_io):
         self.relation[:, :, :, self.w_index] = np.where(
@@ -207,7 +207,8 @@ class HeteroAssociativeMemory3D:
         self._updated = False
 
     def containment(self, r_io):
-        return np.where((r_io[:, :, :, self.w_index] == 0) | (self.iota_relation[:, :, :, self.w_index] != 0))
+        c = np.where((r_io[:, :, :, self.w_index] == 0) | (self.iota_relation[:, :, :, self.w_index] != 0),1,0)
+        return(c)
 
     def project(self, cue, weights, dim):
         projection = np.zeros((self.cols(self.alt(dim)), self._top, self.n_vars), dtype=int)
@@ -220,7 +221,7 @@ class HeteroAssociativeMemory3D:
                 n = np.count_nonzero(chosen[:, j, k, self.w_index] if dim == 0 else chosen[j, :, k, self.w_index])
                 projection[j, k, alt_index] = v if n == 0 else int(v/n)
                 projection[j, k, self.w_index] = w if n == 0 else int(w/n)
-        return projection
+        return projection, chosen
 
     def filter_relation(self, cue, weights, dim):
         chosen = np.zeros(self.relation.shape, dtype=int)
@@ -314,14 +315,13 @@ class HeteroAssociativeMemory3D:
     def _update_iota_relation(self):
         for i in range(self.n):
             for j in range(self.p):
-                matrix = self.relation[i, j, :, self.w_index]
-                s = np.sum(matrix)
-                if s == 0:
-                    self._iota_relation[i, j, :, self.w_index] = np.zeros(self._top, dtype=int)
-                else:
-                    count = np.count_nonzero(matrix)
+                column = np.copy(self.relation[i, j, :, :])
+                s = np.sum(column[:, self.w_index])
+                if s > 0:
+                    count = np.count_nonzero(column[:, self.w_index])
                     threshold = self.iota*s/count
-                    self._iota_relation[i, j, :, self.w_index] = np.where(matrix < threshold, 0, matrix)
+                    column[:, self.w_index] = np.where(column[:,self.w_index] < threshold, 0, column[:, self.w_index])
+                self._iota_relation[i, j, :, :] = column
         turned_off = np.count_nonzero(
             self.relation[:, :, :, self.w_index]) - np.count_nonzero(self._iota_relation[:, :, :, self.w_index])
         print(f'Iota relation updated, and {turned_off} cells have been turned off')

@@ -107,6 +107,9 @@ print(f'v0: {v0}')
 print('r = h.recall_from_left(v0)')
 r = h.recall_from_left(v0)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+if h.model_name == constants.d3_model_name:
+    print('Chosen:')
+    print(r[4])
 print('Projection:')
 constants.print_csv(r[3])
 
@@ -114,6 +117,9 @@ print(f'v1: {v1}')
 print('r = h.recall_from_left(v1)')
 r = h.recall_from_left(v1)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+if h.model_name == constants.d3_model_name:
+    print('Chosen:')
+    print(r[4])
 print('Projection:')
 constants.print_csv(r[3])
 
@@ -121,6 +127,9 @@ print(f'w0: {w0}')
 print('r = h.recall_from_right(w0)')
 r = h.recall_from_right(w0)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+if h.model_name == constants.d3_model_name:
+    print('Chosen:')
+    print(r[4])
 print('Projection:')
 constants.print_csv(r[3])
 
@@ -128,6 +137,9 @@ print(f'vd: {vd}')
 print('r = h.recall_from_left(vd)')
 r = h.recall_from_left(vd)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+if h.model_name == constants.d3_model_name:
+    print('Chosen:')
+    print(r[4])
 print('Projection:')
 constants.print_csv(r[3])
 
@@ -135,6 +147,9 @@ print(f'w1: {w1}')
 print('r = h.recall_from_right(w1)')
 r = h.recall_from_right(w1)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+if h.model_name == constants.d3_model_name:
+    print('Chosen:')
+    print(r[4])
 print('Projection:')
 constants.print_csv(r[3])
 
@@ -142,6 +157,9 @@ print(f'wi: {wi}')
 print('r = h.recall_from_right(wi)')
 r = h.recall_from_right(wi)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+if h.model_name == constants.d3_model_name:
+    print('Chosen:')
+    print(r[4])
 print('Projection:')
 constants.print_csv(r[3])
 
@@ -149,6 +167,9 @@ print(f'v2: {v2}')
 print('r = h.recall_from_left(v2)')
 r = h.recall_from_left(v2)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+if h.model_name == constants.d3_model_name:
+    print('Chosen:')
+    print(r[4])
 print('Projection:')
 constants.print_csv(r[3])
 

@@ -13,17 +13,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Entropic Hetero-Associative Memory Testing
+
+Usage:
+  test-hetero -h | --help
+  test-hetero --dims=N
+
+Options:
+  -h        Show this screen.
+  --dims=N    Dimensions of the model (they can be 3 or 4)
+"""
+
 import numpy as np
+from docopt import docopt
 import constants
-# from hetero_associative_4d import *
+from hetero_associative_4d import *
 from hetero_associative_3d import *
+
+args = docopt(__doc__)
+try:
+    d = int(args['--dims'])
+except:
+    print(__doc__)
+    exit(1)
+
+es = constants.ExperimentSettings()
+h = None
+if d == 3:
+    h = HeteroAssociativeMemory3D(2,3,3,2, es)
+elif d == 4:
+    h = HeteroAssociativeMemory4D(2,3,3,2, es)
+else:
+    print(__doc__)
+    exit(1)
 
 # Memory for associations between functions of two characteristics and three values,
 # to functions of three characteristics and two values
-print('h = HeteroAssociativeMemory(2,3,3,2)')
-es = constants.ExperimentSettings()
-# h = HeteroAssociativeMemory4D(2,3,3,2, es)
-h = HeteroAssociativeMemory3D(2,3,3,2, es)
 print("Original state:")
 print(h)
 
@@ -107,71 +132,71 @@ print(f'v0: {v0}')
 print('r = h.recall_from_left(v0)')
 r = h.recall_from_left(v0)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-if h.model_name == constants.d3_model_name:
-    print('Chosen:')
-    print(r[4])
 print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
 print(f'v1: {v1}')
 print('r = h.recall_from_left(v1)')
 r = h.recall_from_left(v1)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-if h.model_name == constants.d3_model_name:
-    print('Chosen:')
-    print(r[4])
 print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
 print(f'w0: {w0}')
 print('r = h.recall_from_right(w0)')
 r = h.recall_from_right(w0)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-if h.model_name == constants.d3_model_name:
-    print('Chosen:')
-    print(r[4])
 print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
 print(f'vd: {vd}')
 print('r = h.recall_from_left(vd)')
 r = h.recall_from_left(vd)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-if h.model_name == constants.d3_model_name:
-    print('Chosen:')
-    print(r[4])
 print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
 print(f'w1: {w1}')
 print('r = h.recall_from_right(w1)')
 r = h.recall_from_right(w1)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-if h.model_name == constants.d3_model_name:
-    print('Chosen:')
-    print(r[4])
 print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
 print(f'wi: {wi}')
 print('r = h.recall_from_right(wi)')
 r = h.recall_from_right(wi)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-if h.model_name == constants.d3_model_name:
-    print('Chosen:')
-    print(r[4])
 print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
 print(f'v2: {v2}')
 print('r = h.recall_from_left(v2)')
 r = h.recall_from_left(v2)
 print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-if h.model_name == constants.d3_model_name:
-    print('Chosen:')
-    print(r[4])
 print('Projection:')
-constants.print_csv(r[3])
+if h.model_name == constants.d4_model_name:
+    constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
 if h.model_name == constants.d4_model_name:
     print(f'vu: {vu}')

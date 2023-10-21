@@ -171,7 +171,7 @@ class HeteroAssociativeMemory4D:
     
     @property
     def rel_string(self):
-        return self._to_string(self.relation)
+        return self.relation_to_string(self.relation)
 
     def is_undefined(self, value, dim):
         return value == self.undefined(dim)
@@ -448,12 +448,12 @@ class HeteroAssociativeMemory4D:
         self._iota_relation[:, :, self.m, :] = np.full((self._n, self._p, self._q), 1, dtype=int)
         self._iota_relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
 
-    def _to_string(self, a, p = ''):
+    def relation_to_string(self, a, p = ''):
         if a.ndim == 1:
             return f'{p}{a}'
         s = f'{p}[\n'
         for b in a:
-            ss = self._to_string(b, p + ' ')
+            ss = self.relation_to_string(b, p + ' ')
             s = f'{s}{ss}\n'
         s = f'{s}{p}]'
         return s

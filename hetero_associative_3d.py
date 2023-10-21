@@ -130,7 +130,7 @@ class HeteroAssociativeMemory3D:
     
     @property
     def rel_string(self):
-        return self._to_string(self.relation)
+        return self.relation_to_string(self.relation)
 
     def alt(self, dim):
         return (dim + 1) % 2
@@ -184,7 +184,7 @@ class HeteroAssociativeMemory3D:
 
     def _recall(self, cue, weights, dim):
         cue = self.validate(cue, dim)
-        projection, intermediate = self.project(cue, weights, dim)
+        projection = self.project(cue, weights, dim)
         projection = self.transform(projection)
         projection_weights = np.sum(projection[:,:,self.w_index], axis=1)
         recognized = (np.count_nonzero(projection_weights == 0) <= self.xi)
@@ -192,7 +192,7 @@ class HeteroAssociativeMemory3D:
         r_io_w = np.mean(r_io_weights)
         recognized = recognized and (self.kappa*self.mean <= r_io_w)
         r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, r_io_w, projection, intermediate
+        return r_io, recognized, r_io_w, projection
 
     def abstract(self, r_io):
         self.relation[:, :, :, self.w_index] = np.where(
@@ -219,9 +219,9 @@ class HeteroAssociativeMemory3D:
                 v = np.sum(chosen[:, j, k, self.b_index] if dim == 0 else chosen[j, :, k, self.a_index])
                 w = np.sum(chosen[:, j, k, self.w_index] if dim == 0 else chosen[j, :, k, self.w_index])
                 n = np.count_nonzero(chosen[:, j, k, self.w_index] if dim == 0 else chosen[j, :, k, self.w_index])
-                projection[j, k, alt_index] = v if n == 0 else int(v/n)
-                projection[j, k, self.w_index] = w if n == 0 else int(w/n)
-        return projection, chosen
+                projection[j, k, alt_index] = v if n == 0 else round(v/n)
+                projection[j, k, self.w_index] = w if n == 0 else round(w/n)
+        return projection
 
     def filter_relation(self, cue, weights, dim):
         chosen = np.zeros(self.relation.shape, dtype=int)
@@ -229,7 +229,9 @@ class HeteroAssociativeMemory3D:
         alt_index = self.b_index if dim == 0 else self.a_index
         for i in range(self.cols(dim)):
             value = cue[i]
-            for j in range(self.cols(self.alt(dim))):
+            alt_cols = [*range(self.cols(self.alt(dim)))]
+            random.shuffle(alt_cols)
+            for j in alt_cols:
                 a = i if dim == 0 else j
                 b = j if dim == 0 else i
                 distance = float('inf')
@@ -250,16 +252,10 @@ class HeteroAssociativeMemory3D:
     # Reduces a relation to a function
     def reduce(self, projection, dim):
         cols = self.cols(dim)
-        v = np.array([self.choose(column, dim)
-                for column in projection])
-        weights = []
-        for i in range(cols):
-            if self.is_undefined(v[i]):
-                weights.append(0)
-            else:
-                weights.append(projection[i, v[i], self.w_index])
-        weights = np.array(weights)
-        return v, weights
+        vw = [self.choose(column, dim) for column in projection]
+        v = np.array([t[0] for t in vw])
+        w = np.array([t[1] for t in vw])
+        return v, w
 
     
     def choose(self, column, dim):
@@ -270,14 +266,14 @@ class HeteroAssociativeMemory3D:
         dist = column
         s = dist[:, self.w_index].sum()
         if s == 0:
-            return random.randrange(dist.size)
+            return random.randrange(dist.size), 0
         r = s*random.random()
         index = self.a_index if dim == 0 else self.b_index
         for j in range(dist.shape[0]):
             if r <= dist[j, self.w_index]:
-                return dist[j, index]
+                return dist[j, index], dist[j, self.w_index]
             r -= dist[j, self.w_index]
-        return self.undefined
+        return self.undefined, 0
 
     def _weights(self, r_io):
         r = r_io*np.count_nonzero(r_io)/np.sum(r_io)
@@ -367,12 +363,12 @@ class HeteroAssociativeMemory3D:
                 relation[i, j, k, self.b_index] = b
         return relation
 
-    def _to_string(self, a, p = ''):
+    def relation_to_string(self, a, p = ''):
         if a.ndim == 1:
             return f'{p}{a}'
         s = f'{p}[\n'
         for b in a:
-            ss = self._to_string(b, p + ' ')
+            ss = self.relation_to_string(b, p + ' ')
             s = f'{s}{ss}\n'
         s = f'{s}{p}]'
         return s

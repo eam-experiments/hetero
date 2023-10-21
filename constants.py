@@ -32,6 +32,9 @@ datasets_to_codomains = {MNIST: 32, FASHION: 16}
 left_dataset = MNIST
 right_dataset = FASHION
 
+d3_model_name = "3DEHAM"
+d4_model_name = "4DEHAM"
+
 n_sims = 10
 dist_estims = 10
 mean_matches = 2

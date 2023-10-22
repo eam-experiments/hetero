@@ -421,7 +421,8 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
                 feat_lab_right, feat_lab_left, equals)
         num_matches.append(m)
         for k, l in matches:
-            i, j = k, l if left_turn else l, k
+            i = k if left_turn else l
+            j = l if left_turn else k
             fl, ll = feat_lab_left[i]
             fr, lr = feat_lab_right[j]
             left_features.append(fl)

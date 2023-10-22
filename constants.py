@@ -35,8 +35,8 @@ right_dataset = FASHION
 d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
 
-n_sims = 10
-dist_estims = 10
+n_sims = 20
+dist_estims = 20
 mean_matches = 2
 stdv_matches = 1
 minimum_percentile = 2.5

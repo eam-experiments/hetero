@@ -192,7 +192,7 @@ class HeteroAssociativeMemory3D:
         r_io_w = np.mean(r_io_weights)
         recognized = recognized and (self.kappa*self.mean <= r_io_w)
         r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, r_io_w, projection
+        return r_io, recognized, r_io_w, projection, 0, 0.0
 
     def abstract(self, r_io):
         self.relation[:, :, :, self.w_index] = np.where(

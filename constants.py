@@ -37,8 +37,8 @@ d4_model_name = "4DEHAM"
 
 n_sims = 20
 dist_estims = 20
-mean_matches = 2
-stdv_matches = 1
+mean_matches = 1
+stdv_matches = 0
 minimum_percentile = 2.5
 maximum_percentile = 97.5
 project_same = 0

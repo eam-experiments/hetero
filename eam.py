@@ -54,7 +54,8 @@ import constants
 import dataset as ds
 import neural_net
 from associative import AssociativeMemory
-from hetero_associative_4d import HeteroAssociativeMemory4D
+from hetero_associative_4d import HeteroAssociativeMemory4D as HeteroAssociativeMemory
+# from hetero_associative_3d import HeteroAssociativeMemory3D as HeteroAssociativeMemory
 from custom_set import CustomSet
 
 sys.setrecursionlimit(10000)
@@ -217,50 +218,28 @@ def plot_distances(distances, prefix, es=None, fold=None):
     plt.close()
 
 
-def get_min_max(arrays):
-    minimum = float('inf')
-    min_percent = minimum
-    maximum = -float('inf')
-    max_percent = maximum
-    for a in arrays:
-        max = np.max(a)
-        if maximum < max:
-            maximum = max
-        min = np.min(a)
-        if min < minimum:
-            minimum = min
-        min_p = np.percentile(a, constants.minimum_percentile)
-        if min_p < min_percent:
-            min_percent = min_p
-        max_p = np.percentile(a, constants.maximum_percentile)
-        if max_p > max_percent:
-            max_percent = max_p
-        mean = np.mean(a)
-        stdv = np.std(a)
-        print(f'Min_maxs array stats: min = {min}, {constants.minimum_percentile}% = {min_p}, ' +
-              f'mean = {mean}, {constants.maximum_percentile}% = {max_p}, max = {max}, stdev = {stdv}')
+def get_min_max(a : np.ndarray):
+    """Produces a desirable minimum and maximum values for features
+
+    It delivers minimum and maximum percentile values.
+    """
+
+    maximum = np.max(a)
+    minimum = np.min(a)
+    min_percentile = np.percentile(a, constants.minimum_percentile)
+    max_percentile = np.percentile(a, constants.maximum_percentile)
+    median = np.median(a)
+    mean = np.mean(a)
+    stdv = np.std(a)
+    print(f'Min_maxs array stats: min = {minimum}, ' +
+          f'{constants.minimum_percentile}% = {min_percentile}, ' +
+            f'median = {median}, {constants.maximum_percentile}% = {max_percentile}, ' +
+            f'max = {maximum}; mean = {mean}, stdev = {stdv}')
     # return minimum, maximum
-    return min_percent, max_percent
-
-def get_max(arrays):
-    _max = float('-inf')
-    for a in arrays:
-        local_max = np.max(a)
-        if local_max > _max:
-            _max = local_max
-    return _max
-
-
-def get_min(arrays):
-    _min = float('inf')
-    for a in arrays:
-        local_min = np.min(a)
-        if local_min < _min:
-            _min = local_min
-    return _min
-
+    return min_percentile, max_percentile
 
 def features_distance(f, g):
+    """ Calculates euclidean distance between two arrays of features"""
     return np.linalg.norm(f - g)
 
 
@@ -342,8 +321,7 @@ def msize_features(features, msize, min_value, max_value):
 def rsize_recall(recall, msize, min_value, max_value):
     if msize == 1:
         return np.full(recall.size, (min_value + max_value)/2.0)
-    return (max_value - min_value) * recall.astype(dtype=float) \
-        / (msize - 1.0) + min_value
+    return (max_value - min_value) * recall.astype(dtype=float) / (msize - 1.0) + min_value
 
 
 def features_per_fold(dataset, es, fold):
@@ -369,11 +347,12 @@ def features_per_fold(dataset, es, fold):
     testing_labels = np.load(testing_labels_filename)
     return filling_features, filling_labels, testing_features, testing_labels
 
-def match_labels(features, labels, half=False):
+def match_labels(features : dict, labels : dict, half=False):
+    """Matches elements of two datasets according to their labels"""
+
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
 
-    # Assuming ten clases on each dataset.
     midx = round(len(labels[left_ds])/2.0)
     feat_left = features[left_ds][:midx] if half else features[left_ds] 
     labl_left = labels[left_ds][:midx] if half else labels[left_ds] 
@@ -417,21 +396,23 @@ def match_labels(features, labels, half=False):
     print('done!')
 
 def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
+    """Produces matches between two datasets using a normal distribution"""
+
     left_features = []
     left_labels = []
     right_features = []
     right_labels = []
 
-    feat_lab_right = list(zip(feat_right, labl_right))
     feat_lab_left = list(zip(feat_left, labl_left))
-    right_matches = {i:0 for i in range(len(feat_lab_right))}
+    feat_lab_right = list(zip(feat_right, labl_right))
     left_matches = {i:0 for i in range(len(feat_lab_left))}
+    right_matches = {i:0 for i in range(len(feat_lab_right))}
 
     counter = 0
     left_turn = True
     num_matches = []
     print('Matching equals' if equals else 'Matching differents:', end='')
-    while len(right_matches) and len(left_matches):
+    while len(left_matches) and len(right_matches):
         num = int(random.gauss(
             mu=constants.mean_matches, sigma=constants.stdv_matches))
         matches, m = get_num_matches(num, left_matches, right_matches,
@@ -440,8 +421,7 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
                 feat_lab_right, feat_lab_left, equals)
         num_matches.append(m)
         for k, l in matches:
-            i = k if left_turn else l
-            j = l if left_turn else k
+            i, j = k, l if left_turn else l, k
             fl, ll = feat_lab_left[i]
             fr, lr = feat_lab_right[j]
             left_features.append(fl)
@@ -456,7 +436,10 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
     print(f'Matches stdv: {np.std(num_matches)}')
     return left_features, left_labels, right_features, right_labels
 
-def get_num_matches(num, left: dict, right:dict, feat_lab_left, feat_lab_right, equals):
+def get_num_matches(num, left: dict, right:dict,
+                    feat_lab_left: list, feat_lab_right: list, equals: bool):
+    """Produces matches closest to num for an element in the left dataset"""
+
     indexes = []
     l = best_match_idx(num, left)
     m = left[l]
@@ -484,11 +467,14 @@ def get_num_matches(num, left: dict, right:dict, feat_lab_left, feat_lab_right, 
     return indexes, m + total
 
 def best_match_idx(num: int, idx_num: dict):
-    d = sys.maxsize
-    idx = 0
+    """Get the index with matches closest to num"""
+    distance = sys.maxsize
+    idx = None
     for k in idx_num:
-        if abs(num - idx_num[k]) < d:
+        d = abs(num - idx_num[k]) 
+        if d < distance:
             idx = k
+            distance = d
     return idx
 
 def describe(features, labels):
@@ -598,7 +584,7 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
 
 
 def recognize_by_hetero_memory(
-        hetero_eam: HeteroAssociativeMemory4D,
+        hetero_eam: HeteroAssociativeMemory,
         left_eam: AssociativeMemory,
         right_eam: AssociativeMemory,
         tefs, tels):
@@ -640,9 +626,9 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         eam_destination: AssociativeMemory,
         classifier, testing_features, testing_labels,
         msize, mfill, minimum, maximum, mean_weight):
+    gc.collect()
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
-    gc.collect()
     confrix = np.zeros(
         (constants.n_labels, constants.n_labels+1), dtype='int')
     behaviour = np.zeros(constants.n_behaviours, dtype=int)
@@ -708,6 +694,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     correct = []
     weights = []
     if len(associations) > 0:
+        # IF
         # The following code uses the homo-associative memory to process
         # the memories recovered from the hetero-associative one.
         # counter = 0
@@ -723,11 +710,12 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         #         confrix[label, constants.n_labels] += 1
         #     counter += 1
         #     constants.print_counter(counter, 10000, 1000, symbol='+')
-        #
+        # ELSE
         # Otherwise, uncomment the three following lines, to skip the post-processing.
         memories = associations
         correct = correct_labels
         weights = recog_weights
+        # END
         if len(memories) > 0:
             memories = np.array(memories)
             predictions = np.argmax(classifier.predict(memories), axis=1)
@@ -864,7 +852,7 @@ def check_hetero_memory(remembered_dataset,
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
     return confrix, behaviour, memories
 
-def remember_by_hetero_memory(eam: HeteroAssociativeMemory4D,
+def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
                               left_eam: AssociativeMemory, right_eam: AssociativeMemory,
                               left_classifier, right_classifier,
                               testing_features, testing_labels, min_maxs, percent, es, fold):
@@ -959,8 +947,7 @@ def get_ams_results(
         filling_features, testing_features,
         filling_labels, testing_labels, classifier, es):
     # Round the values
-    max_value = get_max((filling_features, testing_features))
-    min_value = get_min((filling_features, testing_features))
+    min_value, max_value = get_min_max(filling_features)
 
     trf_rounded = msize_features(filling_features, msize, min_value, max_value)
     tef_rounded = msize_features(testing_features, msize, min_value, max_value)
@@ -1172,7 +1159,7 @@ def test_filling_percent(
 
 
 def test_hetero_filling_percent(
-        hetero_eam: HeteroAssociativeMemory4D,
+        hetero_eam: HeteroAssociativeMemory,
         left_eam: AssociativeMemory,
         right_eam: AssociativeMemory,
         trfs, tefs, tels, percent):
@@ -1193,7 +1180,7 @@ def test_hetero_filling_percent(
 
 
 def hetero_remember_percent(
-        eam: HeteroAssociativeMemory4D,
+        eam: HeteroAssociativeMemory,
         left_eam: AssociativeMemory,
         right_eam: AssociativeMemory,
         left_classifier, right_classifier,
@@ -1221,7 +1208,7 @@ def hetero_remember_percent(
     return confrixes, behaviours, eam.entropy
 
 def hetero_check_consistency_percent(
-        eam: HeteroAssociativeMemory4D, left_classifier, right_classifier,
+        eam: HeteroAssociativeMemory, left_classifier, right_classifier,
         filling_features, filling_labels, testing_features, testing_labels, min_maxs,
         percent, filling, es, fold):
     # Register filling data.
@@ -1271,8 +1258,7 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     testing_features = np.load(testing_features_filename)
     testing_labels = np.load(testing_labels_filename)
 
-    max_value = get_max((filling_features, testing_features))
-    min_value = get_min((filling_features, testing_features))
+    min_value, max_value = get_min_max(filling_features)
     filling_features = msize_features(
         filling_features, mem_size, min_value, max_value)
     testing_features = msize_features(
@@ -1318,7 +1304,7 @@ def test_hetero_filling_per_fold(es, fold):
     params = constants.ExperimentSettings()
     left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
     right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
-    hetero_eam = HeteroAssociativeMemory4D(domains[left_ds], domains[right_ds],
+    hetero_eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                                          rows[left_ds], rows[right_ds], es)
     filling_features = {}
     filling_labels = {}
@@ -1347,8 +1333,7 @@ def test_hetero_filling_per_fold(es, fold):
         testing_labels[dataset] = np.load(testing_labels_filename)
         f_features = np.load(filling_features_filename)
         t_features = np.load(testing_features_filename)
-        max_value = get_max((f_features, t_features))
-        min_value = get_min((f_features, t_features))
+        min_value, max_value = get_min_max(f_features)
         filling_features[dataset] = msize_features(
             f_features, rows[dataset], min_value, max_value)
         testing_features[dataset] = msize_features(
@@ -1407,7 +1392,7 @@ def hetero_remember_per_fold(es, fold):
     params = constants.ExperimentSettings()
     left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
     right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
-    eam = HeteroAssociativeMemory4D(domains[left_ds], domains[right_ds],
+    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                                   rows[left_ds], rows[right_ds], es)
 
     # Retrieve the classifiers.
@@ -1455,7 +1440,7 @@ def hetero_remember_per_fold(es, fold):
         validating_network_data(
             t_features, testing_labels[dataset], classifiers[dataset],
             dataset, 'testing data')
-        min_value, max_value = get_min_max((f_features, t_features))
+        min_value, max_value = get_min_max(f_features)
         filling_features[dataset] = msize_features(
             f_features, rows[dataset], min_value, max_value)
         testing_features[dataset] = msize_features(
@@ -1524,7 +1509,7 @@ def check_consistency_per_fold(filling, es, fold):
     rows = constants.codomains()
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-    eam = HeteroAssociativeMemory4D(domains[left_ds], domains[right_ds],
+    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
                                   rows[left_ds], rows[right_ds], es)
 
     # Retrieve the classifiers.
@@ -1572,7 +1557,7 @@ def check_consistency_per_fold(filling, es, fold):
         validating_network_data(
             t_features, testing_labels[dataset], classifiers[dataset],
             dataset, 'testing data')
-        min_value, max_value = get_min_max((f_features, t_features))
+        min_value, max_value = get_min_max(f_features)
         filling_features[dataset] = msize_features(
             f_features, rows[dataset], min_value, max_value)
         testing_features[dataset] = msize_features(

@@ -718,7 +718,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         weights = recog_weights
         # END
         if len(memories) > 0:
-            memories = np.array(memories)
+            memories = rsize_recall(memories, msize, minimum, maximum)
             predictions = np.argmax(classifier.predict(memories), axis=1)
             for label, prediction, weight in zip(correct, predictions, weights):
                 # For calculation of per memory precision and recall

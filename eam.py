@@ -636,7 +636,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     behaviour = np.zeros(constants.n_behaviours, dtype=int)
     memories = []
     correct = []
-    weights = []
+    mem_weights = []
     unknown = 0
     unknown_weights = []
     iterations = []
@@ -654,7 +654,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
                 dist_iters.append(i)
                 memories.append(memory)
                 correct.append(label)
-                weights.append(weight)
+                mem_weights.append(weight)
                 if random.randrange(100) == 0:
                     prefix = 'projection-' + remembered_dataset + \
                         '-fill_' + str(int(mfill)).zfill(3) + \
@@ -687,7 +687,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     if len(memories) > 0:
         memories = rsize_recall(np.array(memories), msize, minimum, maximum)
         predictions = np.argmax(classifier.predict(memories), axis=1)
-        for label, prediction, weight in zip(correct, predictions, weights):
+        for label, prediction, weight in zip(correct, predictions, mem_weights):
             # For calculation of per memory precision and recall
             confrix[label, prediction] += 1
             if label == prediction:

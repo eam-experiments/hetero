@@ -634,9 +634,9 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     confrix = np.zeros(
         (constants.n_labels, constants.n_labels+1), dtype='int')
     behaviour = np.zeros(constants.n_behaviours, dtype=int)
-    associations = []
-    correct_labels = []
-    recog_weights = []
+    memories = []
+    correct = []
+    weights = []
     unknown = 0
     unknown_weights = []
     iterations = []
@@ -645,24 +645,16 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     counter = 0
     counter_name = constants.set_counter()
     for features, label in zip(testing_features, testing_labels):
-        feat, recognized, weights = eam_origin.recall_weights(features)
-        # If the recalled features are not going to be used, uncomment the
-        # following line to keep the original ones.
-        feat = features
-        # If there is interest only on the weights, not on whether the homo associatve
-        # memory recognizes, or not, the features, uncomment the following line.
-        recognized = True
+        recognized, weights = eam_origin.recog_weights(features)
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, n, i = recall(feat, weights)
-            # Recalling without using weights.
-            # memory, recognized, weight, relation, n = recall(feat)
+            memory, recognized, weight, relation, n, i = recall(features, weights)
             if recognized:
                 iterations.append(n)
                 dist_iters.append(i)
-                associations.append(memory)
-                correct_labels.append(label)
-                recog_weights.append(weight)
+                memories.append(memory)
+                correct.append(label)
+                weights.append(weight)
                 if random.randrange(100) == 0:
                     prefix = 'projection-' + remembered_dataset + \
                         '-fill_' + str(int(mfill)).zfill(3) + \
@@ -692,42 +684,16 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     correct_weights = []
     incorrect_weights = []
     print('Validating ', end='')
-    memories = []
-    correct = []
-    weights = []
-    if len(associations) > 0:
-        # IF
-        # The following code uses the homo-associative memory to process
-        # the memories recovered from the hetero-associative one.
-        # counter = 0
-        # for features, label, w in zip(associations, correct_labels, recog_weights):
-        #     memory, recognized, _ = eam_destination.recall(features)
-        #     if recognized:
-        #         memory = rsize_recall(memory, msize, minimum, maximum)
-        #         memories.append(memory)
-        #         correct.append(label)
-        #         weights.append(w)
-        #     else:
-        #         unknown += 1
-        #         confrix[label, constants.n_labels] += 1
-        #     counter += 1
-        #     constants.print_counter(counter, 10000, 1000, symbol='+')
-        # ELSE
-        # Otherwise, uncomment the three following lines, to skip the post-processing.
-        memories = associations
-        correct = correct_labels
-        weights = recog_weights
-        # END
-        if len(memories) > 0:
-            memories = rsize_recall(np.array(memories), msize, minimum, maximum)
-            predictions = np.argmax(classifier.predict(memories), axis=1)
-            for label, prediction, weight in zip(correct, predictions, weights):
-                # For calculation of per memory precision and recall
-                confrix[label, prediction] += 1
-                if label == prediction:
-                    correct_weights.append(weight)
-                else:
-                    incorrect_weights.append(weight)
+    if len(memories) > 0:
+        memories = rsize_recall(np.array(memories), msize, minimum, maximum)
+        predictions = np.argmax(classifier.predict(memories), axis=1)
+        for label, prediction, weight in zip(correct, predictions, weights):
+            # For calculation of per memory precision and recall
+            confrix[label, prediction] += 1
+            if label == prediction:
+                correct_weights.append(weight)
+            else:
+                incorrect_weights.append(weight)
     print(' done')
     print(' end')
     behaviour[constants.no_response_idx] = unknown
@@ -1193,13 +1159,7 @@ def hetero_remember_percent(
     for left_feat, right_feat \
             in zip(filling_features[constants.left_dataset],
                    filling_features[constants.right_dataset]):
-        lf, recognized, lw = left_eam.recall_weights(left_feat)
-        if not recognized:
-            continue
-        rf, recognized, rw = right_eam.recall_weights(right_feat)
-        if not recognized:
-            continue
-        eam.register(lf, rf, lw, rw)
+        eam.register(left_feat, right_feat)
         counter += 1
         constants.print_counter(counter, 10000, 1000)
     print(' end')

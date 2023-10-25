@@ -432,6 +432,7 @@ def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
             counter += 1
             constants.print_counter(counter,10000,step=1000, symbol='-')
         left_turn = not left_turn
+    num_matches += [m for m in left_matches.values()] + [m for m in right_matches.values()]
     print('done!')
     print(f'Matches mean: {np.mean(num_matches)}')
     print(f'Matches stdv: {np.std(num_matches)}')

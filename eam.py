@@ -347,137 +347,49 @@ def features_per_fold(dataset, es, fold):
     testing_labels = np.load(testing_labels_filename)
     return filling_features, filling_labels, testing_features, testing_labels
 
-def match_labels(features : dict, labels : dict, half=False):
-    """Matches elements of two datasets according to their labels"""
-
+def match_labels(features, labels, half=False):
+    right_features = []
+    right_labels = []
+    used_idx = set()
+    last = 0
     left_ds = constants.left_dataset
     right_ds = constants.right_dataset
-
-    midx = round(len(labels[left_ds])/2.0)
-    feat_left = features[left_ds][:midx] if half else features[left_ds] 
-    labl_left = labels[left_ds][:midx] if half else labels[left_ds] 
-    feat_right = features[right_ds][:midx] if half else features[right_ds] 
-    labl_right = labels[right_ds][:midx] if half else labels[right_ds]
-
-    left_features, left_labels, right_features, right_labels = \
-        get_matches(feat_left, labl_left, feat_right, labl_right)
-    if half:
-        print(f' end of first part ({midx}) ', end='')
-        feat_left = features[left_ds][midx:]
-        labl_left = labels[left_ds][midx:]
-        feat_right = features[right_ds][midx:]
-        labl_right = labels[right_ds][midx:]
-        lfs, lls, rfs, rls = \
-            get_matches(feat_left, labl_left, feat_right, labl_right, equals=False)
-        left_features += lfs
-        left_labels += lls
-        right_features += rfs
-        right_labels += rls
-    print('Shuffling... ', end='')
-    tuples = list(zip(left_features, left_labels, right_features, right_labels))
-    random.shuffle(tuples)
-    print('done!')
-    print('Separating... ', end='')
-    left_features = []
-    left_labels = []
-    right_features = []
-    right_labels = []
-    for fl, ll, fr, lr in tuples:
-        left_features.append(fl)
-        left_labels.append(ll)
-        right_features.append(fr)
-        right_labels.append(lr)
-    print('done!')
-    print('Back to array... ', end='')
-    features[left_ds] = np.array(left_features)
-    labels[left_ds] = np.array(left_labels)
-    features[right_ds] = np.array(right_features)
-    labels[right_ds] = np.array(right_labels)
-    print('done!')
-
-def get_matches(feat_left, labl_left, feat_right, labl_right, equals = True):
-    """Produces matches between two datasets using a normal distribution"""
-
-    left_features = []
-    left_labels = []
-    right_features = []
-    right_labels = []
-
-    feat_lab_left = list(zip(feat_left, labl_left))
-    feat_lab_right = list(zip(feat_right, labl_right))
-    left_matches = {i:0 for i in range(len(feat_lab_left))}
-    right_matches = {i:0 for i in range(len(feat_lab_right))}
-
+    # Assuming ten clases on each dataset.
+    midx = round(len(labels[left_ds]) * 4.0 / 9.0)
+    matching_labels = labels[left_ds][:midx] if half else labels[left_ds]
     counter = 0
-    left_turn = True
-    num_matches = []
-    print('Matching equals' if equals else 'Matching differents:', end='')
-    while len(left_matches) and len(right_matches):
-        num = int(random.gauss(
-            mu=constants.mean_matches, sigma=constants.stdv_matches))
-        matches, m = get_num_matches(num, left_matches, right_matches,
-                feat_lab_left, feat_lab_right, equals) \
-            if left_turn else get_num_matches(num, right_matches, left_matches,
-                feat_lab_right, feat_lab_left, equals)
-        num_matches.append(m)
-        for k, l in matches:
-            i = k if left_turn else l
-            j = l if left_turn else k
-            fl, ll = feat_lab_left[i]
-            fr, lr = feat_lab_right[j]
-            left_features.append(fl)
-            left_labels.append(ll)
-            right_features.append(fr)
-            right_labels.append(lr)
-            counter += 1
-            constants.print_counter(counter,10000,step=1000, symbol='-')
-        left_turn = not left_turn
-    num_matches += [m for m in left_matches.values()] + [m for m in right_matches.values()]
-    print('done!')
-    print(f'Matches mean: {np.mean(num_matches)}')
-    print(f'Matches stdv: {np.std(num_matches)}')
-    return left_features, left_labels, right_features, right_labels
-
-def get_num_matches(num, left: dict, right:dict,
-                    feat_lab_left: list, feat_lab_right: list, equals: bool):
-    """Produces matches closest to num for an element in the left dataset"""
-
-    indexes = []
-    l = best_match_idx(num, left)
-    m = left[l]
-    if num <= m:
-        left.pop(l)
-        return indexes, m
-    _, left_label = feat_lab_left[l]
-    right_indexes = []
-    for k in right:
-        _, right_label = feat_lab_right[k]
-        if (equals and (left_label == right_label)) \
-            or (not equals and (left_label != right_label)):
-            right_indexes.append(k)
-    random.shuffle(right_indexes)
-    total = 0
-    for _ in range(m, num):
-        if len(right_indexes) == 0:
+    print('Matching:')
+    for left_label in matching_labels:
+        while last in used_idx:
+            last += 1
+        i = last
+        found = False
+        for right_feat, right_lab in zip(features[right_ds][i:], labels[right_ds][i:]):
+            if (i not in used_idx) and (left_label == right_lab):
+                used_idx.add(i)
+                right_features.append(right_feat)
+                right_labels.append(right_lab)
+                found = True
+                break
+            i += 1
+        if not found:
             break
-        r = right_indexes.pop()
-        indexes.append((l, r))
-        left[l] += 1
-        right[r] += 1
-        total += 1
-    left.pop(l)
-    return indexes, m + total
+        counter += 1
+        constants.print_counter(counter, 1000, 100, symbol='-')
+    print(' end')
+    if half:
+        i = 0
+        for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
+            if i not in used_idx:
+                right_features.append(right_feat)
+                right_labels.append(right_lab)
+            i += 1
+    n = len(right_features)
+    features[left_ds] = features[left_ds][:n]
+    labels[left_ds] = labels[left_ds][:n]
+    features[right_ds] = np.array(right_features, dtype=int)
+    labels[right_ds] = np.array(right_labels, dtype=int)
 
-def best_match_idx(num: int, idx_num: dict):
-    """Get the index with matches closest to num"""
-    distance = sys.maxsize
-    idx = None
-    for k in idx_num:
-        d = abs(num - idx_num[k]) 
-        if d < distance:
-            idx = k
-            distance = d
-    return idx
 
 def describe(features, labels):
     left_ds = constants.left_dataset

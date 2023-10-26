@@ -146,10 +146,14 @@ class HeteroAssociativeMemory3D:
             weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
             weights_b = np.full(len(cue_b), fill_value=1)
-        cue_a = self.validate(cue_a, 0)
-        cue_b = self.validate(cue_b, 1)
-        r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
-        self.abstract(r_io)
+        try:
+            cue_a = self.validate(cue_a, 0)
+            cue_b = self.validate(cue_b, 1)
+        except ValueError:
+            pass
+        else:
+            r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
+            self.abstract(r_io)
 
     def recognize(self, cue_a, cue_b, weights_a = None, weights_b = None):
         if weights_a is None:
@@ -162,8 +166,11 @@ class HeteroAssociativeMemory3D:
         return recognized, weight
 
     def _recog(self, cue_a, cue_b, weights_a, weights_b, final = True):
-        cue_a = self.validate(cue_a, 0)
-        cue_b = self.validate(cue_b, 1)
+        try:
+            cue_a = self.validate(cue_a, 0)
+            cue_b = self.validate(cue_b, 1)
+        except ValueError:
+            return False, np.zeros((self.n, self.p))
         r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
         implication = self.containment(r_io)
         recognized = np.count_nonzero(implication == 0) <= self.xi
@@ -183,7 +190,13 @@ class HeteroAssociativeMemory3D:
         return self._recall(cue, weights, 1)
 
     def _recall(self, cue, weights, dim):
-        cue = self.validate(cue, dim)
+        try:
+            cue = self.validate(cue, dim)
+        except ValueError:
+            r_io = np.empty(self.cols(self.alt(dim)))
+            r_io[:] = np.nan
+            projection = np.zeros((self.cols(self.alt(dim)), self.rows(self.alt(dim))))
+            return r_io, False, 0.0, projection, 0, 0.0
         projection = self.project(cue, weights, dim)
         projection = self.transform(projection)
         projection_weights = np.sum(projection[:,:,self.w_index], axis=1)

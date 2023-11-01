@@ -239,6 +239,7 @@ class HeteroAssociativeMemory4D:
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
         projection = self.transform(projection)
+        # If there is a column in the projection with only zeros, the cue is not recognized.
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
@@ -313,6 +314,8 @@ class HeteroAssociativeMemory4D:
         first = True
         for i in range(cue.size):
             k = cue[i]
+            if self.is_undefined(k):
+                continue
             w = cue.size*weights[i]/sum_weights
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
@@ -372,7 +375,7 @@ class HeteroAssociativeMemory4D:
                 if total > 0:
                     matrix = relation/total
                 else:
-                    matrix = relation
+                    matrix = relation.copy()
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
         print(f'Entropy updated to mean = {np.mean(self._entropies)}, ' 

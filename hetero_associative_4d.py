@@ -314,7 +314,7 @@ class HeteroAssociativeMemory4D:
         first = True
         for i in range(cue.size):
             k = cue[i]
-            if self.is_undefined(k):
+            if self.is_undefined(k, dim):
                 continue
             w = cue.size*weights[i]/sum_weights
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0

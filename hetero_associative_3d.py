@@ -240,7 +240,11 @@ class HeteroAssociativeMemory3D:
             for j in alt_cols:
                 a = i if dim == 0 else j
                 b = j if dim == 0 else i
-                distance = float('inf')
+                distance = 0
+                for k in range(self._top):
+                    v = self.iota_relation[a, b, k, the_index]
+                    if abs(value - v) > distance:
+                        distance = abs(value - v)
                 weight = 0
                 index = self._top
                 for k in range(self._top):
@@ -317,7 +321,7 @@ class HeteroAssociativeMemory3D:
     def _update_iota_relation(self):
         for i in range(self.n):
             for j in range(self.p):
-                column = self.relation[i, j, :self._top, :].copy()
+                column = self.relation[i, j, :, :].copy()
                 s = np.sum(column[:, self.w_index])
                 if s > 0:
                     count = np.count_nonzero(column[:, self.w_index])
@@ -343,7 +347,7 @@ class HeteroAssociativeMemory3D:
                     f'{expected_length} and given {cue.size}')
         v = np.nan_to_num(cue, copy=True, nan=self.undefined)
         v = np.where((v < 0) | (self.undefined < v), self.undefined, v)
-        v = np.fix(cue)
+        v = np.fix(v)
         return v.astype('int')
 
     def revalidate(self, memory, dim):
@@ -351,7 +355,7 @@ class HeteroAssociativeMemory3D:
         return v
 
     def vectors_to_relation(self, cue_a, cue_b, weights_a, weights_b):
-        relation = np.zeros((self.n, self.p, self._top, self.n_vars), dtype=int)
+        relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=int)
         for i in range(self.n):
             a = cue_a[i]
             for j in range(self.p):

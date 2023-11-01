@@ -235,9 +235,8 @@ def get_min_max(a : np.ndarray):
           f'{constants.minimum_percentile}% = {min_percentile}, ' +
             f'median = {median}, {constants.maximum_percentile}% = {max_percentile}, ' +
             f'max = {maximum}; mean = {mean}, stdev = {stdv}')
-    # return minimum, maximum
-    # return min_percentile, max_percentile
     return minimum, maximum
+    # return min_percentile, max_percentile
 
 def features_distance(f, g):
     """ Calculates euclidean distance between two arrays of features"""

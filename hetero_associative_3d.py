@@ -341,11 +341,13 @@ class HeteroAssociativeMemory3D:
         if cue.size != expected_length:
             raise ValueError('Invalid lenght of the input data. Expected' +
                     f'{expected_length} and given {cue.size}')
-        v = np.nan_to_num(cue, copy=True, nan=self.undefined)
-        v = np.where((v < 0) | (self.undefined < v), self.undefined, v)
-        v = np.fix(v)
+        threshold = self.rows(dim)
+        undefined = self.undefined
+        v = np.nan_to_num(cue, copy=True, nan=undefined)
+        v = np.where((v < 0) | (threshold <= v), undefined, v)
+        v = v.round()
         return v.astype('int')
-
+    
     def revalidate(self, memory, dim):
         v = np.where(memory == self.undefined, np.nan, memory)
         return v

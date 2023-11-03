@@ -418,9 +418,10 @@ class HeteroAssociativeMemory4D:
         if cue.size != expected_length:
             raise ValueError('Invalid lenght of the input data. Expected' +
                     f'{expected_length} and given {cue.size}')
+        threshold = self.rows(dim)
         undefined = self.undefined(dim)
         v = np.nan_to_num(cue, copy=True, nan=undefined)
-        v = np.where((v < 0) | (undefined < v), undefined, v)
+        v = np.where((v < 0) | (threshold <= v), undefined, v)
         v = v.round()
         return v.astype('int')
 

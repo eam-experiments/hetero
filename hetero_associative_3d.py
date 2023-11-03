@@ -146,14 +146,10 @@ class HeteroAssociativeMemory3D:
             weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
             weights_b = np.full(len(cue_b), fill_value=1)
-        try:
-            cue_a = self.validate(cue_a, 0)
-            cue_b = self.validate(cue_b, 1)
-        except ValueError:
-            pass
-        else:
-            r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
-            self.abstract(r_io)
+        cue_a = self.validate(cue_a, 0)
+        cue_b = self.validate(cue_b, 1)
+        r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
+        self.abstract(r_io)
 
     def recognize(self, cue_a, cue_b, weights_a = None, weights_b = None):
         if weights_a is None:

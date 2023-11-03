@@ -42,12 +42,13 @@ class HeteroAssociativeMemory3D:
         self.m = m
         self.p = p
         self.q = q
+        # The value of _top depends on the hash function to be used.
+        self._top = self.n + self.p
         self.absolute_max = 2**32 - 1
         self.xi = es.xi
         self.sigma = es.sigma
         self.iota = es.iota
         self.kappa = es.kappa
-        self._top = self.m + self.q
         self.relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=int)
         self._iota_relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=int)
         self._entropies = np.zeros((self.n, self.p), dtype=np.double)
@@ -131,6 +132,13 @@ class HeteroAssociativeMemory3D:
     @property
     def rel_string(self):
         return self.relation_to_string(self.relation)
+
+    def hash(self, a, b):
+        x = a + b
+        L = self._top
+        k = 10
+        x0 = 0.5
+        return int(L / (1 + np.exp(-k*(x/L - x0))))
 
     def alt(self, dim):
         return (dim + 1) % 2
@@ -360,7 +368,7 @@ class HeteroAssociativeMemory3D:
                 b = cue_b[j]
                 if self.is_undefined(a) or self.is_undefined(b):
                     continue
-                k = a + b
+                k = self.hash(a,b)
                 w = weights_a[i]*weights_b[j]
                 relation[i, j, k, self.w_index] = int(w)
                 relation[i, j, k, self.a_index] = a

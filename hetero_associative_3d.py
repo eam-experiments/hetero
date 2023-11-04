@@ -43,7 +43,7 @@ class HeteroAssociativeMemory3D:
         self.p = p
         self.q = q
         # The value of _top depends on the hash function to be used.
-        self._top = self.n + self.p
+        self._top = self.m + self.q
         self.absolute_max = 2**32 - 1
         self.xi = es.xi
         self.sigma = es.sigma

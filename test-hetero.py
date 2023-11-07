@@ -92,9 +92,14 @@ print(h)
 
 print(f'v1: {v1}')
 print(f'w1: {w1}')
-
 print("h.register(v1,w1)")
 h.register(v1,w1)
+print(h)
+
+print(f'v2: {v2}')
+print(f'w0: {w0}')
+print("h.register(v2,w0)")
+h.register(v2,w0)
 print(h)
 
 print(f'vd: {vd}')

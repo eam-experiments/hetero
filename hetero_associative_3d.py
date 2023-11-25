@@ -45,9 +45,6 @@ class HeteroAssociativeMemory3D:
         
         # The value of _top depends on the hash function to be used.
         self._top = self.m * self.q
-        # Additional attributes used for hashing.
-        self._mbase = self.q if self.m > self.q else 1
-        self._qbase = 1 if self.m > self.q else self.m
 
         self.xi = es.xi
         self.sigma = es.sigma
@@ -116,11 +113,14 @@ class HeteroAssociativeMemory3D:
     def rel_string(self):
         return self.relation_to_string(self.relation)
 
-    def hash(self, a, b, dim = 0):
-        return a*self._mbase + b*self._qbase if dim == 0 else a*self._qbase + b*self._mbase
+    def hash(self, a, b):
+        return a*self.q + b if self.m > self.q else b*self.m + a
     
     def dehash(self, k, dim):
-        return int(k/self._mbase) if dim == 0 else k % self._qbase
+        if self.m > self.q:
+            return int(k/self.q) if dim == 0 else k % self.q
+        else:
+            return k & self.m if dim == 0 else int(k/self.m)
     
     def alt(self, dim):
         return (dim + 1) % 2
@@ -196,9 +196,8 @@ class HeteroAssociativeMemory3D:
         projection = np.zeros((self.cols(self.alt(dim)), self._top), dtype=int)
         chosen = self.filter_relation(cue, weights, dim)
         for j in range(self.cols(self.alt(dim))):
-            for k in range(self._top):
-                w = np.sum(chosen[:, j, k] if dim == 0 else chosen[j, :, k])
-                projection[j, k] = w
+            w = np.sum(chosen[:, j, :] if dim == 0 else chosen[j, :, :], axis=0)
+            projection[j, :] = w[:self._top]
         return projection
 
     def filter_relation(self, cue, weights, dim):
@@ -212,8 +211,8 @@ class HeteroAssociativeMemory3D:
                 a = i if dim == 0 else j
                 b = j if dim == 0 else i
                 for k in range(self.rows(self.alt(dim))):
-                    idx = self.hash(value, k, dim)
-                chosen[a, b, idx] = self.relation[a, b, idx] * weight
+                    idx = self.hash(value, k) if dim == 0 else self.hash(k, value)
+                    chosen[a, b, idx] = self.relation[a, b, idx] * weight
         return chosen
 
     # Reduces a relation to a function

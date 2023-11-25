@@ -42,7 +42,7 @@ class HeteroAssociativeMemory4D:
         self._p = p
         self._q = q+1 # +1 to handle partial functions.
         self._xi = es.xi
-        self._absolute_max = 2**32 - 1
+        self._absolute_max = 2**16 - 1
         self._sigma = es.sigma
         self._iota = es.iota
         self._kappa = es.kappa
@@ -58,7 +58,6 @@ class HeteroAssociativeMemory4D:
             f'm: {self.m}, q: {self.q}, ' +
             f'xi: {self.xi}, iota: {self.iota}, ' +
             f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
-
 
     def __str__(self):
         return f'{{n: {self.n}, p: {self.p}, m: {self.m}, q: {self.q},\n{self.rel_string}}}'
@@ -240,7 +239,8 @@ class HeteroAssociativeMemory4D:
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
         projection = self.transform(projection)
-        recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) <= self._xi)
+        # If there is a column in the projection with only zeros, the cue is not recognized.
+        recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
@@ -249,7 +249,6 @@ class HeteroAssociativeMemory4D:
         else:
             r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, weights, projection, dim)
             weight = np.mean(weights)
-            recognized = (self._kappa*self.mean <= weight)
             r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, projection, iterations, dist_iters_mean
 
@@ -284,15 +283,14 @@ class HeteroAssociativeMemory4D:
             sum += self.calculate_distance(cue, cue_weights, p_io, dim)
             iterations += 1
             d = sum/iterations
-            if abs(d-distance) > 0.05*distance:
-                distance = d
-                n = 0
-            else:
-                n += 1
+            n = 0 if abs(d-distance) > 0.01*distance else n + 1
+            distance = d
         return d, iterations
 
     def calculate_distance(self, cue, cue_weights, p_io, dim):
         candidate, weights = self.reduce(p_io, dim)
+        candidate = np.array([t[0] if self.is_undefined(t[1], dim) else t[1]
+                              for t in zip(cue, candidate)])
         p = np.dot(cue_weights, weights)
         w = cue_weights*weights/p
         d = (cue-candidate)*w
@@ -316,6 +314,8 @@ class HeteroAssociativeMemory4D:
         first = True
         for i in range(cue.size):
             k = cue[i]
+            if self.is_undefined(k, dim):
+                continue
             w = cue.size*weights[i]/sum_weights
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
@@ -348,7 +348,7 @@ class HeteroAssociativeMemory4D:
         dist = column
         s = dist.sum()
         if s == 0:
-            return random.randrange(dist.size)
+            return self.undefined(dim)
         r = s*random.random()
         for j in range(dist.size):
             if r <= dist[j]:
@@ -375,7 +375,7 @@ class HeteroAssociativeMemory4D:
                 if total > 0:
                     matrix = relation/total
                 else:
-                    matrix = relation
+                    matrix = relation.copy()
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
         print(f'Entropy updated to mean = {np.mean(self._entropies)}, ' 
@@ -418,9 +418,10 @@ class HeteroAssociativeMemory4D:
         if cue.size != expected_length:
             raise ValueError('Invalid lenght of the input data. Expected' +
                     f'{expected_length} and given {cue.size}')
+        threshold = self.rows(dim)
         undefined = self.undefined(dim)
         v = np.nan_to_num(cue, copy=True, nan=undefined)
-        v = np.where((v < 0) | (undefined < v), undefined, v)
+        v = np.where((v < 0) | (threshold <= v), undefined, v)
         v = v.round()
         return v.astype('int')
 

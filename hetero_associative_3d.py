@@ -42,14 +42,14 @@ class HeteroAssociativeMemory3D:
         self.m = m
         self.p = p
         self.q = q
-        self.absolute_max = 2**32 - 1
+        # The value of _top depends on the hash function to be used.
+        self._top = self.m + self.q
         self.xi = es.xi
         self.sigma = es.sigma
         self.iota = es.iota
         self.kappa = es.kappa
-        self._top = self.m + self.q
-        self.relation = np.zeros((self.n, self.p, self._top, self.n_vars), dtype=int)
-        self._iota_relation = np.zeros((self.n, self.p, self._top, self.n_vars), dtype=int)
+        self.relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=float)
+        self._iota_relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=float)
         self._entropies = np.zeros((self.n, self.p), dtype=np.double)
         self._means = np.zeros((self.n, self.p), dtype=np.double)
         self._updated = True
@@ -132,6 +132,13 @@ class HeteroAssociativeMemory3D:
     def rel_string(self):
         return self.relation_to_string(self.relation)
 
+    def hash(self, a, b):
+        x = a + b
+        L = self._top
+        k = 10
+        x0 = 0.5
+        return int(L / (1 + np.exp(-k*(x/L - x0))))
+
     def alt(self, dim):
         return (dim + 1) % 2
 
@@ -156,12 +163,12 @@ class HeteroAssociativeMemory3D:
             weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
             weights_b = np.full(len(cue_b), fill_value=1)
-        recognized, weights = self._recog(cue_a, cue_b, weights_a, weights_b, final = False)
+        recognized, weights = self.recog_full_weights(cue_a, cue_b, weights_a, weights_b, final = False)
         weight = np.mean(weights)
         recognized = recognized and (self.kappa*self.mean <= weight)
         return recognized, weight
 
-    def _recog(self, cue_a, cue_b, weights_a, weights_b, final = True):
+    def recog_full_weights(self, cue_a, cue_b, weights_a, weights_b, final = True):
         cue_a = self.validate(cue_a, 0)
         cue_b = self.validate(cue_b, 1)
         r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
@@ -187,31 +194,32 @@ class HeteroAssociativeMemory3D:
         projection = self.project(cue, weights, dim)
         projection = self.transform(projection)
         projection_weights = np.sum(projection[:,:,self.w_index], axis=1)
-        recognized = (np.count_nonzero(projection_weights == 0) <= self.xi)
+        # If there is a column in the projection with only zeros, the cue is not recognized.
+        recognized = (np.count_nonzero(projection_weights == 0) == 0)
         r_io, r_io_weights = self.reduce(projection, self.alt(dim))
         r_io_w = np.mean(r_io_weights)
-        recognized = recognized and (self.kappa*self.mean <= r_io_w)
         r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, r_io_w, projection
+        return r_io, recognized, r_io_w, projection[:,:, self.w_index], 0, 0.0
 
     def abstract(self, r_io):
-        self.relation[:, :, :, self.w_index] = np.where(
-            self.relation[:, :, :, self.w_index] == self.absolute_max,
-            self.relation[:, :, :, self.w_index], self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index])
         for i in [self.a_index, self.b_index]:
-            self.relation[:, :, :, i] = (self.relation[:, :, :, self.w_index]-r_io[:, :, :, self.w_index])\
-                / np.where(self.relation[:, :, :, self.w_index] == 0, 1, self.relation[:, :, :, self.w_index]) \
+            self.relation[:, :, :, i] = self.relation[:, :, :, self.w_index] \
+                / np.where((self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]) == 0, 1,
+                           self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]) \
                     * self.relation[:, :, :, i] \
-                        + (r_io[:, :, :, i]*r_io[:, :, :, self.w_index]) / \
-                            np.where(self.relation[:, :, :, self.w_index] == 0, 1, self.relation[:, :, :, self.w_index])
+                        / np.where(self.relation[:, :, :, self.w_index] == 0, 1, self.relation[:, :, :, self.w_index]) \
+                        + (r_io[:, :, :, self.w_index]*r_io[:, :, :, i]) \
+                            / np.where((self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]) == 0, 1,
+                                self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index])
+        self.relation[:, :, :, self.w_index] = self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]
         self._updated = False
 
     def containment(self, r_io):
-        c = np.where((r_io[:, :, :, self.w_index] == 0) | (self.iota_relation[:, :, :, self.w_index] != 0),1,0)
+        c = np.where((r_io[:, :, :self._top, self.w_index] == 0) | (self.iota_relation[:, :, :self._top, self.w_index] != 0),1,0)
         return(c)
 
     def project(self, cue, weights, dim):
-        projection = np.zeros((self.cols(self.alt(dim)), self._top, self.n_vars), dtype=int)
+        projection = np.zeros((self.cols(self.alt(dim)), self._top, self.n_vars), dtype=float)
         chosen = self.filter_relation(cue, weights, dim)
         alt_index = self.b_index if dim == 0 else self.a_index
         for j in range(self.cols(self.alt(dim))):
@@ -220,33 +228,39 @@ class HeteroAssociativeMemory3D:
                 w = np.sum(chosen[:, j, k, self.w_index] if dim == 0 else chosen[j, :, k, self.w_index])
                 n = np.count_nonzero(chosen[:, j, k, self.w_index] if dim == 0 else chosen[j, :, k, self.w_index])
                 projection[j, k, alt_index] = v if n == 0 else round(v/n)
-                projection[j, k, self.w_index] = w if n == 0 else round(w/n)
+                projection[j, k, self.w_index] = w if n == 0 else w/n
         return projection
 
     def filter_relation(self, cue, weights, dim):
-        chosen = np.zeros(self.relation.shape, dtype=int)
+        chosen = np.zeros(self.relation.shape, dtype=float)
         the_index = self.a_index if dim == 0 else self.b_index
         alt_index = self.b_index if dim == 0 else self.a_index
         for i in range(self.cols(dim)):
             value = cue[i]
+            if self.is_undefined(value):
+                continue
             alt_cols = [*range(self.cols(self.alt(dim)))]
             random.shuffle(alt_cols)
             for j in alt_cols:
                 a = i if dim == 0 else j
                 b = j if dim == 0 else i
-                distance = float('inf')
+                distance = 0
+                for k in range(self._top):
+                    v = self.iota_relation[a, b, k, the_index]
+                    if abs(value - v) > distance:
+                        distance = abs(value - v)
                 weight = 0
                 index = self._top
                 for k in range(self._top):
-                    v = self.relation[a, b, k, the_index]
-                    w = self.relation[a, b, k, self.w_index]
+                    v = self.iota_relation[a, b, k, the_index]
+                    w = self.iota_relation[a, b, k, self.w_index]
                     if (abs(value - v) < distance) or ((abs(value - v) == distance) and (weight < w)):
                         index = k
                         distance = abs(value - v)
                         weight = w
                 chosen[a, b, index, self.w_index] = weight
                 chosen[a, b, index, the_index] = value
-                chosen[a, b, index, alt_index] = self.relation[a, b, index, alt_index]
+                chosen[a, b, index, alt_index] = self.iota_relation[a, b, index, alt_index]
         return chosen
 
     # Reduces a relation to a function
@@ -289,12 +303,12 @@ class HeteroAssociativeMemory3D:
     def _update_entropies(self):
         for i in range(self.n):
             for j in range(self.p):
-                relation = self.relation[i, j, :, self.w_index]
+                relation = self.relation[i, j, :self._top, self.w_index]
                 total = np.sum(relation)
                 if total > 0:
                     matrix = relation/total
                 else:
-                    matrix = relation
+                    matrix = relation.copy()
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
         print(f'Entropy updated to mean = {np.mean(self._entropies)}, ' 
@@ -303,7 +317,7 @@ class HeteroAssociativeMemory3D:
     def _update_means(self):
         for i in range(self.n):
             for j in range(self.p):
-                r = self.relation[i, j, :, self.w_index]
+                r = self.relation[i, j, :self._top, self.w_index]
                 count = np.count_nonzero(r)
                 count = 1 if count == 0 else count
                 self._means[i,j] = np.sum(r)/count
@@ -311,7 +325,7 @@ class HeteroAssociativeMemory3D:
     def _update_iota_relation(self):
         for i in range(self.n):
             for j in range(self.p):
-                column = np.copy(self.relation[i, j, :, :])
+                column = self.relation[i, j, :, :].copy()
                 s = np.sum(column[:, self.w_index])
                 if s > 0:
                     count = np.count_nonzero(column[:, self.w_index])
@@ -335,30 +349,28 @@ class HeteroAssociativeMemory3D:
         if cue.size != expected_length:
             raise ValueError('Invalid lenght of the input data. Expected' +
                     f'{expected_length} and given {cue.size}')
-        if np.count_nonzero(np.isnan(cue)) > 0:
-            raise ValueError('This 3D model does not accept partial functions')
-        min = np.min(cue)
-        max = np.max(cue)
-        if min < 0:
-            raise ValueError(f'Value out of range: {min}')
-        if max >= self.rows(dim):
-            raise ValueError(f'Value out of range: {max}')
-        v = np.fix(cue)
+        threshold = self.rows(dim)
+        undefined = self.undefined
+        v = np.nan_to_num(cue, copy=True, nan=undefined)
+        v = np.where((v < 0) | (threshold <= v), undefined, v)
+        v = v.round()
         return v.astype('int')
-
+    
     def revalidate(self, memory, dim):
         v = np.where(memory == self.undefined, np.nan, memory)
         return v
 
     def vectors_to_relation(self, cue_a, cue_b, weights_a, weights_b):
-        relation = np.zeros((self.n, self.p, self._top, self.n_vars), dtype=int)
+        relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=float)
         for i in range(self.n):
             a = cue_a[i]
             for j in range(self.p):
                 b = cue_b[j]
-                k = a + b
+                if self.is_undefined(a) or self.is_undefined(b):
+                    continue
+                k = self.hash(a,b)
                 w = weights_a[i]*weights_b[j]
-                relation[i, j, k, self.w_index] = int(w)
+                relation[i, j, k, self.w_index] = w
                 relation[i, j, k, self.a_index] = a
                 relation[i, j, k, self.b_index] = b
         return relation
@@ -379,22 +391,10 @@ class HeteroAssociativeMemory3D:
             else self.logistic(r)
     
     def maximum(self, r):
-        q = np.zeros(r.shape, dtype=float)
-        for i in range(r.shape[0]):
-            c = r[i]
-            L = np.max(c)
-            q[i] = np.where(c == L, c, 0.0)
-        return q
-            
+        raise NameError('Method "maximum" is undefined')            
+
     def logistic(self, r):
-        q = np.zeros(r.shape, dtype=float)
-        for i in range(r.shape[0]):
-            c = r[i]
-            L = np.max(c)
-            k = 10
-            x0 = 0.5
-            q[i] = L / (1 + np.exp(-k*(c/L - x0)))
-        return q
+        raise NameError('Method "logistic" is undefined')            
 
     def get_random_string(self):
         # choose from all lowercase letter

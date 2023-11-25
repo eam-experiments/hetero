@@ -92,9 +92,14 @@ print(h)
 
 print(f'v1: {v1}')
 print(f'w1: {w1}')
-
 print("h.register(v1,w1)")
 h.register(v1,w1)
+print(h)
+
+print(f'v2: {v2}')
+print(f'w0: {w0}')
+print("h.register(v2,w0)")
+h.register(v2,w0)
 print(h)
 
 print(f'vd: {vd}')
@@ -198,17 +203,22 @@ if h.model_name == constants.d4_model_name:
 else:
     print(h.relation_to_string(r[3]))
 
+print(f'vu: {vu}')
+print('r = h.recall_from_left(vu)')
+r = h.recall_from_left(vu)
+print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+print('Projection:')
 if h.model_name == constants.d4_model_name:
-    print(f'vu: {vu}')
-    print('r = h.recall_from_left(vu)')
-    r = h.recall_from_left(vu)
-    print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-    print('Projection:')
     constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))
 
-    print(f'wn: {wn}')
-    print('r = h.recall_from_right(wn)')
-    r = h.recall_from_right(wn)
-    print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
-    print('Projection:')
+print(f'wn: {wn}')
+print('r = h.recall_from_right(wn)')
+r = h.recall_from_right(wn)
+print(f'vector: {r[0]}, recognized: {r[1]}, weight: {r[2]}')
+print('Projection:')
+if h.model_name == constants.d4_model_name:
     constants.print_csv(r[3])
+else:
+    print(h.relation_to_string(r[3]))

@@ -649,8 +649,7 @@ def check_hetero_memory(remembered_dataset,
     memories = []
     correct_labels = []
     recog_weights = []
-    unknown_hetero = 0
-    unknown_homo = 0
+    unknown = 0
     unknown_weights = []
     iterations = []
     print(f'Features shape: {testing_features.shape}')
@@ -658,24 +657,15 @@ def check_hetero_memory(remembered_dataset,
     print('Checking ', end='')
     counter = 0
     for features, cue, label in zip(testing_features, testing_cues, testing_labels):
-        _, recognized, weight, relation, iters = recall(features)
+        memory, recognized, weight, relation, iters, _ = recall(features)
         if iters > 0:
             iterations.append(iters)
         if recognized:
-            n, m = relation.shape
-            params = constants.ExperimentSettings(sigma=0.1)
-            homo = AssociativeMemory(n, m, params, relation)
-            memory, recognized, weight = homo.recall(cue)
-            if recognized:
-                memories.append(memory)
-                correct_labels.append(label)
-                recog_weights.append(weight)
-            else:
-                unknown_homo += 1
-                confrix[label, constants.n_labels] += 1
-                unknown_weights.append(weight)
+            memories.append(memory)
+            correct_labels.append(label)
+            recog_weights.append(weight)
         else:
-            unknown_hetero += 1
+            unknown += 1
             confrix[label, constants.n_labels] += 1
             unknown_weights.append(weight)
         counter += 1
@@ -686,9 +676,7 @@ def check_hetero_memory(remembered_dataset,
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
     print(f'Iterations: total = {iter_total}' + 
           f'mean = {iter_mean}, stdev = {iter_stdv}')
-    print(f'Not recognized by hetero memory: {unknown_hetero}')
-    print(f'Not recognized by homo memory: {unknown_homo}')
-    unknown = unknown_homo + unknown_hetero
+    print(f'Not recognized by hetero memory: {unknown}')
     correct_weights = []
     incorrect_weights = []
     print('Validating ', end='')

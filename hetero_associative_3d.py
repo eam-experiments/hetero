@@ -42,14 +42,16 @@ class HeteroAssociativeMemory3D:
         self.m = m
         self.p = p
         self.q = q
+        
         # The value of _top depends on the hash function to be used.
-        self._top = self.m + self.q
+        self._top = self.m * self.q
+
         self.xi = es.xi
         self.sigma = es.sigma
         self.iota = es.iota
         self.kappa = es.kappa
-        self.relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=float)
-        self._iota_relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=float)
+        self.relation = np.zeros((self.n, self.p, self._top+1), dtype=int)
+        self._iota_relation = np.zeros((self.n, self.p, self._top+1), dtype=int)
         self._entropies = np.zeros((self.n, self.p), dtype=np.double)
         self._means = np.zeros((self.n, self.p), dtype=np.double)
         self._updated = True
@@ -67,27 +69,6 @@ class HeteroAssociativeMemory3D:
         return constants.d3_model_name
     
     @property
-    def n_vars(self):
-        return 3
-    
-    @property
-    def w_index(self):
-        return 0
-    
-    @property
-    def v_index(self):
-        """Index of value in the projection."""
-        return 1
-    
-    @property
-    def a_index(self):
-        return 1
-    
-    @property
-    def b_index(self):
-        return 2
-    
-    @property
     def undefined(self):
         return self._top
     
@@ -95,26 +76,26 @@ class HeteroAssociativeMemory3D:
         return value == self.undefined
     
     @property
+    def entropy(self):
+        """Return the entropy of the Hetero Associative Memory."""
+        return np.mean(self.entropies)
+
+    @property
     def entropies(self):
         if not self._updated:
             self._updated = self.update()
         return self._entropies
 
     @property
-    def entropy(self):
-        """Return the entropy of the Hetero Associative Memory."""
-        return np.mean(self.entropies)
+    def mean(self):
+        """Return the mean of the weights in the Hetero Associative Memory"""
+        return np.mean(self.means)
 
     @property
     def means(self):
         if not self._updated:
             self._updated = self.update()
         return self._means
-
-    @property
-    def mean(self):
-        """Return the mean of the weights in the Hetero Associative Memory"""
-        return np.mean(self.means)
 
     @property
     def iota_relation(self):
@@ -124,21 +105,23 @@ class HeteroAssociativeMemory3D:
 
     @property
     def fullness(self):
-        count = np.count_nonzero(self.relation[:, :, :, self.w_index])
+        count = np.count_nonzero(self.relation[:, :, :self._top])
         total = self.n*self.p*self._top
-        return count*1.0/total
+        return count/total
     
     @property
     def rel_string(self):
         return self.relation_to_string(self.relation)
 
     def hash(self, a, b):
-        x = a + b
-        L = self._top
-        k = 10
-        x0 = 0.5
-        return int(L / (1 + np.exp(-k*(x/L - x0))))
-
+        return a*self.q + b if self.m > self.q else b*self.m + a
+    
+    def dehash(self, k, dim):
+        if self.m > self.q:
+            return int(k/self.q) if dim == 0 else k % self.q
+        else:
+            return k & self.m if dim == 0 else int(k/self.m)
+    
     def alt(self, dim):
         return (dim + 1) % 2
 
@@ -173,7 +156,8 @@ class HeteroAssociativeMemory3D:
         cue_b = self.validate(cue_b, 1)
         r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
         implication = self.containment(r_io)
-        recognized = np.count_nonzero(implication == 0) <= self.xi
+        misses = np.count_nonzero(implication == 0)
+        recognized = misses <= self.xi
         weights = self._weights(r_io)
         if final:
             recognized = recognized and (self.kappa*self.mean <= np.mean(weights))
@@ -193,74 +177,93 @@ class HeteroAssociativeMemory3D:
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
         projection = self.transform(projection)
-        projection_weights = np.sum(projection[:,:,self.w_index], axis=1)
         # If there is a column in the projection with only zeros, the cue is not recognized.
-        recognized = (np.count_nonzero(projection_weights == 0) == 0)
-        r_io, r_io_weights = self.reduce(projection, self.alt(dim))
-        r_io_w = np.mean(r_io_weights)
-        r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, r_io_w, projection[:,:, self.w_index], 0, 0.0
+        recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
+        if not recognized:
+            r_io = self.undefined_function(self.alt(dim))
+            weight = 0.0
+            iterations = 0
+            dist_iters_mean = 0
+        else:
+            r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, weights, projection, dim)
+            weight = np.mean(weights)
+            r_io = self.revalidate(r_io, self.alt(dim))
+        return r_io, recognized, weight, projection, iterations, dist_iters_mean
+
+    def optimal_recall(self, cue, cue_weights, projection, dim):
+        r_io = None
+        weights = None
+        distance = float('inf')
+        iterations = 0
+        iter_sum = 0
+        n = 0
+        while n < constants.n_sims:
+            q_io, q_ws = self.reduce(projection, self.alt(dim))
+            d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            if d < distance:
+                r_io = q_io
+                weights = q_ws
+                distance = d
+                n = 0
+            else:
+                n += 1
+            iterations += 1
+            iter_sum += iters
+        return r_io, weights, iterations, iter_sum/iterations
+
+    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
+        p_io = self.project(q_io, q_ws, self.alt(dim))
+        sum = self.calculate_distance(cue, cue_weights, p_io, dim)
+        distance = sum
+        iterations = 1
+        n = 0
+        while n < constants.dist_estims:
+            sum += self.calculate_distance(cue, cue_weights, p_io, dim)
+            iterations += 1
+            d = sum/iterations
+            n = 0 if abs(d-distance) > 0.01*distance else n + 1
+            distance = d
+        return d, iterations
+
+    def calculate_distance(self, cue, cue_weights, p_io, dim):
+        candidate, weights = self.reduce(p_io, dim)
+        candidate = np.array([t[0] if self.is_undefined(t[1], dim) else t[1]
+                              for t in zip(cue, candidate)])
+        p = np.dot(cue_weights, weights)
+        w = cue_weights*weights/p
+        d = (cue-candidate)*w
+        # We are not using weights in calculating distances.
+        return np.linalg.norm(d)
 
     def abstract(self, r_io):
-        for i in [self.a_index, self.b_index]:
-            self.relation[:, :, :, i] = self.relation[:, :, :, self.w_index] \
-                / np.where((self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]) == 0, 1,
-                           self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]) \
-                    * self.relation[:, :, :, i] \
-                        / np.where(self.relation[:, :, :, self.w_index] == 0, 1, self.relation[:, :, :, self.w_index]) \
-                        + (r_io[:, :, :, self.w_index]*r_io[:, :, :, i]) \
-                            / np.where((self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]) == 0, 1,
-                                self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index])
-        self.relation[:, :, :, self.w_index] = self.relation[:, :, :, self.w_index] + r_io[:, :, :, self.w_index]
+        self.relation = self.relation + r_io
         self._updated = False
 
     def containment(self, r_io):
-        c = np.where((r_io[:, :, :self._top, self.w_index] == 0) | (self.iota_relation[:, :, :self._top, self.w_index] != 0),1,0)
+        c = np.where((r_io[:, :, :self._top] == 0) | (self.iota_relation[:, :, :self._top] != 0),1,0)
         return(c)
 
     def project(self, cue, weights, dim):
-        projection = np.zeros((self.cols(self.alt(dim)), self._top, self.n_vars), dtype=float)
+        projection = np.zeros((self.cols(self.alt(dim)), self._top), dtype=int)
         chosen = self.filter_relation(cue, weights, dim)
-        alt_index = self.b_index if dim == 0 else self.a_index
         for j in range(self.cols(self.alt(dim))):
-            for k in range(self._top):
-                v = np.sum(chosen[:, j, k, self.b_index] if dim == 0 else chosen[j, :, k, self.a_index])
-                w = np.sum(chosen[:, j, k, self.w_index] if dim == 0 else chosen[j, :, k, self.w_index])
-                n = np.count_nonzero(chosen[:, j, k, self.w_index] if dim == 0 else chosen[j, :, k, self.w_index])
-                projection[j, k, alt_index] = v if n == 0 else round(v/n)
-                projection[j, k, self.w_index] = w if n == 0 else w/n
+            w = np.sum(chosen[:, j, :] if dim == 0 else chosen[j, :, :], axis=0)
+            projection[j, :] = w[:self._top]
         return projection
 
     def filter_relation(self, cue, weights, dim):
         chosen = np.zeros(self.relation.shape, dtype=float)
-        the_index = self.a_index if dim == 0 else self.b_index
-        alt_index = self.b_index if dim == 0 else self.a_index
         for i in range(self.cols(dim)):
             value = cue[i]
+            weight = weights[i]
             if self.is_undefined(value):
                 continue
-            alt_cols = [*range(self.cols(self.alt(dim)))]
-            random.shuffle(alt_cols)
-            for j in alt_cols:
+            for j in range(self.cols(self.alt(dim))):
                 a = i if dim == 0 else j
                 b = j if dim == 0 else i
-                distance = 0
-                for k in range(self._top):
-                    v = self.iota_relation[a, b, k, the_index]
-                    if abs(value - v) > distance:
-                        distance = abs(value - v)
-                weight = 0
-                index = self._top
-                for k in range(self._top):
-                    v = self.iota_relation[a, b, k, the_index]
-                    w = self.iota_relation[a, b, k, self.w_index]
-                    if (abs(value - v) < distance) or ((abs(value - v) == distance) and (weight < w)):
-                        index = k
-                        distance = abs(value - v)
-                        weight = w
-                chosen[a, b, index, self.w_index] = weight
-                chosen[a, b, index, the_index] = value
-                chosen[a, b, index, alt_index] = self.iota_relation[a, b, index, alt_index]
+                for k in range(self.rows(self.alt(dim))):
+                    idx = self.hash(value, k) if dim == 0 else self.hash(k, value)
+                    chosen[a, b, idx] = self.relation[a, b, idx] * weight
         return chosen
 
     # Reduces a relation to a function
@@ -272,26 +275,21 @@ class HeteroAssociativeMemory3D:
         return v, w
 
     
-    def choose(self, column, dim):
-        """Choose a value from the column.
-        
-        It assumes the column as a probabilistic distribution.
-        """
-        dist = column
-        s = dist[:, self.w_index].sum()
+    def choose(self, distribution, dim):
+        """Choose a value from a probability distribution"""
+        s = distribution.sum()
         if s == 0:
-            return random.randrange(dist.size), 0
+            return self.dehash(random.randrange(distribution.size), dim), 0
         r = s*random.random()
-        index = self.a_index if dim == 0 else self.b_index
-        for j in range(dist.shape[0]):
-            if r <= dist[j, self.w_index]:
-                return dist[j, index], dist[j, self.w_index]
-            r -= dist[j, self.w_index]
+        for j in range(self._top):
+            if r <= distribution[j]:
+                return self.dehash(j, dim), distribution[j]
+            r -= distribution[j]
         return self.undefined, 0
 
     def _weights(self, r_io):
         r = r_io*np.count_nonzero(r_io)/np.sum(r_io)
-        weights = np.sum(r[:, :, :, self.w_index] * self.relation[:, :, :, self.w_index], axis=2)
+        weights = np.sum(r * self.relation, axis=2)
         return weights
         
     def update(self):
@@ -303,12 +301,12 @@ class HeteroAssociativeMemory3D:
     def _update_entropies(self):
         for i in range(self.n):
             for j in range(self.p):
-                relation = self.relation[i, j, :self._top, self.w_index]
-                total = np.sum(relation)
+                r = self.relation[i, j, :self._top]
+                total = np.sum(r)
                 if total > 0:
-                    matrix = relation/total
+                    matrix = r/total
                 else:
-                    matrix = relation.copy()
+                    matrix = r.copy()
                 matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
                 self._entropies[i, j] = np.sum(matrix)
         print(f'Entropy updated to mean = {np.mean(self._entropies)}, ' 
@@ -317,7 +315,7 @@ class HeteroAssociativeMemory3D:
     def _update_means(self):
         for i in range(self.n):
             for j in range(self.p):
-                r = self.relation[i, j, :self._top, self.w_index]
+                r = self.relation[i, j, :self._top]
                 count = np.count_nonzero(r)
                 count = 1 if count == 0 else count
                 self._means[i,j] = np.sum(r)/count
@@ -325,15 +323,14 @@ class HeteroAssociativeMemory3D:
     def _update_iota_relation(self):
         for i in range(self.n):
             for j in range(self.p):
-                column = self.relation[i, j, :, :].copy()
-                s = np.sum(column[:, self.w_index])
+                column = self.relation[i, j, :].copy()
+                s = np.sum(column)
                 if s > 0:
-                    count = np.count_nonzero(column[:, self.w_index])
+                    count = np.count_nonzero(column)
                     threshold = self.iota*s/count
-                    column[:, self.w_index] = np.where(column[:,self.w_index] < threshold, 0, column[:, self.w_index])
-                self._iota_relation[i, j, :, :] = column
-        turned_off = np.count_nonzero(
-            self.relation[:, :, :, self.w_index]) - np.count_nonzero(self._iota_relation[:, :, :, self.w_index])
+                    column= np.where(column < threshold, 0, column)
+                self._iota_relation[i, j, :] = column
+        turned_off = np.count_nonzero(self.relation) - np.count_nonzero(self._iota_relation)
         print(f'Iota relation updated, and {turned_off} cells have been turned off')
 
     def validate(self, cue, dim):
@@ -361,7 +358,7 @@ class HeteroAssociativeMemory3D:
         return v
 
     def vectors_to_relation(self, cue_a, cue_b, weights_a, weights_b):
-        relation = np.zeros((self.n, self.p, self._top+1, self.n_vars), dtype=float)
+        relation = np.zeros((self.n, self.p, self._top+1), dtype=int)
         for i in range(self.n):
             a = cue_a[i]
             for j in range(self.p):
@@ -370,9 +367,7 @@ class HeteroAssociativeMemory3D:
                     continue
                 k = self.hash(a,b)
                 w = weights_a[i]*weights_b[j]
-                relation[i, j, k, self.w_index] = w
-                relation[i, j, k, self.a_index] = a
-                relation[i, j, k, self.b_index] = b
+                relation[i, j, k] = w
         return relation
 
     def relation_to_string(self, a, p = ''):

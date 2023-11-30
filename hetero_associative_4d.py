@@ -258,17 +258,16 @@ class HeteroAssociativeMemory4D:
         distance = float('inf')
         iterations = 0
         iter_sum = 0
-        n = 0
-        while n < constants.n_sims:
-            q_io, q_ws = self.reduce(projection, self.alt(dim))
+        r_io, weights = self.reduce(projection, self.alt(dim))
+        for k in range(constants.n_sims):
+            s = self.rows(self.alt(dim)) * self.sigma * (1 - k/constants.n_sims)
+            s_projection = self.adjust(projection, r_io, s)
+            q_io, q_ws = self.reduce(s_projection, self.alt(dim))
             d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
-                n = 0
-            else:
-                n += 1
             iterations += 1
             iter_sum += iters
         return r_io, weights, iterations, iter_sum/iterations
@@ -356,6 +355,17 @@ class HeteroAssociativeMemory4D:
             r -= dist[j]
         return self.undefined(dim)
 
+    def adjust(self, projection, cue, s):
+        s_projection = []
+        for column, mean in zip(projection, cue):
+            adjusted = self.ponderate(column, mean, s)
+            s_projection.append(adjusted)
+        return np.array(s_projection)
+
+    def ponderate(self, column, mean, s):
+        norm = np.array([self.normpdf(i, mean, s) for i in column.size])
+        return norm*column
+    
     def _weights(self, r_io):
         r = r_io*np.count_nonzero(r_io)/np.sum(r_io)
         weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
@@ -481,3 +491,10 @@ class HeteroAssociativeMemory4D:
             x0 = 0.5
             q[i] = L / (1 + np.exp(-k*(c/L - x0)))
         return q
+    
+    def normpdf(self, x, mean, sd):
+        var = float(sd)**2
+        denom = (2*math.pi*var)**.5
+        num = math.exp(-(float(x)-float(mean))**2/(2*var))
+        return num/denom
+

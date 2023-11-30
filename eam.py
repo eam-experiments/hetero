@@ -658,7 +658,7 @@ def check_hetero_memory(remembered_dataset,
     print('Checking ', end='')
     counter = 0
     for features, cue, label in zip(testing_features, testing_cues, testing_labels):
-        _, recognized, weight, relation, iters = recall(features)
+        _, recognized, weight, relation, iters, _ = recall(features)
         if iters > 0:
             iterations.append(iters)
         if recognized:

@@ -156,7 +156,8 @@ class HeteroAssociativeMemory3D:
         cue_b = self.validate(cue_b, 1)
         r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
         implication = self.containment(r_io)
-        recognized = np.count_nonzero(implication == 0) <= self.xi
+        misses = np.count_nonzero(implication == 0)
+        recognized = misses <= self.xi
         weights = self._weights(r_io)
         if final:
             recognized = recognized and (self.kappa*self.mean <= np.mean(weights))
@@ -176,13 +177,63 @@ class HeteroAssociativeMemory3D:
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
         projection = self.transform(projection)
-        projection_weights = np.sum(projection, axis=1)
         # If there is a column in the projection with only zeros, the cue is not recognized.
-        recognized = (np.count_nonzero(projection_weights == 0) == 0)
-        r_io, r_io_weights = self.reduce(projection, self.alt(dim))
-        r_io_w = np.mean(r_io_weights)
-        r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, r_io_w, projection, 0, 0.0
+        recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
+        if not recognized:
+            r_io = self.undefined_function(self.alt(dim))
+            weight = 0.0
+            iterations = 0
+            dist_iters_mean = 0
+        else:
+            r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, weights, projection, dim)
+            weight = np.mean(weights)
+            r_io = self.revalidate(r_io, self.alt(dim))
+        return r_io, recognized, weight, projection, iterations, dist_iters_mean
+
+    def optimal_recall(self, cue, cue_weights, projection, dim):
+        r_io = None
+        weights = None
+        distance = float('inf')
+        iterations = 0
+        iter_sum = 0
+        n = 0
+        while n < constants.n_sims:
+            q_io, q_ws = self.reduce(projection, self.alt(dim))
+            d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            if d < distance:
+                r_io = q_io
+                weights = q_ws
+                distance = d
+                n = 0
+            else:
+                n += 1
+            iterations += 1
+            iter_sum += iters
+        return r_io, weights, iterations, iter_sum/iterations
+
+    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
+        p_io = self.project(q_io, q_ws, self.alt(dim))
+        sum = self.calculate_distance(cue, cue_weights, p_io, dim)
+        distance = sum
+        iterations = 1
+        n = 0
+        while n < constants.dist_estims:
+            sum += self.calculate_distance(cue, cue_weights, p_io, dim)
+            iterations += 1
+            d = sum/iterations
+            n = 0 if abs(d-distance) > 0.01*distance else n + 1
+            distance = d
+        return d, iterations
+
+    def calculate_distance(self, cue, cue_weights, p_io, dim):
+        candidate, weights = self.reduce(p_io, dim)
+        candidate = np.array([t[0] if self.is_undefined(t[1], dim) else t[1]
+                              for t in zip(cue, candidate)])
+        p = np.dot(cue_weights, weights)
+        w = cue_weights*weights/p
+        d = (cue-candidate)*w
+        # We are not using weights in calculating distances.
+        return np.linalg.norm(d)
 
     def abstract(self, r_io):
         self.relation = self.relation + r_io

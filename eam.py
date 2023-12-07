@@ -2036,7 +2036,7 @@ if __name__ == "__main__":
     print(f'Experimental settings: {exp_settings}')
 
     # PROCESSING OF MAIN OPTIONS.
-
+    random.seed(0)
     if args['-n']:
         _dataset = args['<dataset>']
         if _dataset in constants.datasets:

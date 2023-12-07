@@ -363,7 +363,7 @@ class HeteroAssociativeMemory4D:
         return np.array(s_projection)
 
     def ponderate(self, column, mean, s):
-        norm = np.array([self.normpdf(i, mean, s) for i in column.size])
+        norm = np.array([self.normpdf(i, mean, s)/self.normpdf(0, 0, s) for i in range(column.size)])
         return norm*column
     
     def _weights(self, r_io):

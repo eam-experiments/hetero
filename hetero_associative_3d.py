@@ -227,7 +227,7 @@ class HeteroAssociativeMemory3D:
 
     def calculate_distance(self, cue, cue_weights, p_io, dim):
         candidate, weights = self.reduce(p_io, dim)
-        candidate = np.array([t[0] if self.is_undefined(t[1], dim) else t[1]
+        candidate = np.array([t[0] if self.is_undefined(t[1]) else t[1]
                               for t in zip(cue, candidate)])
         p = np.dot(cue_weights, weights)
         w = cue_weights*weights/p

@@ -17,7 +17,7 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r | -v | -w)
+  eam --dims=N (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r | -v | -w)
     [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
@@ -30,9 +30,10 @@ Options:
   -r    Evaluation of hetero-recalling.
   -v    Validation of hetero-recalling using filling data (easier).
   -w    Validation of hetero-recalling using testing data (harder).
+  --dims=N         Dimensions of the model (either 3 or 4)
   --relsmean=MEAN   Average number of relations per data element.
   --relsstdv=STDV   Standard deviation of the number of relations per data element.
-  --runpath=PATH   Path to directory where everything will be saved [default: runs]
+  --runpath=PATH    Path to directory where everything will be saved [default: runs]
   -l        Chooses Language for graphs.
 """
 
@@ -48,15 +49,24 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn
 import tensorflow as tf
-from docopt import docopt
 import png
+from docopt import docopt, DocoptExit
+# This disables importation of this file but allows selection of model
+args = docopt(__doc__)
 import constants
 import dataset as ds
 import neural_net
-from associative import AssociativeMemory
-from hetero_associative_4d import HeteroAssociativeMemory4D as HeteroAssociativeMemory
-# from hetero_associative_3d import HeteroAssociativeMemory3D as HeteroAssociativeMemory
 from custom_set import CustomSet
+from associative import AssociativeMemory
+
+dims = int(args['--dims'])
+if dims == 3:
+    from hetero_associative_3d import HeteroAssociativeMemory3D as HeteroAssociativeMemory
+elif dims == 4:
+    from hetero_associative_4d import HeteroAssociativeMemory4D as HeteroAssociativeMemory
+else:
+    raise DocoptExit('Invalid number of dimensions (only 3 or 4 are accepted)')
+
 
 sys.setrecursionlimit(10000)
 

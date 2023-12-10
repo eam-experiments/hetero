@@ -392,7 +392,7 @@ def json_filename(name_prefix, es):
 def pickle_filename(name_prefix, es = None, fold = None):
     return filename(name_prefix, es, fold, '.pkl')
 
-def picture_filename(name_prefix, es, fold = None):
+def picture_filename(name_prefix, es = None, fold = None):
     return filename(name_prefix, es, fold, extension='.svg')
 
 def image_filename(prefix, idx, label, suffix = '', es = None, fold = None):

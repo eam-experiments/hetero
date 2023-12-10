@@ -54,7 +54,7 @@ class HeteroAssociativeMemory4D:
         # In order to accept partial functions, the borders (_m-1 and _q-1)
         # should not be zero.
         self._set_margins()
-        print(f'Relational memory {{n: {self.n}, p: {self.p}, ' +
+        print(f'Relational memory {self.model_name} {{n: {self.n}, p: {self.p}, ' +
             f'm: {self.m}, q: {self.q}, ' +
             f'xi: {self.xi}, iota: {self.iota}, ' +
             f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')

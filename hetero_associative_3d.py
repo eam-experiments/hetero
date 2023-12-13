@@ -197,19 +197,22 @@ class HeteroAssociativeMemory3D:
         iterations = 0
         iter_sum = 0
         n = 0
-        while n < constants.n_sims:
-            q_io, q_ws = self.reduce(projection, self.alt(dim))
-            d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-            if d < distance:
-                r_io = q_io
-                weights = q_ws
-                distance = d
-                n = 0
-            else:
-                n += 1
-            iterations += 1
-            iter_sum += iters
-        return r_io, weights, iterations, iter_sum/iterations
+        if not constants.d3_with_distance:
+            r_io, weights = self.reduce(projection, self.alt(dim))
+        else:        
+            while n < constants.n_sims:
+                q_io, q_ws = self.reduce(projection, self.alt(dim))
+                d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+                if d < distance:
+                    r_io = q_io
+                    weights = q_ws
+                    distance = d
+                    n = 0
+                else:
+                    n += 1
+                iterations += 1
+                iter_sum += iters
+        return r_io, weights, iterations, iter_sum if iterations == 0 else iter_sum/iterations
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))

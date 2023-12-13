@@ -35,6 +35,8 @@ right_dataset = FASHION
 d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
 
+d3_with_distance = False
+
 n_sims = 30
 dist_estims = 30
 mean_matches = 1

@@ -35,6 +35,8 @@ right_dataset = FASHION
 d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
 
+d3_with_distance = False
+
 n_sims = 30
 dist_estims = 30
 mean_matches = 1
@@ -392,7 +394,7 @@ def json_filename(name_prefix, es):
 def pickle_filename(name_prefix, es = None, fold = None):
     return filename(name_prefix, es, fold, '.pkl')
 
-def picture_filename(name_prefix, es, fold = None):
+def picture_filename(name_prefix, es = None, fold = None):
     return filename(name_prefix, es, fold, extension='.svg')
 
 def image_filename(prefix, idx, label, suffix = '', es = None, fold = None):

@@ -255,13 +255,17 @@ class HeteroAssociativeMemory4D:
     def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
         weights = None
+        maximum = np.max(projection)
+        inverse = maximum - projection
+        step = 1.0 / constants.n_sims
         distance = float('inf')
         iterations = 0
         iter_sum = 0
         r_io, weights = self.reduce(projection, self.alt(dim))
-        for k in range(constants.n_sims):
-            s = self.rows(self.alt(dim)) * self.sigma * (1 - k/constants.n_sims)
-            s_projection = self.adjust(projection, r_io, s)
+        for alpha in np.arange(0.0, step, 1.0 + step):
+            current = projection + (1.0 - alpha) * inverse
+            s = self.rows(self.alt(dim)) * self.sigma
+            s_projection = self.adjust(current, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim))
             d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
@@ -356,6 +360,8 @@ class HeteroAssociativeMemory4D:
         return self.undefined(dim)
 
     def adjust(self, projection, cue, s):
+        if cue is None:
+            return projection
         s_projection = []
         for column, mean in zip(projection, cue):
             adjusted = self.ponderate(column, mean, s)

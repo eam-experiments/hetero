@@ -75,6 +75,10 @@ class HeteroAssociativeMemory3D:
     def is_undefined(self, value):
         return value == self.undefined
     
+    def undefined_function(self, dim):
+        return np.full(self.cols(dim), self.undefined, dtype=int)
+
+    
     @property
     def entropy(self):
         """Return the entropy of the Hetero Associative Memory."""
@@ -393,9 +397,3 @@ class HeteroAssociativeMemory3D:
 
     def logistic(self, r):
         raise NameError('Method "logistic" is undefined')            
-
-    def get_random_string(self):
-        # choose from all lowercase letter
-        letters = string.ascii_lowercase
-        random_string = ''.join(random.choice(letters) for i in range(constants.random_string_length))
-        return random_string

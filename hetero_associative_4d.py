@@ -257,14 +257,14 @@ class HeteroAssociativeMemory4D:
         weights = None
         maximum = np.max(projection)
         inverse = maximum - projection
-        step = 1.0 / constants.n_sims
         distance = float('inf')
         iterations = 0
         iter_sum = 0
         r_io, weights = self.reduce(projection, self.alt(dim))
-        for alpha in np.arange(0.0, step, 1.0 + step):
-            current = projection + (1.0 - alpha) * inverse
-            s = self.rows(self.alt(dim)) * self.sigma
+        for alpha, beta in zip(np.linspace(1.0, 0.0, constants.n_sims),
+                               np.linspace(1.0, self.sigma, constants.n_sims)):
+            current = projection + alpha * inverse
+            s = self.rows(self.alt(dim)) * beta
             s_projection = self.adjust(current, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim))
             d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)

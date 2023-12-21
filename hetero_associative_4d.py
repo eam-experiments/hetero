@@ -349,8 +349,11 @@ class HeteroAssociativeMemory4D:
         It assumes the column as a probabilistic distribution.
         """
         s = column.sum()
-        if excluded is not None:
-            s -= column[excluded]
+        if (excluded is not None):
+            if s > column[excluded]:
+                s -= column[excluded]
+            else:
+                excluded = None
         if s == 0:
             return self.undefined(dim)
         r = s*random.random()

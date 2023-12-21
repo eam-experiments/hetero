@@ -255,18 +255,17 @@ class HeteroAssociativeMemory4D:
     def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
         weights = None
-        maximum = np.max(projection)
-        inverse = maximum - projection
         distance = float('inf')
         iterations = 0
         iter_sum = 0
+        p = 1.0
+        step = p / constants.n_sims
         r_io, weights = self.reduce(projection, self.alt(dim))
-        for alpha, beta in zip(np.linspace(1.0, 0.0, constants.n_sims),
-                               np.linspace(1.0, self.sigma, constants.n_sims)):
-            current = projection + alpha * inverse
+        for beta in np.linspace(1.0, self.sigma, constants.n_sims):
             s = self.rows(self.alt(dim)) * beta
-            s_projection = self.adjust(current, r_io, s)
-            q_io, q_ws = self.reduce(s_projection, self.alt(dim))
+            s_projection = self.adjust(projection, r_io, s)
+            excluded = self.random_exclusion(r_io, p)
+            q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
             d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
@@ -274,6 +273,7 @@ class HeteroAssociativeMemory4D:
                 distance = d
             iterations += 1
             iter_sum += iters
+            p -= step
         return r_io, weights, iterations, iter_sum/iterations
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
@@ -330,10 +330,11 @@ class HeteroAssociativeMemory4D:
         return integration
 
     # Reduces a relation to a function
-    def reduce(self, relation, dim):
+    def reduce(self, relation, dim, excluded = None):
         cols = self.cols(dim)
-        v = np.array([self.choose(column, dim)
-                for column in relation])
+        v = np.array([self.choose(column, dim) for column in relation]) \
+            if excluded is None else \
+                np.array([self.choose(column, dim, exc) for column, exc in zip(relation, excluded)])
         weights = []
         for i in range(cols):
             if self.is_undefined(v[i], dim):
@@ -342,21 +343,23 @@ class HeteroAssociativeMemory4D:
                 weights.append(relation[i, v[i]])
         return v, np.array(weights)
 
-
-    def choose(self, column, dim):
+    def choose(self, column, dim, excluded = None):
         """Choose a value from the column given a cue
         
         It assumes the column as a probabilistic distribution.
         """
-        dist = column
-        s = dist.sum()
+        s = column.sum()
+        if excluded is not None:
+            s -= column[excluded]
         if s == 0:
             return self.undefined(dim)
         r = s*random.random()
-        for j in range(dist.size):
-            if r <= dist[j]:
+        for j in range(column.size):
+            if (excluded is not None) and (j == excluded):
+                continue
+            if r <= column[j]:
                 return j
-            r -= dist[j]
+            r -= column[j]
         return self.undefined(dim)
 
     def adjust(self, projection, cue, s):
@@ -377,6 +380,13 @@ class HeteroAssociativeMemory4D:
         weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
         return weights
         
+    def random_exclusion(self, cue, p):
+        excluded = []
+        for v in cue:
+            r = random.random()
+            excluded.append(v if r < p else None)
+        return excluded
+
     def update(self):
         self._update_entropies()
         self._update_means()

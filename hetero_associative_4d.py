@@ -258,44 +258,36 @@ class HeteroAssociativeMemory4D:
         distance = float('inf')
         iterations = 0
         iter_sum = 0
-        n = 0
-        while n < constants.n_sims:
-            q_io, q_ws = self.reduce(projection, self.alt(dim))
+        p = 1.0
+        step = p / constants.n_sims
+        r_io, weights = self.reduce(projection, self.alt(dim))
+        for beta in np.linspace(1.0, self.sigma, constants.n_sims):
+            s = self.rows(self.alt(dim)) * beta
+            s_projection = self.adjust(projection, r_io, s)
+            excluded = self.random_exclusion(r_io, p)
+            q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
             d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
-                n = 0
-            else:
-                n += 1
             iterations += 1
             iter_sum += iters
+            p -= step
         return r_io, weights, iterations, iter_sum/iterations
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        sum = self.calculate_distance(cue, cue_weights, p_io, dim)
-        distance = sum
-        iterations = 1
-        n = 0
-        while n < constants.dist_estims:
-            sum += self.calculate_distance(cue, cue_weights, p_io, dim)
-            iterations += 1
-            d = sum/iterations
-            n = 0 if abs(d-distance) > 0.01*distance else n + 1
-            distance = d
-        return d, iterations
+        distance = self.calculate_distance(cue, cue_weights, p_io, dim)
+        return distance, 0
 
     def calculate_distance(self, cue, cue_weights, p_io, dim):
-        candidate, weights = self.reduce(p_io, dim)
-        candidate = np.array([t[0] if self.is_undefined(t[1], dim) else t[1]
-                              for t in zip(cue, candidate)])
-        p = np.dot(cue_weights, weights)
-        w = cue_weights*weights/p
-        d = (cue-candidate)*w
-        # We are not using weights in calculating distances.
-        return np.linalg.norm(d)
+        distance = 0.0
+        for v, w, column in zip(cue, cue_weights, p_io):
+            ps = column/np.sum(column)
+            d = np.dot(np.abs(np.arange(self.cols(dim))-v),ps)*w
+            distance += d
+        return distance / np.sum(cue_weights)
 
     def abstract(self, r_io):
         self._relation = np.where(
@@ -327,10 +319,11 @@ class HeteroAssociativeMemory4D:
         return integration
 
     # Reduces a relation to a function
-    def reduce(self, relation, dim):
+    def reduce(self, relation, dim, excluded = None):
         cols = self.cols(dim)
-        v = np.array([self.choose(column, dim)
-                for column in relation])
+        v = np.array([self.choose(column, dim) for column in relation]) \
+            if excluded is None else \
+                np.array([self.choose(column, dim, exc) for column, exc in zip(relation, excluded)])
         weights = []
         for i in range(cols):
             if self.is_undefined(v[i], dim):
@@ -339,28 +332,53 @@ class HeteroAssociativeMemory4D:
                 weights.append(relation[i, v[i]])
         return v, np.array(weights)
 
-
-    def choose(self, column, dim):
+    def choose(self, column, dim, excluded = None):
         """Choose a value from the column given a cue
         
         It assumes the column as a probabilistic distribution.
         """
-        dist = column
-        s = dist.sum()
+        s = column.sum()
+        if (excluded is not None):
+            if s > column[excluded]:
+                s -= column[excluded]
+            else:
+                excluded = None
         if s == 0:
             return self.undefined(dim)
         r = s*random.random()
-        for j in range(dist.size):
-            if r <= dist[j]:
+        for j in range(column.size):
+            if (excluded is not None) and (j == excluded):
+                continue
+            if r <= column[j]:
                 return j
-            r -= dist[j]
+            r -= column[j]
         return self.undefined(dim)
 
+    def adjust(self, projection, cue, s):
+        if cue is None:
+            return projection
+        s_projection = []
+        for column, mean in zip(projection, cue):
+            adjusted = self.ponderate(column, mean, s)
+            s_projection.append(adjusted)
+        return np.array(s_projection)
+
+    def ponderate(self, column, mean, s):
+        norm = np.array([self.normpdf(i, mean, s)/self.normpdf(0, 0, s) for i in range(column.size)])
+        return norm*column
+    
     def _weights(self, r_io):
         r = r_io*np.count_nonzero(r_io)/np.sum(r_io)
         weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
         return weights
         
+    def random_exclusion(self, cue, p):
+        excluded = []
+        for v in cue:
+            r = random.random()
+            excluded.append(v if r < p else None)
+        return excluded
+
     def update(self):
         self._update_entropies()
         self._update_means()
@@ -481,3 +499,10 @@ class HeteroAssociativeMemory4D:
             x0 = 0.5
             q[i] = L / (1 + np.exp(-k*(c/L - x0)))
         return q
+    
+    def normpdf(self, x, mean, sd):
+        var = float(sd)**2
+        denom = (2*math.pi*var)**.5
+        num = math.exp(-(float(x)-float(mean))**2/(2*var))
+        return num/denom
+

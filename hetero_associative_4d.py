@@ -278,7 +278,7 @@ class HeteroAssociativeMemory4D:
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        distance = self.calculate_distance(cue, cue_weights, p_io, self.alt(dim))
+        distance = self.calculate_distance(cue, cue_weights, p_io, dim)
         return distance, 0
 
     def calculate_distance(self, cue, cue_weights, projection, dim):

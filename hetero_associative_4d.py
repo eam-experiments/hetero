@@ -287,9 +287,9 @@ class HeteroAssociativeMemory4D:
         distance = float('inf')
         iterations = 0
         p = 1.0
-        step = p / constants.n_sims
+        step = p / constants.dist_estims
         r_io, weights = self.reduce(projection, dim)
-        for beta in np.linspace(1.0, self.sigma, constants.n_sims):
+        for beta in np.linspace(1.0, self.sigma, constants.dist_estims):
             s = self.rows(self.alt(dim)) * beta
             s_projection = self.adjust(projection, r_io, s)
             excluded = self.random_exclusion(r_io, p)
@@ -303,7 +303,7 @@ class HeteroAssociativeMemory4D:
             p -= step
         return distance
 
-    def distance_to_cue(cue, cue_weights, r_io, r_io_weights):
+    def distance_to_cue(self, cue, cue_weights, r_io, r_io_weights):
         s = 0.0
         for c, cw, r, rw in zip(cue, cue_weights, r_io, r_io_weights):
             s += abs(c - r)*cw*rw

@@ -255,7 +255,7 @@ class HeteroAssociativeMemory4D:
     def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
         weights = None
-        distance = float('inf')
+        similarity = 0.0
         iterations = 0
         iter_sum = 0
         p = 1.0
@@ -266,28 +266,29 @@ class HeteroAssociativeMemory4D:
             s_projection = self.adjust(projection, r_io, s)
             excluded = self.random_exclusion(r_io, p)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-            if d < distance:
+            sim, iters = self.similarity_recall(cue, cue_weights, q_io, q_ws, dim)
+            if sim > similarity:
                 r_io = q_io
                 weights = q_ws
-                distance = d
-            iterations += 1
-            iter_sum += iters
+                similarity = sim
+                iterations += 1
+                iter_sum += iters
             p -= step
         return r_io, weights, iterations, iter_sum/iterations
 
-    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
+    def similarity_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        distance = self.calculate_distance(cue, cue_weights, p_io, dim)
-        return distance, 0
+        similarity = self.calculate_similarity(cue, cue_weights, p_io, dim)
+        return similarity, 0
 
-    def calculate_distance(self, cue, cue_weights, p_io, dim):
-        distance = 0.0
+    def calculate_similarity(self, cue, cue_weights, p_io, dim):
+        similarity = 0.0
         for v, w, column in zip(cue, cue_weights, p_io):
             ps = column/np.sum(column)
-            d = np.dot(np.abs(np.arange(self.cols(dim))-v),ps)*w
-            distance += d
-        return distance / np.sum(cue_weights)
+            penalization = 1/np.exp(np.abs(np.arange(self.cols(dim))-v))
+            s = np.dot(penalization,ps)*w
+            similarity += s
+        return similarity / np.sum(cue_weights)
 
     def abstract(self, r_io):
         self._relation = np.where(

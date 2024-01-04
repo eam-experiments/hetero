@@ -317,6 +317,11 @@ class HeteroAssociativeMemory4D:
                 first = False
             else:
                 integration = np.where((integration == 0) | (projection == 0), 0, integration + w*projection)
+            masked = np.ma.masked_equal(integration, 0.0, copy=False)
+            maximum =  masked.max()
+            minimum = masked.min()
+            n = int(maximum/minimum)
+            print(f'Minimum iterations: {n}')
         return integration
 
     # Reduces a relation to a function

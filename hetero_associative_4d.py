@@ -247,6 +247,11 @@ class HeteroAssociativeMemory4D:
             iterations = 0
             dist_iters_mean = 0
         else:
+            masked = projection[projection != 0] 
+            maximum =  masked.max()
+            minimum = masked.min()
+            n = int(maximum/minimum)
+            print(f'Minimum iterations: {n}')
             r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, weights, projection, dim)
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
@@ -317,11 +322,6 @@ class HeteroAssociativeMemory4D:
                 first = False
             else:
                 integration = np.where((integration == 0) | (projection == 0), 0, integration + w*projection)
-            masked = np.ma.masked_equal(integration, 0.0, copy=False)
-            maximum =  masked.max()
-            minimum = masked.min()
-            n = int(maximum/minimum)
-            print(f'Minimum iterations: {n}')
         return integration
 
     # Reduces a relation to a function

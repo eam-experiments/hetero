@@ -283,12 +283,9 @@ class HeteroAssociativeMemory4D:
 
     def calculate_similarity(self, cue, cue_weights, p_io, dim):
         similarity = 0.0
-        print(f'Projection shape: {p_io.shape}')
         for v, w, column in zip(cue, cue_weights, p_io):
             ps = column/np.sum(column)
-            print(f'Column shape: {column.shape}')
             penalty = 1/np.exp(np.abs(np.arange(self.rows(dim))-v))
-            print(f'Penalty shape: {penalty.shape}')
             s = np.dot(penalty,ps)*w
             similarity += s
         return similarity / np.sum(cue_weights)

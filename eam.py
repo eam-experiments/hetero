@@ -562,7 +562,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     unknown = 0
     unknown_weights = []
     iterations = []
-    dist_iters = []
+    last_updates = []
     print('Remembering ', end='')
     counter = 0
     counter_name = constants.set_counter()
@@ -570,10 +570,10 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         recognized, weights = eam_origin.recog_weights(features)
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, n, i = recall(features, weights)
+            memory, recognized, weight, relation, n, l = recall(features, weights)
             if recognized:
                 iterations.append(n)
-                dist_iters.append(i)
+                last_updates.append(l)
                 memories.append(memory)
                 correct.append(label)
                 mem_weights.append(weight)
@@ -597,11 +597,11 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
     print(f'Iterations: total = {iter_total}, ' + 
           f'mean = {iter_mean}, stdev = {iter_stdv}')
-    dist_iter_total = len(dist_iters)
-    dist_iter_mean = 0.0 if dist_iter_total == 0 else np.mean(dist_iters)
-    dist_iter_stdv = 0.0 if dist_iter_total == 0 else np.std(dist_iters)
-    print(f'Distance iterations: total = {dist_iter_total}, ' + 
-          f'mean = {dist_iter_mean}, stdev = {dist_iter_stdv}')
+    last_upd_total = len(last_updates)
+    last_upd_mean = 0.0 if last_upd_total == 0 else np.mean(last_updates)
+    last_upd_stdv = 0.0 if last_upd_total == 0 else np.std(last_updates)
+    print(f'Distance iterations: total = {last_upd_total}, ' + 
+          f'mean = {last_upd_mean}, stdev = {last_upd_stdv}')
 
     correct_weights = []
     incorrect_weights = []

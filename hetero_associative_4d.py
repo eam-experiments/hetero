@@ -245,12 +245,12 @@ class HeteroAssociativeMemory4D:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
             iterations = 0
-            dist_iters_mean = 0
+            last_update = 0
         else:
-            r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, weights, projection, dim)
+            r_io, weights, iterations, last_update = self.optimal_recall(cue, weights, projection, dim)
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, iterations, dist_iters_mean
+        return r_io, recognized, weight, projection, iterations, last_update
 
     def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
@@ -265,9 +265,9 @@ class HeteroAssociativeMemory4D:
             s = self.rows(self.alt(dim)) * beta
             excluded = self.random_exclusion(r_io, p)
             s_projection = self.adjust(projection, r_io, s)
-            complement = self.complement(s_projection)
+            complement = 0.1*self.complement(s_projection)
             q_io, q_ws = self.reduce(s_projection + p*complement, self.alt(dim), excluded)
-            d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws

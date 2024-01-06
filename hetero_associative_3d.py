@@ -251,12 +251,19 @@ class HeteroAssociativeMemory3D:
         return(c)
 
     def project(self, cue, weights, dim):
-        projection = np.zeros((self.cols(self.alt(dim)), self._top), dtype=int)
+        integration = np.zeros((self.cols(self.alt(dim)), self._top), dtype=int)
         chosen = self.filter_relation(cue, weights, dim)
+        first = True
         for j in range(self.cols(self.alt(dim))):
-            w = np.sum(chosen[:, j, :] if dim == 0 else chosen[j, :, :], axis=0)
-            projection[j, :] = w[:self._top]
-        return projection
+            projection = chosen[:, j, :] if dim == 0 else chosen[j, :, :]
+            p = np.sum(projection, axis=0)
+            zeros = np.any(projection == 0, axis=0)
+            p = np.where(zeros, 0, p)
+            if first:
+                integration[j, :] = p[:self._top]
+            else:
+                integration[j, :] += p[:self._top]
+        return integration
 
     def filter_relation(self, cue, weights, dim):
         chosen = np.zeros(self.relation.shape, dtype=float)

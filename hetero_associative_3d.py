@@ -256,9 +256,7 @@ class HeteroAssociativeMemory3D:
         first = True
         for j in range(self.cols(self.alt(dim))):
             projection = chosen[:, j, :] if dim == 0 else chosen[j, :, :]
-            p = np.sum(projection, axis=0)
-            zeros = np.any(projection == 0, axis=0)
-            p = np.where(zeros, 0, p)
+            p = self.constrain(projection, cue, weights, dim)
             if first:
                 integration[j, :] = p[:self._top]
             else:
@@ -279,6 +277,23 @@ class HeteroAssociativeMemory3D:
                     idx = self.hash(value, k) if dim == 0 else self.hash(k, value)
                     chosen[a, b, idx] = self.relation[a, b, idx] * weight
         return chosen
+
+    def constrain(self, projection, values, weights, dim):
+        p = np.zeros(self._top, dtype=float)
+        for k in range(self._top):
+            s = 0.0
+            j = self.dehash(k, self.alt(dim))
+            for i in range(self.cols(dim)):
+                if self.is_undefined(values[i]):
+                    continue
+                h = self.hash(values[i],j) if dim == 0 else self.hash(j, values[i])
+                if projection[i,h] == 0:
+                    s = 0.0
+                    break
+                else:
+                    s += projection[i,h]*weights[i]
+            p[k] = s
+        return p
 
     # Reduces a relation to a function
     def reduce(self, projection, dim):

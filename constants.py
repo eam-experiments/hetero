@@ -37,8 +37,8 @@ d4_model_name = "4DEHAM"
 
 d3_with_distance = False
 
-n_sims = 30
-dist_estims = 30
+n_sims = 50
+dist_estims = 50
 mean_matches = 1
 stdv_matches = 0
 minimum_percentile = 0.5

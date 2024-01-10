@@ -255,61 +255,41 @@ class HeteroAssociativeMemory4D:
     def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
         weights = None
-        distance = float('inf')
         iterations = 0
-        iter_sum = 0
         p = 1.0
         step = p / constants.n_sims
         r_io, weights = self.reduce(projection, self.alt(dim))
-        for beta in np.linspace(1.0, self.sigma, constants.n_sims):
+        distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
+        last_update = -1
+        for i, beta in zip(range(constants.n_sims), np.linspace(1.0, self.sigma, constants.n_sims)):
             s = self.rows(self.alt(dim)) * beta
-            s_projection = self.adjust(projection, r_io, s)
             excluded = self.random_exclusion(r_io, p)
-            q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
+            s_projection = self.adjust(projection, r_io, s)
+            complement = self.complement(s_projection)
+            q_io, q_ws = self.reduce(s_projection + p*complement, self.alt(dim), excluded)
             d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
-            iterations += 1
-            iter_sum += iters
+                iterations += 1
+                last_update = i
             p -= step
-        return r_io, weights, iterations, iter_sum/iterations
+        return r_io, weights, iterations, last_update
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
         distance = self.calculate_distance(cue, cue_weights, p_io, dim)
         return distance, 0
 
-    def calculate_distance(self, cue, cue_weights, projection, dim):
-        r_io = None
-        weights = None
-        distance = float('inf')
-        iterations = 0
-        p = 1.0
-        step = p / constants.dist_estims
-        r_io, weights = self.reduce(projection, dim)
-        for beta in np.linspace(1.0, self.sigma, constants.dist_estims):
-            s = self.rows(self.alt(dim)) * beta
-            s_projection = self.adjust(projection, r_io, s)
-            excluded = self.random_exclusion(r_io, p)
-            q_io, q_ws = self.reduce(s_projection, dim, excluded)
-            d = self.distance_to_cue(cue, cue_weights, q_io, q_ws)
-            if d < distance:
-                r_io = q_io
-                weights = q_ws
-                distance = d
-            iterations += 1
-            p -= step
-        return distance
+    def calculate_distance(self, cue, cue_weights, p_io, dim):
+        distance = 0.0
+        for v, w, column in zip(cue, cue_weights, p_io):
+            ps = column/np.sum(column)
+            d = np.dot(np.square(np.arange(self.rows(dim))-v),ps)*w
+            distance += d
+        return distance / np.sum(cue_weights)
 
-    def distance_to_cue(self, cue, cue_weights, r_io, r_io_weights):
-        s = 0.0
-        for c, cw, r, rw in zip(cue, cue_weights, r_io, r_io_weights):
-            s += abs(c - r)*cw*rw
-        s /= np.dot(cw, rw)
-        return s
-    
     def abstract(self, r_io):
         self._relation = np.where(
             self._relation == self.absolute_max_value,
@@ -400,6 +380,10 @@ class HeteroAssociativeMemory4D:
             excluded.append(v if r < p else None)
         return excluded
 
+    def complement(self, relation):
+        maximum = np.max(relation)
+        return maximum - relation
+        
     def update(self):
         self._update_entropies()
         self._update_means()

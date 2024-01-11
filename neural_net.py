@@ -42,28 +42,28 @@ def conv_block(entry, layers, filters, dropout, first_block = False):
                 filters = filters)(entry)
         entry = BatchNormalization()(conv)
     pool = MaxPool2D(pool_size = 3, strides =2, padding ='same')(entry)
-    drop = SpatialDropout2D(0.4)(pool)
+    drop = SpatialDropout2D(dropout)(pool)
     return drop
 
 # The number of layers defined in get_encoder.
 encoder_nlayers = 40
 
 def get_encoder(domain):
-    dropout = 0.1
+    dropout = 0.8
     input_data = Input(shape=(dataset.columns, dataset.rows, 1))
     filters = domain // 16
     output = conv_block(input_data, 2, filters, dropout, first_block=True)
     filters *= 2
-    dropout += 0.7
+    dropout -= 0.1
     output = conv_block(output, 2, filters, dropout)
     filters *= 2
-    dropout += 0.7
+    dropout -= 0.1
     output = conv_block(output, 3, filters, dropout)
     filters *= 2
-    dropout += 0.7
+    dropout -= 0.1
     output = conv_block(output, 3, filters, dropout)
     filters *= 2
-    dropout += 0.9
+    dropout -= 0.1
     output = conv_block(output, 3, filters, dropout)
     output = Flatten()(output)
     output = LayerNormalization(name = 'encoded')(output)

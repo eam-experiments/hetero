@@ -1074,6 +1074,7 @@ def hetero_remember_percent(
         constants.print_counter(counter, 10000, 1000)
     print(' end')
     print(f'Filling of memories done at {percent}%')
+    print(f'Memory full at {100*eam.fullness}%')
     confrixes, behaviours = remember_by_hetero_memory(
         eam, left_eam, right_eam, left_classifier, right_classifier,
         testing_features, testing_labels, min_maxs, percent, es, fold)

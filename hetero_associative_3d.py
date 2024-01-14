@@ -252,13 +252,12 @@ class HeteroAssociativeMemory3D:
 
     def project(self, cue, weights, dim):
         integration = np.zeros((self.cols(self.alt(dim)), self._top), dtype=float)
-        chosen = self.filter_relation(cue, weights, dim)
         first = True
         sum_weights = np.sum(weights)
-        ws = cue.size*weights/sum_weights
+        ws = weights/sum_weights
         for j in range(self.cols(self.alt(dim))):
-            projection = chosen[:, j, :] if dim == 0 else chosen[j, :, :]
-            p = self.constrain(projection, cue, ws, dim)
+            j_section = self.relation[:, j, :] if dim == 0 else self.relation[j, :, :]
+            p = self.constrain(j_section, cue, ws, dim)
             if first:
                 integration[j, :] = p[:self._top]
             else:
@@ -280,21 +279,21 @@ class HeteroAssociativeMemory3D:
                     chosen[a, b, idx] = self.relation[a, b, idx] * weight
         return chosen
 
-    def constrain(self, projection, values, weights, dim):
+    def constrain(self, section, values, weights, dim):
+        THRESHOLD = self.cols(dim) / 2
         p = np.zeros(self._top, dtype=float)
-        for k in range(self._top):
-            s = 0.0
-            j = self.dehash(k, self.alt(dim))
+        for j in range(self.rows(self.alt(dim))):
+            n = 0
+            s = 0
             for i in range(self.cols(dim)):
-                if self.is_undefined(values[i]):
-                    continue
-                h = self.hash(values[i],j) if dim == 0 else self.hash(j, values[i])
-                if projection[i,h] == 0:
-                    s = 0.0
-                    break
-                else:
-                    s += projection[i,h]*weights[i]
-            p[k] = s
+                v = values[i]
+                h = self.hash(v, j) if dim == 0 else self.hash(j, v)
+                w = section[i,h]
+                s += w*weights[i]
+                n += 1 if w > 0 else 0
+            for k in range(self.rows(dim)):
+                h = self.hash(k, j) if dim == 0 else self.hash(j, k)
+                p[h] = s if n > THRESHOLD else 0
         return p
 
     # Reduces a relation to a function

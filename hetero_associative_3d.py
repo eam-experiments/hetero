@@ -280,20 +280,23 @@ class HeteroAssociativeMemory3D:
         return chosen
 
     def constrain(self, section, values, weights, dim):
-        THRESHOLD = self.cols(dim) / 2
+        THRESHOLD = self.cols(dim) - self.xi 
         p = np.zeros(self._top, dtype=float)
         for j in range(self.rows(self.alt(dim))):
             n = 0
             s = 0
             for i in range(self.cols(dim)):
                 v = values[i]
+                if self.is_undefined(v):
+                    n += 1
+                    continue
                 h = self.hash(v, j) if dim == 0 else self.hash(j, v)
                 w = section[i,h]
                 s += w*weights[i]
                 n += 1 if w > 0 else 0
             for k in range(self.rows(dim)):
                 h = self.hash(k, j) if dim == 0 else self.hash(j, k)
-                p[h] = s if n > THRESHOLD else 0
+                p[h] = s if n >= THRESHOLD else 0
         return p
 
     # Reduces a relation to a function

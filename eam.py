@@ -590,7 +590,8 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             unknown += 1
             confrix[label, constants.n_labels] += 1
         counter += 1
-        constants.print_counter(counter, 1000, 100, symbol='+', name = counter_name)
+        constants.print_counter(counter, 1000, 100, symbol='+',
+            prefix = f'(Recognized : {len(memories)})', name = counter_name)
     print(' done')
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)

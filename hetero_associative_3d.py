@@ -256,7 +256,7 @@ class HeteroAssociativeMemory3D:
         sum_weights = np.sum(weights)
         ws = weights/sum_weights
         for j in range(self.cols(self.alt(dim))):
-            j_section = self.relation[:, j, :] if dim == 0 else self.relation[j, :, :]
+            j_section = self.iota_relation[:, j, :] if dim == 0 else self.iota_relation[j, :, :]
             p = self.constrain(j_section, cue, ws, dim)
             if first:
                 integration[j, :] = p[:self._top]
@@ -276,7 +276,7 @@ class HeteroAssociativeMemory3D:
                 b = j if dim == 0 else i
                 for k in range(self.rows(self.alt(dim))):
                     idx = self.hash(value, k) if dim == 0 else self.hash(k, value)
-                    chosen[a, b, idx] = self.relation[a, b, idx] * weight
+                    chosen[a, b, idx] = self.iota_relation[a, b, idx] * weight
         return chosen
 
     def constrain(self, section, values, weights, dim):

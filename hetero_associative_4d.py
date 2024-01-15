@@ -285,7 +285,8 @@ class HeteroAssociativeMemory4D:
     def calculate_distance(self, cue, cue_weights, p_io, dim):
         distance = 0.0
         for v, w, column in zip(cue, cue_weights, p_io):
-            ps = column/np.sum(column)
+            s = np.sum(column)
+            ps = column if s == 0.0 else column/np.sum(column)
             d = np.dot(np.square(np.arange(self.rows(dim))-v),ps)*w
             distance += d
         return distance / np.sum(cue_weights)

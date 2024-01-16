@@ -257,7 +257,7 @@ class HeteroAssociativeMemory4D:
         weights = None
         iterations = 0
         p = 1.0
-        step = p / constants.n_sims
+        step = p / constants.n_sims if constants.n_sims > 0 else 0.0
         r_io, weights = self.reduce(projection, self.alt(dim))
         distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         last_update = 0

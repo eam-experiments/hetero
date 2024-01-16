@@ -21,7 +21,7 @@ echo "EAM Hetero iota experiments."
 echo "Storing results in $runpath"
 echo "=================== Starting..."
 date
-for iota in 0.0 0.25 0.5 1.0 2.0; do
+for iota in 0.0 0.05 0.1 0.15 0.25; do
     echo -e "iota,kappa,xi,sigma\n${iota},0.0,0.0,0.1" > ${runpath}/mem_params.csv
     # python eam.py -n mnist --dims=$dims --runpath=$runpath && \
     # python eam.py -n fashion --dims=$dims --runpath=$runpath && \

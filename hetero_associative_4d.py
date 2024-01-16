@@ -261,16 +261,11 @@ class HeteroAssociativeMemory4D:
         r_io, weights = self.reduce(projection, self.alt(dim))
         distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         last_update = 0
-        i = 0
-        visited = [r_io]
-        while i < constants.n_sims:
-            beta = 1.0 - (1.0 - self.sigma)*i/constants.n_sims
+        for i, beta in zip(range(constants.n_sims), np.linspace(1.0, self.sigma, constants.n_sims)):
             s = self.rows(self.alt(dim)) * beta
             excluded = self.random_exclusion(r_io, p)
             s_projection = self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            if np.any(np.all(q_io == visited, axis=1)):
-                continue
             d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
@@ -279,7 +274,6 @@ class HeteroAssociativeMemory4D:
                 iterations += 1
                 last_update = i
             p -= step
-            i += 1
         return r_io, weights, iterations, last_update
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):

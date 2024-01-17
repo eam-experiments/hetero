@@ -70,9 +70,10 @@ class AssociativeMemory:
         # A flag to know whether iota-relation, entropies and means
         # are up to date.
         self._updated = relation is None
-        print(f'Memory {{n: {self.n}, m: {self.m}, ' +
-            f'xi: {self.xi}, iota: {self.iota}, ' +
-            f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
+        if self._updated:
+            print(f'Memory {{n: {self.n}, m: {self.m}, ' +
+                f'xi: {self.xi}, iota: {self.iota}, ' +
+                f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
     def __str__(self):
         return str(self.relation)
 

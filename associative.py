@@ -29,7 +29,7 @@ def normpdf(x, mean, sd, scale = 1.0):
 
 
 class AssociativeMemory:
-    def __init__(self, n: int, m: int, es: constants.ExperimentSettings, relation = None):
+    def __init__(self, n: int, m: int, es: constants.ExperimentSettings = None, relation = None):
         """
         Parameters
         ----------
@@ -48,13 +48,15 @@ class AssociativeMemory:
         """
         self._n = n
         self._m = m+1
+        if es is None:
+            es = constants.ExperimentSettings()
         self._xi = es.xi
-        self._absolute_max = 2**16 - 1
         self._sigma = es.sigma
         self._sigma_scaled = es.sigma*m
         self._iota = es.iota
         self._kappa = es.kappa
         self._scale = 1.0/normpdf(0, 0, self._sigma_scaled)
+        self._absolute_max = 2**16 - 1
 
         # It is m+1 to handle partial functions.
         self._relation = np.zeros((self._n, self._m), dtype=int)

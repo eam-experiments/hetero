@@ -14,10 +14,7 @@
 
 import math
 import random
-import string
-from joblib import Parallel, delayed
 import numpy as np
-
 import constants
 
 class HeteroAssociativeMemory4D:

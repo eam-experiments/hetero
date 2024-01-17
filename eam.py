@@ -67,9 +67,10 @@ elif dims == 4:
 else:
     raise DocoptExit('Invalid number of dimensions (only 3 or 4 are accepted)')
 
-
 sys.setrecursionlimit(10000)
 
+# This allows the production of graphs in multiple languages
+# (English is the default).
 gettext.bindtextdomain('eam', 'locale')
 gettext.textdomain('eam')
 _ = gettext.gettext
@@ -81,12 +82,16 @@ FP = (1, 0)
 TN = (1, 1)
 
 
-def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
+def plot_prerec_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
                    es, acc_mean=None, acc_std=None,
                    prefix='', xlabels=None,
                    xtitle=None, ytitle=None):
+    """ Plots a precision and recall graph.
+    
+        It can also include accuracy, and it can be used to to graph any
+        measure in percentages.
+    """
     plt.figure(figsize=(6.4, 4.8))
-
     full_length = 100.0
     step = 0.1
     if xlabels is None:
@@ -142,6 +147,11 @@ def plot_pre_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
 
 
 def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, prefix=''):
+    """ Plots the behaviours graph.
+    
+        A behaviour graph is a stacked bars graph that representes three exclusive types
+        of all possible responses: no response, no correct response, and correct response.
+    """
     plt.clf()
     print('Behaviours: ')
     print(f'No response: {no_response}')
@@ -187,7 +197,8 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     plt.close()
 
 
-def plot_conf_matrix(matrix, tags, dataset, es, prefix='', vmin=0.0, vmax=None):
+def plot_confusion_matrix(matrix, tags, dataset, es, prefix='', vmin=0.0, vmax=None):
+    """ Plots the confusion matrix of labels vs predictions."""
     plt.clf()
     plt.figure(figsize=(6.4, 4.8))
     if vmax is None:
@@ -202,12 +213,14 @@ def plot_conf_matrix(matrix, tags, dataset, es, prefix='', vmin=0.0, vmax=None):
     plt.close()
 
 
-def plot_relation(relation, prefix, es=None, fold=None):
+def plot_relation(relation, prefix, xlabel = 'Characteristics', 
+        ylabel = 'Values', es=None, fold=None):
+    """ Plots a relation (table) as a heat map."""
     plt.clf()
     plt.figure(figsize=(6.4, 4.8))
     seaborn.heatmap(np.transpose(relation), annot=False, cmap='coolwarm')
-    plt.xlabel(_('Characteristics'))
-    plt.ylabel(_('Values'))
+    plt.xlabel(_(xlabel))
+    plt.ylabel(_(ylabel))
     if es is None:
         es = constants.ExperimentSettings()
     filename = constants.picture_filename(prefix, es, fold)
@@ -216,24 +229,16 @@ def plot_relation(relation, prefix, es=None, fold=None):
 
 
 def plot_distances(distances, prefix, es=None, fold=None):
-    plt.clf()
-    plt.figure(figsize=(6.4, 4.8))
-    seaborn.heatmap(distances, annot=False, cmap='rocket')
-    plt.xlabel(_('Label'))
-    plt.ylabel(_('Label'))
-    if es is None:
-        es = constants.ExperimentSettings()
-    filename = constants.picture_filename(prefix, es, fold)
-    plt.savefig(filename, dpi=600)
-    plt.close()
+    """ Plots a matrix of distances between categories (labels) in a dataset."""
+    plot_relation(distances, prefix, xlabel='Label', ylabel='Label', es=es, fold=fold)
 
 
 def get_min_max(a : np.ndarray):
     """Produces a desirable minimum and maximum values for features
 
-    It delivers minimum and maximum percentile values.
+    It delivers minimum and maximum percentile values, as defined in
+    `constants`.
     """
-
     maximum = np.max(a)
     minimum = np.min(a)
     min_percentile = np.percentile(a, constants.minimum_percentile)
@@ -245,16 +250,16 @@ def get_min_max(a : np.ndarray):
           f'{constants.minimum_percentile}% = {min_percentile}, ' +
             f'median = {median}, {constants.maximum_percentile}% = {max_percentile}, ' +
             f'max = {maximum}; mean = {mean}, stdev = {stdv}')
-    # return minimum, maximum
     return min_percentile, max_percentile
 
 def features_distance(f, g):
-    """ Calculates euclidean distance between two arrays of features"""
+    """ Calculates euclidean distance between two arrays of features."""
     return np.linalg.norm(f - g)
 
 
 def stats_measures(filling_features, filling_labels,
                    testing_features, testing_labels):
+    """ Calculates mean and standard deviation for each feature element per label."""
     filling_fpl = {}
     testing_fpl = {}
     for label in range(constants.n_labels):
@@ -665,7 +670,7 @@ def check_hetero_memory(remembered_dataset,
     iterations = []
     print(f'Features shape: {testing_features.shape}')
     print(f'Cues shape: {testing_cues.shape}')
-    print('Checking ', end='')
+    print('Checking... ', end='')
     counter = 0
     for features, cue, label in zip(testing_features, testing_cues, testing_labels):
         memory, recognized, weight, relation, iters, _ = recall(features)
@@ -681,7 +686,7 @@ def check_hetero_memory(remembered_dataset,
             unknown_weights.append(weight)
         counter += 1
         constants.print_counter(counter, 10000, 1000, symbol='+')
-    print(' done')
+    print(' done.')
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
@@ -690,7 +695,7 @@ def check_hetero_memory(remembered_dataset,
     print(f'Not recognized by hetero memory: {unknown}')
     correct_weights = []
     incorrect_weights = []
-    print('Validating ', end='')
+    print('Validating... ', end='')
     if len(memories) > 0:
         memories = rsize_recall(np.array(memories), msize, minimum, maximum)
         predictions = np.argmax(classifier.predict(memories), axis=1)
@@ -701,8 +706,8 @@ def check_hetero_memory(remembered_dataset,
                 correct_weights.append(weight)
             else:
                 incorrect_weights.append(weight)
-    print(' done')
-    print(' end')
+    print(' done.')
+    print(' end.')
     behaviour[constants.no_response_idx] = unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
@@ -780,7 +785,7 @@ def check_consistency_hetero_memory(
     confrixes = []
     behaviours = []
     mean_weight = eam.mean
-    print('Remembering from left by hetero memory')
+    print('Checking consistency of hetero memory from left')
     minimum, maximum = min_maxs[right_ds]
     confrix, behaviour, memories = check_hetero_memory(right_ds,
             eam.recall_from_left, right_classifier,
@@ -792,7 +797,7 @@ def check_consistency_hetero_memory(
     prefix += constants.int_suffix(percent, 'fll')
     filename = constants.data_filename(prefix, es, fold)
     np.save(filename, memories)
-    print('Remembering from right by hetero memory')
+    print('Checking consistency of hetero memory from right')
     minimum, maximum = min_maxs[left_ds]
     confrix, behaviour, memories = check_hetero_memory(left_ds,
             eam.recall_from_right, left_classifier,
@@ -1012,7 +1017,7 @@ def test_memory_sizes(dataset, es):
     np.save(constants.data_filename(
         'memory_confrixes-' + dataset, es), average_confrixes)
     np.save(constants.data_filename('behaviours-' + dataset, es), behaviours)
-    plot_pre_graph(average_precision, average_recall, average_entropy,
+    plot_prerec_graph(average_precision, average_recall, average_entropy,
                    stdev_precision, stdev_recall, dataset, es, prefix='homo_msizes-')
     plot_behs_graph(mean_no_response, mean_no_correct_response,
                     mean_correct_response, dataset, es, prefix='homo_msizes-')
@@ -1085,7 +1090,7 @@ def hetero_check_consistency_percent(
         eam: HeteroAssociativeMemory, left_classifier, right_classifier,
         filling_features, filling_labels, testing_features, testing_labels, min_maxs,
         percent, filling, es, fold):
-    # Register filling data.
+    # Register filling data in the hetero-associative memory.
     print('Filling hetero memory')
     counter = 0
     for left_feat, right_feat \
@@ -1096,6 +1101,7 @@ def hetero_check_consistency_percent(
         constants.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
+    # Check consistency, either using filling or testing data.
     confrixes, behaviours = check_consistency_hetero_memory(
         eam, left_classifier, right_classifier,
         filling_features if filling else testing_features,
@@ -1359,12 +1365,13 @@ def hetero_remember_per_fold(es, fold):
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)
         # Arrays with precision, and recall.
+        no_response = behaviours[:, constants.no_response_idx]
         correct = behaviours[:, constants.correct_response_idx]
         incorrect = behaviours[:, constants.no_correct_response_idx]
         fold_precision.append(np.where((correct + incorrect) == 0,
             1.0, correct/(correct+incorrect)))
         fold_recall.append(
-            behaviours[:, constants.correct_response_idx]/total_test)
+            behaviours[:, constants.correct_response_idx]/(no_response + correct + incorrect))
         start = end
     fold_entropies = np.array(fold_entropies)
     fold_precision = np.transpose(np.array(fold_precision))
@@ -1543,7 +1550,7 @@ def test_memory_fills(mem_sizes, dataset, es):
                 'main_stdev_entropy-' + dataset + constants.numeric_suffix('sze', mem_size), es),
             main_stdev_entropies, delimiter=',')
 
-        plot_pre_graph(main_avrge_precisions*100, main_avrge_recalls*100, main_avrge_entropies,
+        plot_prerec_graph(main_avrge_precisions*100, main_avrge_recalls*100, main_avrge_entropies,
                        main_stdev_precisions*100, main_stdev_recalls *
                        100, dataset, es,
                        prefix='homo_fills' +
@@ -1618,7 +1625,7 @@ def test_hetero_fills(es):
         main_stdev_entropies, delimiter=',')
 
     prefix = 'hetero_recognize-'
-    plot_pre_graph(100*main_avrge_precisions, 100*main_avrge_recalls, main_avrge_entropies,
+    plot_prerec_graph(100*main_avrge_precisions, 100*main_avrge_recalls, main_avrge_entropies,
                    100*main_stdev_precisions, 100*main_stdev_recalls, 'hetero',
                    es, acc_mean=100*main_avrge_accuracies, acc_std=100*main_stdev_accuracies,
                    prefix=prefix,
@@ -1649,7 +1656,7 @@ def save_history(history, prefix, es):
 
 
 def save_conf_matrix(matrix, dataset, prefix, es, vmax=None):
-    plot_conf_matrix(matrix, range(constants.n_labels), dataset, es, prefix, vmax=vmax)
+    plot_confusion_matrix(matrix, range(constants.n_labels), dataset, es, prefix, vmax=vmax)
     fname = prefix + constants.matrix_suffix + '-' + dataset
     filename = constants.data_filename(fname)
     np.save(filename, matrix)
@@ -1738,7 +1745,7 @@ def remember(es):
 
     for i in range(len(constants.datasets)):
         dataset = constants.datasets[i]
-        plot_pre_graph(
+        plot_prerec_graph(
             100*main_avrge_precisions[i], 100 *
             main_avrge_recalls[i], main_avrge_entropies,
             100*main_stdev_precisions[i], 100*main_stdev_recalls[i], dataset,
@@ -1838,7 +1845,7 @@ def check_consistency(filling, es):
 
     for i in range(len(constants.datasets)):
         dataset = constants.datasets[i]
-        plot_pre_graph(
+        plot_prerec_graph(
             100*main_avrge_precisions[i], 100 *
             main_avrge_recalls[i], main_avrge_entropies[i],
             100*main_stdev_precisions[i], 100*main_stdev_recalls[i], dataset,

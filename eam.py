@@ -665,34 +665,45 @@ def check_hetero_memory(remembered_dataset,
     memories = []
     correct_labels = []
     recog_weights = []
-    unknown = 0
-    unknown_weights = []
+    homo_unknown = 0
+    hetero_unknown = 0
+    homo_unknown_weights = []
+    hetero_unknown_weights = []
     iterations = []
     print(f'Features shape: {testing_features.shape}')
     print(f'Cues shape: {testing_cues.shape}')
     print('Checking... ', end='')
+    cols = constants.datasets_to_domains[remembered_dataset]
+    rows = constants.datasets_to_codomains[remembered_dataset]
     counter = 0
+    counter_name = constants.set_counter()
     for features, cue, label in zip(testing_features, testing_cues, testing_labels):
-        memory, recognized, weight, relation, iters, _ = recall(features)
-        if iters > 0:
-            iterations.append(iters)
+        _, recognized, weight, relation, iters, _ = recall(features)
+        iterations.append(iters)
         if recognized:
-            memories.append(memory)
-            correct_labels.append(label)
-            recog_weights.append(weight)
+            homo = AssociativeMemory(cols, rows, relation = relation)
+            memory, recognized, weight = homo.recall(cue)
+            if recognized:
+                memories.append(memory)
+                correct_labels.append(label)
+                recog_weights.append(weight)
+            else:
+                homo_unknown += 1
+                homo_unknown_weights.append(weight)
         else:
-            unknown += 1
+            hetero_unknown += 1
             confrix[label, constants.n_labels] += 1
-            unknown_weights.append(weight)
+            hetero_unknown_weights.append(weight)
         counter += 1
-        constants.print_counter(counter, 10000, 1000, symbol='+')
+        constants.print_counter(counter, 10000, 1000, symbol='+', name = counter_name)
     print(' done.')
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
     print(f'Iterations: total = {iter_total}' + 
           f'mean = {iter_mean}, stdev = {iter_stdv}')
-    print(f'Not recognized by hetero memory: {unknown}')
+    print(f'Not recognized by homo memory: {homo_unknown}')
+    print(f'Not recognized by hetero memory: {hetero_unknown}')
     correct_weights = []
     incorrect_weights = []
     print('Validating... ', end='')
@@ -708,20 +719,16 @@ def check_hetero_memory(remembered_dataset,
                 incorrect_weights.append(weight)
     print(' done.')
     print(' end.')
-    behaviour[constants.no_response_idx] = unknown
+    behaviour[constants.no_response_idx] = hetero_unknown + homo_unknown
     behaviour[constants.correct_response_idx] = \
         np.sum([confrix[i, i] for i in range(constants.n_labels)])
     behaviour[constants.no_correct_response_idx] = \
-        len(testing_labels) - unknown - \
+        len(testing_labels) - hetero_unknown - \
         behaviour[constants.correct_response_idx]
     print(f'Confusion matrix:\n{confrix}')
     print(f'Behaviour: nr = {behaviour[constants.no_response_idx]}, ' +
           f'ir = {behaviour[constants.no_correct_response_idx]}, ' +
           f'cr = {behaviour[constants.correct_response_idx]}')
-    unknown_weights_mean = 0.0 if len(unknown_weights) == 0 \
-        else np.mean(unknown_weights/mean_weight)
-    unknown_weights_stdv = 0.0 if len(unknown_weights) == 0 \
-        else np.std(unknown_weights/mean_weight)
     incorrect_weights_mean = 0.0 if len(incorrect_weights) == 0 \
         else np.mean(incorrect_weights/mean_weight)
     incorrect_weights_stdv = 0.0 if len(incorrect_weights) == 0 \
@@ -732,8 +739,7 @@ def check_hetero_memory(remembered_dataset,
         else np.std(correct_weights/mean_weight)
     print(f'Mean weight: {mean_weight}')
     print(f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), ' + 
-        f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
-          f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
+        f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv})')
     return confrix, behaviour, memories
 
 def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
@@ -1850,7 +1856,7 @@ def check_consistency(filling, es):
             main_avrge_recalls[i], main_avrge_entropies[i],
             100*main_stdev_precisions[i], 100*main_stdev_recalls[i], dataset,
             es, acc_mean=100*main_avrge_accuracies[i], acc_std=100*main_stdev_accuracies[i],
-            prefix='hetero_validate-', xlabels=constants.memory_fills,
+            prefix='hetero_validate' + suffix, xlabels=constants.memory_fills,
             xtitle=_('Percentage of memory corpus'))
         mean_no_response = main_avrge_behaviours[i,
                                                  :, constants.no_response_idx]
@@ -1859,10 +1865,12 @@ def check_consistency(filling, es):
         mean_correct_response = main_avrge_behaviours[i,
                                                       :, constants.correct_response_idx]
         plot_behs_graph(mean_no_response, mean_no_correct_response,
-                        mean_correct_response, dataset, es, xtags=constants.memory_fills, prefix='hetero_validate-')
+                        mean_correct_response, dataset, es, xtags=constants.memory_fills,
+                        prefix='hetero_validate' + suffix)
         for j, f in enumerate(constants.memory_fills):
             save_conf_matrix(
-                main_avrge_confrixes[i, j], dataset, f'hetero_validate-fll_{str(f).zfill(3)}', es)
+                main_avrge_confrixes[i, j], dataset,
+                f'hetero_validate-fll_{str(f).zfill(3)}' + suffix, es)
     print('Validation done!')
 
 def decode_test_features(es):

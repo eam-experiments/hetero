@@ -302,18 +302,19 @@ class HeteroAssociativeMemory4D:
         if sum_weights == 0:
             return integration
         first = True
+        w = cue.size*weights/sum_weights
         for i in range(cue.size):
             k = cue[i]
             if self.is_undefined(k, dim):
                 continue
-            w = cue.size*weights[i]/sum_weights
             projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
                 else self._full_iota_relation[:, i, :self.m, k])
             if first:
-                integration = w*projection
+                integration = w[i]*projection
                 first = False
             else:
-                integration = np.where((integration == 0) | (projection == 0), 0, integration + w*projection)
+                integration = np.where((integration == 0) | (projection == 0),
+                        0, integration + w[i]*projection)
         return integration
 
     # Reduces a relation to a function
@@ -436,7 +437,7 @@ class HeteroAssociativeMemory4D:
             raise ValueError(f'Expected shape ({expected_length},) ' +
                     'but got shape {vector.shape}')
         if cue.size != expected_length:
-            raise ValueError('Invalid lenght of the input data. Expected' +
+            raise ValueError('Invalid lenght of the input data. Expected ' +
                     f'{expected_length} and given {cue.size}')
         threshold = self.rows(dim)
         undefined = self.undefined(dim)

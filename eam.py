@@ -653,7 +653,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     return confrix, behaviour, memories
 
 def check_hetero_memory(remembered_dataset,
-            recall, classifier,
+            recall, recognize, inverted, classifier,
             testing_features, testing_cues, testing_labels,
             msize, mfill, minimum, maximum, mean_weight):
     # Each row is a correct label and each column is the prediction, including
@@ -670,6 +670,8 @@ def check_hetero_memory(remembered_dataset,
     homo_unknown_weights = []
     hetero_unknown_weights = []
     iterations = []
+    recog_not_recall = 0
+    recall_not_recog = 0
     print(f'Features shape: {testing_features.shape}')
     print(f'Cues shape: {testing_cues.shape}')
     print('Checking... ', end='')
@@ -678,7 +680,10 @@ def check_hetero_memory(remembered_dataset,
     counter = 0
     counter_name = constants.set_counter()
     for features, cue, label in zip(testing_features, testing_cues, testing_labels):
+        rel_recognized, _ = recognize(cue, features) if inverted else recognize(features, cue) 
         _, recognized, weight, relation, iters, _ = recall(features)
+        recog_not_recall += rel_recognized and not recognized
+        recall_not_recog += recognized and not rel_recognized
         iterations.append(iters)
         if recognized:
             homo = AssociativeMemory(cols, rows, relation = relation)
@@ -695,15 +700,17 @@ def check_hetero_memory(remembered_dataset,
             confrix[label, constants.n_labels] += 1
             hetero_unknown_weights.append(weight)
         counter += 1
-        constants.print_counter(counter, 10000, 1000, symbol='+', name = counter_name)
+        constants.print_counter(counter, 1000, 100, symbol='+', name = counter_name)
     print(' done.')
     iter_total = len(iterations)
     iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
     iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
-    print(f'Iterations: total = {iter_total}' + 
+    print(f'Iterations: total = {iter_total}, ' + 
           f'mean = {iter_mean}, stdev = {iter_stdv}')
     print(f'Not recognized by homo memory: {homo_unknown}')
     print(f'Not recognized by hetero memory: {hetero_unknown}')
+    print(f'Recognized but not recalled: {recog_not_recall}')
+    print(f'Recalled but not recognized: {recall_not_recog}')
     correct_weights = []
     incorrect_weights = []
     print('Validating... ', end='')
@@ -794,7 +801,7 @@ def check_consistency_hetero_memory(
     print('Checking consistency of hetero memory from left')
     minimum, maximum = min_maxs[right_ds]
     confrix, behaviour, memories = check_hetero_memory(right_ds,
-            eam.recall_from_left, right_classifier,
+            eam.recall_from_left, eam.recognize, False, right_classifier,
             testing_features[left_ds], testing_features[right_ds], testing_labels[right_ds],
             rows[right_ds], percent, minimum, maximum, mean_weight)
     confrixes.append(confrix)
@@ -806,7 +813,7 @@ def check_consistency_hetero_memory(
     print('Checking consistency of hetero memory from right')
     minimum, maximum = min_maxs[left_ds]
     confrix, behaviour, memories = check_hetero_memory(left_ds,
-            eam.recall_from_right, left_classifier,
+            eam.recall_from_right, eam.recognize, True, left_classifier,
             testing_features[right_ds], testing_features[left_ds], testing_labels[left_ds],
             rows[left_ds], percent, minimum, maximum, mean_weight)
     confrixes.append(confrix)
@@ -1095,7 +1102,7 @@ def hetero_remember_percent(
 def hetero_check_consistency_percent(
         eam: HeteroAssociativeMemory, left_classifier, right_classifier,
         filling_features, filling_labels, testing_features, testing_labels, min_maxs,
-        percent, filling, es, fold):
+        percent, es, fold):
     # Register filling data in the hetero-associative memory.
     print('Filling hetero memory')
     counter = 0
@@ -1108,11 +1115,10 @@ def hetero_check_consistency_percent(
     print(' end')
     print(f'Filling of memories done at {percent}%')
     # Check consistency, either using filling or testing data.
-    confrixes, behaviours = check_consistency_hetero_memory(
-        eam, left_classifier, right_classifier,
-        filling_features if filling else testing_features,
-        filling_labels if filling else testing_labels,
-        min_maxs, percent, es, fold)
+    confrixes, behaviours = check_consistency_hetero_memory(eam,
+            left_classifier, right_classifier,
+            testing_features, testing_labels,
+            min_maxs, percent, es, fold)
     return confrixes, behaviours, eam.entropy
     
 def test_filling_per_fold(mem_size, domain, dataset, es, fold):
@@ -1473,11 +1479,16 @@ def check_consistency_per_fold(filling, es, fold):
         labels[left_ds] = filling_labels[left_ds][start:end]
         labels[right_ds] = filling_labels[right_ds][start:end]
         print(f'Filling from {start} to {end}.')
+        if filling:
+            testing_features[left_ds] = filling_features[left_ds][:end]
+            testing_features[right_ds] = filling_features[right_ds][:end]
+            testing_labels[left_ds] = filling_labels[left_ds][:end]
+            testing_labels[right_ds] = filling_labels[right_ds][:end]
         confrixes, behaviours, entropy = \
             hetero_check_consistency_percent(
                 eam, left_classifier, right_classifier,
                 features, labels, testing_features, testing_labels,
-                min_maxs, percent, filling, es, fold)
+                min_maxs, percent, es, fold)
         fold_entropies.append(entropy)
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)
@@ -1773,6 +1784,8 @@ def remember(es):
 
 
 def check_consistency(filling, es):
+    print('Validating consistency using ' + 
+          ('filling' if filling else 'testing') + ' data...' )
     memory_fills = constants.memory_fills
     testing_folds = constants.n_folds
     # We are capturing left and right measures.

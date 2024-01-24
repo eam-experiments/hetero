@@ -27,6 +27,7 @@ v4 = np.full(4, 4, dtype=int)
 
 vd = np.array([0, 1, 2, 3])
 vi = np.array([3, 2, 1, 0])
+vu = np.array([10,-1,0, 1])
 
 m.register(v0)
 print('m.register(v0):')
@@ -57,6 +58,8 @@ print('m.recognize(vd):')
 print(m.recognize(vd))
 print('m.recognize(vi):')
 print(m.recognize(vi))
+print('m.recognize(vu):')
+print(m.recognize(vu))
 
 print('m.recall(v0):')
 print(m.recall(v0))
@@ -72,6 +75,8 @@ print('m.recall(vd):')
 print(m.recall(vd))
 print('m.recall(vi):')
 print(m.recall(vi))
+print('m.recall(vu):')
+print(m.recall(vu))
 
 
 

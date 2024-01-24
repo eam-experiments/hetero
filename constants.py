@@ -58,6 +58,7 @@ prep_labels_fname = 'prep_labels.npy'
 image_path = 'images'
 testing_path = 'test'
 memories_path = 'memories'
+prototypes_path = 'prototypes'
 dreams_path = 'dreams'
 
 data_prefix = 'data-'
@@ -65,6 +66,7 @@ labels_prefix = 'labels-'
 features_prefix = 'features-'
 memories_prefix = 'memories-'
 noised_prefix = 'mem_noised-'
+prototypes_prefix = 'prototypes-'
 mem_conf_prefix = 'mem_confrix-'
 model_prefix = 'model-'
 recognition_prefix = 'recognition-'
@@ -323,6 +325,9 @@ def labels_name(dataset, es):
 
 def memories_name(dataset, es):
     return memories_prefix + dataset
+
+def prototypes_name(dataset, es):
+    return prototypes_prefix + dataset
 
 def confrix_name(dataset, es):
     return mem_conf_prefix + dataset

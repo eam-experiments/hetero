@@ -2058,9 +2058,9 @@ def save_prototypes(means, suffix, dataset, es):
         model = tf.keras.models.load_model(model_filename)
         model.summary()
         proto_images = model.predict(means[fold])
-        memories_path = constants.memories_path + proto_suffix
+        prototypes_path = constants.prototypes_path + '-' + dataset + suffix
         for (memory, label) in zip(proto_images, constants.all_labels):
-            store_memory(memory, memories_path, label, label, es, fold)
+            store_memory(memory, prototypes_path, label, label, es, fold)
 
 
 def save_features_graphs(means, stdevs, dataset, es):

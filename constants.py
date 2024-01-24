@@ -93,6 +93,7 @@ testing_suffix = '-testing'
 noised_suffix = '-noised'
 prod_noised_suffix = '-prod_noised'
 memories_suffix = '-memories'
+proto_suffix = '-proto'
 
 # Model suffixes.
 encoder_suffix = '-encoder'

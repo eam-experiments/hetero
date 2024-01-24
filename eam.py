@@ -17,13 +17,14 @@
 
 Usage:
   eam -h | --help
-  eam --dims=N (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -e | -r | -v | -w)
+  eam --dims=N (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -v | -w)
     [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
   -h    Show this screen.
   -n    Trains the neural network for MNIST (mnist) or Fashion (fashion).
   -f    Generates Features for MNIST (mnist) or Fashion (fashion).
+  -c    Characterizes features and generate prototypes per class.
   -d    Calculate distances intra/inter classes of features.
   -s    Run separated tests of memories performance for MNIST y Fashion.
   -e    Evaluation of recognition of hetero-associations.
@@ -194,6 +195,37 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     fname = prefix + 'graph_behaviours-' + dataset + _('-english')
     graph_filename = constants.picture_filename(fname, es)
     plt.savefig(graph_filename, dpi=600)
+    plt.close()
+
+
+def plot_features_graph(domain, means, stdevs, dataset, es):
+    """ Draws the characterist shape of features per label.
+
+    The graph is a dots and lines graph with error bars denoting standard deviations.
+    """
+    ymin = np.PINF
+    ymax = np.NINF
+    for i in constants.all_labels:
+        yn = (means[i] - stdevs[i]).min()
+        yx = (means[i] + stdevs[i]).max()
+        ymin = ymin if ymin < yn else yn
+        ymax = ymax if ymax > yx else yx
+    main_step = 100.0 / domain
+    xrange = np.arange(0, 100, main_step)
+    fmts = constants.label_formats
+    for i in constants.all_labels:
+        plt.clf()
+        plt.figure(figsize=(12,5))
+        plt.errorbar(xrange, means[i], fmt=fmts[i], yerr=stdevs[i], label=str(i))
+        plt.xlim(0, 100)
+        plt.ylim(ymin, ymax)
+        plt.xticks(xrange, labels='')
+        plt.xlabel(_('Features'))
+        plt.ylabel(_('Values'))
+        plt.legend(loc='right')
+        plt.grid(axis='y')
+        filename = constants.features_name(dataset, es) + '-' + str(i).zfill(3) + _('-english')
+        plt.savefig(constants.picture_filename(filename, es), dpi=600)
     plt.close()
 
 
@@ -1991,6 +2023,53 @@ def store_image(filename, array):
     png.from_array(pixels, 'L;8').save(filename)
 
 
+def features_parameters(suffix, dataset, es):
+    cols = constants.datasets_to_domains[dataset]
+    means = np.zeros((constants.n_folds, constants.n_labels, cols))
+    stdvs = np.zeros((constants.n_folds, constants.n_labels, cols))
+    for fold in range(constants.n_folds):
+        features_filename = constants.features_name(dataset, es) + suffix
+        features_filename = constants.data_filename(features_filename, es, fold)
+        labels_filename = constants.labels_name(dataset, es) + suffix
+        labels_filename = constants.data_filename(labels_filename, es, fold)
+        labels = np.load(labels_filename)
+        features = np.load(features_filename)
+        for label in constants.all_labels:
+            feats = np.array(
+                [f for f, l in zip(features, labels) if l == label]
+            )
+            mean = np.mean(feats, axis=0)
+            stdv = np.std(feats, axis=0)
+            means[fold, label] = mean
+            stdvs[fold, label] = stdv
+        print(f'Means: {means[fold]}')
+    return means, stdvs
+
+
+def save_prototypes(means, suffix, dataset, es):
+    proto_suffix = suffix + constants.proto_suffix
+    for fold in range(constants.n_folds):
+        proto_filename = constants.features_name(dataset, es) + proto_suffix
+        proto_filename = constants.data_filename(proto_filename, es, fold)
+        np.save(proto_filename, means[fold])
+        # Loads the decoder.
+        model_prefix = constants.model_name(dataset, es)
+        model_filename = constants.decoder_filename(model_prefix, es, fold)
+        model = tf.keras.models.load_model(model_filename)
+        model.summary()
+        proto_images = model.predict(means[fold])
+        memories_path = constants.memories_path + proto_suffix
+        for (memory, label) in zip(proto_images, constants.all_labels):
+            store_memory(memory, memories_path, label, label, es, fold)
+
+
+def save_features_graphs(means, stdevs, dataset, es):
+    for fold in range(constants.n_folds):
+        plot_features_graph(
+            constants.datasets_to_domains[dataset],
+            means[fold],stdevs[fold], dataset, es)
+        
+
 ##############################################################################
 # Main section
 
@@ -2010,6 +2089,14 @@ def produce_features_from_data(dataset, es):
     neural_net.obtain_features(dataset,
                                model_prefix, features_prefix, labels_prefix, data_prefix, es)
 
+def characterize_features(dataset, es):
+    """ Produces a graph of features averages and standard deviations.
+    """
+    means, stdevs = features_parameters(constants.filling_suffix, dataset, es)
+    save_prototypes(means, constants.filling_suffix, dataset, es)
+    save_features_graphs(means, stdevs, dataset, es)
+
+    
 def describe_dataset(dataset, es):
     statistics(dataset, es)
     distances(dataset, es)
@@ -2082,6 +2169,12 @@ if __name__ == "__main__":
         _dataset = args['<dataset>']
         if _dataset in constants.datasets:
             produce_features_from_data(_dataset, exp_settings)
+        else:
+            print(f'Dataset {_dataset} is not supported.')
+    elif args['-c']:
+        _dataset = args['<dataset>']
+        if _dataset in constants.datasets:
+            characterize_features(_dataset, exp_settings)
         else:
             print(f'Dataset {_dataset} is not supported.')
     elif args['-d']:

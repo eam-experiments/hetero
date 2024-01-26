@@ -36,6 +36,7 @@ d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
 
 d3_with_distance = False
+use_prototypes = False
 
 n_sims = 50
 dist_estims = 50

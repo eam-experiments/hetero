@@ -18,7 +18,7 @@
 Usage:
   eam -h | --help
   eam --dims=N (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -v | -w)
-    [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
+    [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -p ] [ -l (en | es) ]
 
 Options:
   -h    Show this screen.
@@ -35,7 +35,8 @@ Options:
   --relsmean=MEAN   Average number of relations per data element.
   --relsstdv=STDV   Standard deviation of the number of relations per data element.
   --runpath=PATH    Path to directory where everything will be saved [default: runs]
-  -l        Chooses Language for graphs.
+  -p    Load prototypes for MNIST and Fashion.
+  -l    Chooses Language for graphs.
 """
 
 import os
@@ -2143,6 +2144,9 @@ if __name__ == "__main__":
             'eam', localedir='locale', languages=['es'])
         es_lang.install()
 
+    if args['-p']:
+        constants.use_prototypes = True
+        
     # Reading memories parameters
     _prefix = constants.memory_parameters_prefix
     _filename = constants.csv_filename(_prefix)

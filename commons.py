@@ -115,6 +115,9 @@ nnetwork_suffix = '-rnn'
 learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
     [nnetwork_suffix], [original_suffix, amsystem_suffix]]
 
+def dataset_suffix(dataset):
+    return '-' + dataset
+
 n_folds = 1
 n_jobs = 4
 random_string_length = 30

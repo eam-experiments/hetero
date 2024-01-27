@@ -19,11 +19,11 @@ from joblib import Parallel, delayed
 from multiprocessing import shared_memory
 import numpy as np
 
-import constants
+import commons
 
 class HeteroAssociativeMemory3D:
     def __init__(self, n: int, p: int, m: int, q: int,
-        es: constants.ExperimentSettings):
+        es: commons.ExperimentSettings):
         """
         Parameters
         ----------
@@ -66,7 +66,7 @@ class HeteroAssociativeMemory3D:
 
     @property
     def model_name(self):
-        return constants.d3_model_name
+        return commons.d3_model_name
     
     @property
     def undefined(self):
@@ -201,10 +201,10 @@ class HeteroAssociativeMemory3D:
         iterations = 0
         iter_sum = 0
         n = 0
-        if not constants.d3_with_distance:
+        if not commons.d3_with_distance:
             r_io, weights = self.reduce(projection, self.alt(dim))
         else:        
-            while n < constants.n_sims:
+            while n < commons.n_sims:
                 q_io, q_ws = self.reduce(projection, self.alt(dim))
                 d, iters = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
                 if d < distance:
@@ -224,7 +224,7 @@ class HeteroAssociativeMemory3D:
         distance = sum
         iterations = 1
         n = 0
-        while n < constants.dist_estims:
+        while n < commons.dist_estims:
             sum += self.calculate_distance(cue, cue_weights, p_io, dim)
             iterations += 1
             d = sum/iterations
@@ -414,8 +414,8 @@ class HeteroAssociativeMemory3D:
         return s
 
     def transform(self, r):
-        return r if constants.projection_transform == constants.project_same \
-            else self.maximum(r) if constants.projection_transform == constants.project_maximum \
+        return r if commons.projection_transform == commons.project_same \
+            else self.maximum(r) if commons.projection_transform == commons.project_maximum \
             else self.logistic(r)
     
     def maximum(self, r):

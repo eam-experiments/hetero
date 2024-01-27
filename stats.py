@@ -1,4 +1,4 @@
-import constants
+import commons
 
 conds = ['TP', 'FN', 'FP', 'TN']
 
@@ -20,14 +20,14 @@ full = {1: {'TP': (0.0, 0.0), 'FN': (1.7885586028656189, 0.07509288959866244), '
 64: {'TP': (2.61113985859324, 0.09774890230833046), 'FN': (2.586056147914574, 0.10059557945191083), 'FP': (2.6117065764510112, 0.09904562702187382), 'TN': (2.584209594467676, 0.09895650521500506)},
 100: {'TP': (2.6865495240252617, 0.10107522089367675), 'FN': (2.6613216526417993, 0.09741276152972744), 'FP': (2.682464376123492, 0.10223034247445809), 'TN': (2.6582124576282897, 0.09956887689718438)}}
 
-for f in constants.memory_fills:
+for f in commons.memory_fills:
     r = simple[f]
     for c in conds:
         t = r[c]
         print(f'{t[0]}', end=',')
     print('')
 
-for f in constants.memory_fills:
+for f in commons.memory_fills:
     r = full[f]
     for c in conds:
         t = r[c]

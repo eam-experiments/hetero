@@ -22,7 +22,7 @@ from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import Callback
 from joblib import Parallel, delayed
-import constants
+import commons
 import dataset
 
 batch_size = 32
@@ -100,7 +100,7 @@ def get_classifier(domain):
     drop = Dropout(0.4)(dense)
     dense = Dense(domain, activation='relu')(drop)
     drop = Dropout(0.4)(dense)
-    classification = Dense(constants.n_labels,
+    classification = Dense(commons.n_labels,
         activation='softmax', name='classified')(drop)
     return input_mem, classification
 
@@ -170,9 +170,9 @@ class EarlyStopping(Callback):
 
 
 def train_network(ds, prefix, es):
-    confusion_matrix = np.zeros((constants.n_labels, constants.n_labels))
+    confusion_matrix = np.zeros((commons.n_labels, commons.n_labels))
     histories = []
-    for fold in range(constants.n_folds):
+    for fold in range(commons.n_folds):
         training_data, training_labels = dataset.get_training(ds, fold)
         testing_data, testing_labels = dataset.get_testing(ds, fold)
         truly_training = int(len(training_labels)*truly_training_percentage)
@@ -187,7 +187,7 @@ def train_network(ds, prefix, es):
 
         rmse = tf.keras.metrics.RootMeanSquaredError()
         input_data = Input(shape=(dataset.columns, dataset.rows, 1))
-        domain = constants.domain(ds)
+        domain = commons.domain(ds)
         input_enc, encoded = get_encoder(domain)
         encoder = Model(input_enc, encoded, name='encoder')
         encoder.compile(optimizer = 'adam')
@@ -229,14 +229,14 @@ def train_network(ds, prefix, es):
         histories.append(history)
         predicted_labels = np.argmax(full_classifier.predict(testing_data), axis=1)
         confusion_matrix += tf.math.confusion_matrix(np.argmax(testing_labels, axis=1), 
-            predicted_labels, num_classes=constants.n_labels)
+            predicted_labels, num_classes=commons.n_labels)
         history = autoencoder.evaluate(testing_data, testing_data, return_dict=True)
         histories.append(history)
-        encoder.save(constants.encoder_filename(prefix, es, fold))
-        decoder.save(constants.decoder_filename(prefix, es, fold))
-        classifier.save(constants.classifier_filename(prefix, es, fold))
-        prediction_prefix = constants.classification_name(ds, es)
-        prediction_filename = constants.data_filename(prediction_prefix, es, fold)
+        encoder.save(commons.encoder_filename(prefix, es, fold))
+        decoder.save(commons.decoder_filename(prefix, es, fold))
+        classifier.save(commons.classifier_filename(prefix, es, fold))
+        prediction_prefix = commons.classification_name(ds, es)
+        prediction_filename = commons.data_filename(prediction_prefix, es, fold)
         np.save(prediction_filename, predicted_labels)
     confusion_matrix = confusion_matrix.numpy()
     totals = confusion_matrix.sum(axis=1).reshape(-1,1)
@@ -249,9 +249,9 @@ def obtain_features(ds,
     
     Uses the previously trained neural networks for generating the features.
     """
-    for fold in range(constants.n_folds):
+    for fold in range(commons.n_folds):
         # Load de encoder
-        filename = constants.encoder_filename(model_prefix, es, fold)
+        filename = commons.encoder_filename(model_prefix, es, fold)
         model = tf.keras.models.load_model(filename)
         model.summary()
 
@@ -260,19 +260,19 @@ def obtain_features(ds,
         testing_data, testing_labels = dataset.get_testing(ds, fold)
         noised_data, noised_labels = dataset.get_testing(ds, fold, noised = True)
         settings = [
-            (training_data, training_labels, constants.training_suffix),
-            (filling_data, filling_labels, constants.filling_suffix),
-            (testing_data, testing_labels, constants.testing_suffix),
-            (noised_data, noised_labels, constants.noised_suffix),
+            (training_data, training_labels, commons.training_suffix),
+            (filling_data, filling_labels, commons.filling_suffix),
+            (testing_data, testing_labels, commons.testing_suffix),
+            (noised_data, noised_labels, commons.noised_suffix),
         ]
         for s in settings:
             data = s[0]
             labels = s[1]
             suffix = s[2]
             features_filename = \
-                constants.data_filename(features_prefix + suffix, es, fold)
+                commons.data_filename(features_prefix + suffix, es, fold)
             labels_filename = \
-                constants.data_filename(labels_prefix + suffix, es, fold)
+                commons.data_filename(labels_prefix + suffix, es, fold)
             features = model.predict(data)
             np.save(features_filename, features)
             np.save(labels_filename, labels)

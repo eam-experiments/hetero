@@ -1096,7 +1096,7 @@ def test_hetero_filling_percent(
             in zip(trfs[commons.left_dataset], trfs[commons.right_dataset]):
         hetero_eam.register(left_feat, right_feat)
         counter += 1
-        commons.print_counter(counter, 10000, 1000)
+        commons.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
     print(f'Memory full at {100*hetero_eam.fullness}%')
@@ -1120,7 +1120,7 @@ def hetero_remember_percent(
                    filling_features[commons.right_dataset]):
         eam.register(left_feat, right_feat)
         counter += 1
-        commons.print_counter(counter, 10000, 1000)
+        commons.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
     print(f'Memory full at {100*eam.fullness}%')
@@ -2137,7 +2137,6 @@ def validate(filling, es):
 
 if __name__ == "__main__":
     args = docopt(__doc__)
-
     if args['--relsmean']:
         n = int(args['--relsmean'])
         if n <= 0:

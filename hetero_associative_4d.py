@@ -15,11 +15,11 @@
 import math
 import random
 import numpy as np
-import constants
+import commons
 
 class HeteroAssociativeMemory4D:
     def __init__(self, n: int, p: int, m: int, q: int,
-        es: constants.ExperimentSettings,
+        es: commons.ExperimentSettings,
         prototypes = None):
         """
         Parameters
@@ -35,10 +35,8 @@ class HeteroAssociativeMemory4D:
         es: Experimental Settings
             Includes the values for iota, kappa, xi y sigma.
 
-        nm_prototypes: An array of prototpyes for the domain
-            defined by (n,m), or None.
-        pq_prototypes: An array of prototpyes for the domain
-            defined by (p,q), or None.
+        prototypes: A list of arrays of prototpyes for the domains
+            defined by (n,m), and (p,q), or a list of None.
         """
         self._n = n
         self._m = m+1 # +1 to handle partial functions.
@@ -68,7 +66,7 @@ class HeteroAssociativeMemory4D:
 
     @property
     def model_name(self):
-        return constants.d4_model_name
+        return commons.d4_model_name
     
     @property
     def n(self):
@@ -261,11 +259,11 @@ class HeteroAssociativeMemory4D:
         weights = None
         iterations = 0
         p = 1.0
-        step = p / constants.n_sims if constants.n_sims > 0 else 0.0
+        step = p / commons.n_sims if commons.n_sims > 0 else 0.0
         r_io, weights = self.get_initial_cue(cue, cue_weights, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         last_update = 0
-        for i, beta in zip(range(constants.n_sims), np.linspace(1.0, self.sigma, constants.n_sims)):
+        for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             s = self.rows(self.alt(dim)) * beta
             excluded = self.random_exclusion(r_io, p)
             s_projection = self.adjust(projection, r_io, s)
@@ -467,12 +465,15 @@ class HeteroAssociativeMemory4D:
             as undefined.
         """
         expected_length = self.cols(dim)
-        if len(cue.shape) > 1:
-            raise ValueError(f'Expected shape ({expected_length},) ' +
-                    'but got shape {vector.shape}')
-        if cue.size != expected_length:
-            raise ValueError('Invalid lenght of the input data. Expected ' +
-                    f'{expected_length} and given {cue.size}')
+        if (len(cue.shape) < 1) or (len(cue.shape) > 2):
+            raise ValueError(f'Unexpected shape of cue(s): {cue.shape}.')
+        if len(cue.shape) == 1:
+            if cue.size != expected_length:
+                raise ValueError('Invalid lenght of the input data. Expected ' +
+                        f'{expected_length} and given {cue.size}')
+        elif cue.shape[1] != expected_length:
+            raise ValueError(f'Expected shape (n, {expected_length}) ' +
+                    f'but got shape {cue.shape}')
         threshold = self.rows(dim)
         undefined = self.undefined(dim)
         v = np.nan_to_num(cue, copy=True, nan=undefined)
@@ -524,8 +525,8 @@ class HeteroAssociativeMemory4D:
         return s
 
     def transform(self, r):
-        return r if constants.projection_transform == constants.project_same \
-            else self.maximum(r) if constants.projection_transform == constants.project_maximum \
+        return r if commons.projection_transform == commons.project_same \
+            else self.maximum(r) if commons.projection_transform == commons.project_maximum \
             else self.logistic(r)
     
     def maximum(self, r):

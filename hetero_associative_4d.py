@@ -282,8 +282,8 @@ class HeteroAssociativeMemory4D:
         if self._prototypes[self.alt(dim)] is None:
             return self.reduce(projection, self.alt(dim))
         distance = float('inf')
-        cue = None
-        weights = None
+        candidate = None
+        candidate_weights = None
         for proto in self._prototypes[self.alt(dim)]:
             ws = []
             for i in range(proto.size):
@@ -296,14 +296,16 @@ class HeteroAssociativeMemory4D:
             if not ws:
                 continue
             else:
-                ws = np.array(weights)
+                ws = np.array(ws)
                 d, _ = self.distance_recall(cue, cue_weights, proto, ws, dim)
                 if d < distance:
-                    cue = proto
-                    weights = ws
+                    candidate = proto
+                    candidate_weights = ws
                     distance = d
-        return self.reduce(projection, self.alt(dim)) if cue is None \
-                else cue, weights
+        if candidate is None:
+            candidate, candidate_weights = self.reduce(projection, self.alt(dim))
+        return candidate, candidate_weights
+        
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))

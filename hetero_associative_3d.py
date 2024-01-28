@@ -189,10 +189,11 @@ class HeteroAssociativeMemory3D:
             iterations = 0
             dist_iters_mean = 0
         else:
-            r_io, weights, iterations, dist_iters_mean = self.optimal_recall(cue, weights, projection, dim)
+            r_io, weights, iterations, dist_iters_mean, distance = \
+                    self.optimal_recall(cue, weights, projection, dim)
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, iterations, dist_iters_mean
+        return r_io, recognized, weight, projection, iterations, dist_iters_mean, distance
 
     def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
@@ -216,7 +217,8 @@ class HeteroAssociativeMemory3D:
                     n += 1
                 iterations += 1
                 iter_sum += iters
-        return r_io, weights, iterations, iter_sum if iterations == 0 else iter_sum/iterations
+        return r_io, weights, iterations, iter_sum if iterations == 0 \
+                else iter_sum/iterations, distance
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))

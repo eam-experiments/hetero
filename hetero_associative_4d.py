@@ -276,7 +276,7 @@ class HeteroAssociativeMemory4D:
                 iterations += 1
                 last_update = i
             p -= step
-        return r_io, weights, iterations, last_update
+        return r_io, weights, iterations, last_update, distance
 
     def get_initial_cue(self, cue, cue_weights, projection, dim):
         if self._prototypes[self.alt(dim)] is None:

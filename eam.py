@@ -1395,7 +1395,6 @@ def hetero_remember_per_fold(es, fold):
         testing_features[dataset] = msize_features(
             t_features, rows[dataset], min_value, max_value)
         min_maxs[dataset] = [min_value, max_value]
-        print(f'Prototypes shape: {filling_prototypes[dataset].shape}')
 
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
             rows[left_ds], rows[right_ds], es,

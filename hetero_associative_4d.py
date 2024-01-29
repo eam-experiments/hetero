@@ -267,7 +267,7 @@ class HeteroAssociativeMemory4D:
         last_update = 0
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             s = self.rows(self.alt(dim)) * beta
-            excluded = self.random_exclusion(r_io, p)
+            excluded = self.exclusion(r_io, weights, p)
             s_projection = self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
             d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
@@ -407,11 +407,11 @@ class HeteroAssociativeMemory4D:
         weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
         return weights
         
-    def random_exclusion(self, cue, p):
+    def exclusion(self, cue, weights, p):
+        w = np.quantile(weights, p)
         excluded = []
         for v in cue:
-            r = random.random()
-            excluded.append(v if r < p else None)
+            excluded.append(v if v < w else None)
         return excluded
 
     def complement(self, relation):

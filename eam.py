@@ -638,7 +638,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     last_upd_total = len(last_updates)
     last_upd_mean = 0.0 if last_upd_total == 0 else np.mean(last_updates)
     last_upd_stdv = 0.0 if last_upd_total == 0 else np.std(last_updates)
-    print(f'Distance iterations: total = {last_upd_total}, ' + 
+    print(f'Last update: total = {last_upd_total}, ' + 
           f'mean = {last_upd_mean}, stdev = {last_upd_stdv}')
 
     correct_weights = []

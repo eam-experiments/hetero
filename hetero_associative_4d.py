@@ -248,6 +248,7 @@ class HeteroAssociativeMemory4D:
             weight = 0.0
             iterations = 0
             last_update = 0
+            distance = 0.0
         else:
             r_io, weights, iterations, last_update, distance = \
                     self.optimal_recall(cue, weights, projection, dim)

@@ -19,7 +19,7 @@ import math
 import random
 import numpy as np
 
-import constants
+import commons
 
 def normpdf(x, mean, sd, scale = 1.0):
     var = float(sd)**2
@@ -29,7 +29,7 @@ def normpdf(x, mean, sd, scale = 1.0):
 
 
 class AssociativeMemory:
-    def __init__(self, n: int, m: int, es: constants.ExperimentSettings = None, relation = None):
+    def __init__(self, n: int, m: int, es: commons.ExperimentSettings = None, relation = None):
         """
         Parameters
         ----------
@@ -49,7 +49,7 @@ class AssociativeMemory:
         self._n = n
         self._m = m+1
         if es is None:
-            es = constants.ExperimentSettings()
+            es = commons.ExperimentSettings()
         self._xi = es.xi
         self._sigma = es.sigma
         self._sigma_scaled = es.sigma*m

@@ -15,11 +15,12 @@
 import math
 import random
 import numpy as np
-import constants
+import commons
 
 class HeteroAssociativeMemory4D:
     def __init__(self, n: int, p: int, m: int, q: int,
-        es: constants.ExperimentSettings):
+        es: commons.ExperimentSettings,
+        prototypes = None):
         """
         Parameters
         ----------
@@ -33,6 +34,9 @@ class HeteroAssociativeMemory4D:
             The size of the second range (of representation).
         es: Experimental Settings
             Includes the values for iota, kappa, xi y sigma.
+
+        prototypes: A list of arrays of prototpyes for the domains
+            defined by (n,m), and (p,q), or a list of None.
         """
         self._n = n
         self._m = m+1 # +1 to handle partial functions.
@@ -45,6 +49,7 @@ class HeteroAssociativeMemory4D:
         self._kappa = es.kappa
         self._relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
         self._iota_relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
+        self._prototypes = self.validate_prototypes(prototypes)
         self._entropies = np.zeros((self._n, self._p), dtype=np.double)
         self._means = np.zeros((self._n, self._p), dtype=np.double)
         self._updated = True
@@ -61,7 +66,7 @@ class HeteroAssociativeMemory4D:
 
     @property
     def model_name(self):
-        return constants.d4_model_name
+        return commons.d4_model_name
     
     @property
     def n(self):
@@ -243,22 +248,24 @@ class HeteroAssociativeMemory4D:
             weight = 0.0
             iterations = 0
             last_update = 0
+            distance = 0.0
         else:
-            r_io, weights, iterations, last_update = self.optimal_recall(cue, weights, projection, dim)
+            r_io, weights, iterations, last_update, distance = \
+                    self.optimal_recall(cue, weights, projection, dim)
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, iterations, last_update
+        return r_io, recognized, weight, projection, iterations, last_update, distance
 
     def optimal_recall(self, cue, cue_weights, projection, dim):
         r_io = None
         weights = None
         iterations = 0
         p = 1.0
-        step = p / constants.n_sims if constants.n_sims > 0 else 0.0
-        r_io, weights = self.reduce(projection, self.alt(dim))
+        step = p / commons.n_sims if commons.n_sims > 0 else 0.0
+        r_io, weights = self.get_initial_cue(cue, cue_weights, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         last_update = 0
-        for i, beta in zip(range(constants.n_sims), np.linspace(1.0, self.sigma, constants.n_sims)):
+        for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             s = self.rows(self.alt(dim)) * beta
             excluded = self.random_exclusion(r_io, p)
             s_projection = self.adjust(projection, r_io, s)
@@ -271,7 +278,36 @@ class HeteroAssociativeMemory4D:
                 iterations += 1
                 last_update = i
             p -= step
-        return r_io, weights, iterations, last_update
+        return r_io, weights, iterations, last_update, distance
+
+    def get_initial_cue(self, cue, cue_weights, projection, dim):
+        if self._prototypes[self.alt(dim)] is None:
+            return self.reduce(projection, self.alt(dim))
+        distance = float('inf')
+        candidate = None
+        candidate_weights = None
+        for proto in self._prototypes[self.alt(dim)]:
+            ws = []
+            for i in range(proto.size):
+                if self.is_undefined(proto[i], self.alt(dim)) \
+                        or (projection[i, proto[i]] == 0):
+                    ws = []
+                    break
+                else:
+                    ws.append(projection[i, proto[i]])
+            if not ws:
+                continue
+            else:
+                ws = np.array(ws)
+                d, _ = self.distance_recall(cue, cue_weights, proto, ws, dim)
+                if d < distance:
+                    candidate = proto
+                    candidate_weights = ws
+                    distance = d
+        if candidate is None:
+            candidate, candidate_weights = self.reduce(projection, self.alt(dim))
+        return candidate, candidate_weights
+        
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
@@ -433,12 +469,15 @@ class HeteroAssociativeMemory4D:
             as undefined.
         """
         expected_length = self.cols(dim)
-        if len(cue.shape) > 1:
-            raise ValueError(f'Expected shape ({expected_length},) ' +
-                    'but got shape {vector.shape}')
-        if cue.size != expected_length:
-            raise ValueError('Invalid lenght of the input data. Expected ' +
-                    f'{expected_length} and given {cue.size}')
+        if (len(cue.shape) < 1) or (len(cue.shape) > 2):
+            raise ValueError(f'Unexpected shape of cue(s): {cue.shape}.')
+        if len(cue.shape) == 1:
+            if cue.size != expected_length:
+                raise ValueError('Invalid lenght of the input data. Expected ' +
+                        f'{expected_length} and given {cue.size}')
+        elif cue.shape[1] != expected_length:
+            raise ValueError(f'Expected shape (n, {expected_length}) ' +
+                    f'but got shape {cue.shape}')
         threshold = self.rows(dim)
         undefined = self.undefined(dim)
         v = np.nan_to_num(cue, copy=True, nan=undefined)
@@ -449,6 +488,15 @@ class HeteroAssociativeMemory4D:
     def revalidate(self, memory, dim):
         v = np.where(memory == self.undefined(dim), np.nan, memory)
         return v
+
+    def validate_prototypes(self, prototypes):
+        if prototypes is None:
+            return [None, None]
+        protos = []
+        for dim in range(2):
+            protos.append(None if prototypes[dim] is None \
+                    else self.validate(prototypes[dim], dim))
+        return protos
 
     def vectors_to_relation(self, cue_a, cue_b, weights_a, weights_b):
         relation = np.zeros((self._n, self._p, self._m, self._q), dtype=int)
@@ -481,8 +529,8 @@ class HeteroAssociativeMemory4D:
         return s
 
     def transform(self, r):
-        return r if constants.projection_transform == constants.project_same \
-            else self.maximum(r) if constants.projection_transform == constants.project_maximum \
+        return r if commons.projection_transform == commons.project_same \
+            else self.maximum(r) if commons.projection_transform == commons.project_maximum \
             else self.logistic(r)
     
     def maximum(self, r):

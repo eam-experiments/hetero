@@ -26,7 +26,7 @@ Options:
 
 import numpy as np
 from docopt import docopt
-import constants
+import commons
 from hetero_associative_4d import *
 from hetero_associative_3d import *
 
@@ -37,7 +37,7 @@ except:
     print(__doc__)
     exit(1)
 
-es = constants.ExperimentSettings()
+es = commons.ExperimentSettings()
 h = None
 if d == 3:
     h = HeteroAssociativeMemory3D(2,3,3,2, es)
@@ -127,7 +127,7 @@ print(f'h.recognize(v1,w0):')
 r = h.recognize(v1,w0)
 print(f'Result: {r}')
 
-if h.model_name == constants.d4_model_name:
+if h.model_name == commons.d4_model_name:
     print(f'vu: {vu}')
     print(f'wn: {wn}')
 
@@ -140,8 +140,8 @@ print('r = h.recall_from_left(v0)')
 r = h.recall_from_left(v0)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -150,8 +150,8 @@ print('r = h.recall_from_left(v1)')
 r = h.recall_from_left(v1)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -160,8 +160,8 @@ print('r = h.recall_from_right(w0)')
 r = h.recall_from_right(w0)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -170,8 +170,8 @@ print('r = h.recall_from_left(vd)')
 r = h.recall_from_left(vd)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -180,8 +180,8 @@ print('r = h.recall_from_right(w1)')
 r = h.recall_from_right(w1)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -190,8 +190,8 @@ print('r = h.recall_from_right(wi)')
 r = h.recall_from_right(wi)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -200,8 +200,8 @@ print('r = h.recall_from_left(v2)')
 r = h.recall_from_left(v2)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -210,8 +210,8 @@ print('r = h.recall_from_left(vu)')
 r = h.recall_from_left(vu)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))
 
@@ -220,7 +220,7 @@ print('r = h.recall_from_right(wn)')
 r = h.recall_from_right(wn)
 print(f'vector: {r[0] if r[1] else None}, recognized: {r[1]}, weight: {r[2]}')
 print('Projection:')
-if h.model_name == constants.d4_model_name:
-    constants.print_csv(r[3])
+if h.model_name == commons.d4_model_name:
+    commons.print_csv(r[3])
 else:
     print(h.relation_to_string(r[3]))

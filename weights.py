@@ -27,10 +27,10 @@ from docopt import docopt
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import constants
+import commons
 
 def plot_graph(cr_means, cr_stdvs, ir_means, ir_stdvs, name):        
-    tags = constants.memory_fills
+    tags = commons.memory_fills
     x_pos = np.arange(len(tags))
     width = 0.35  # the width of the bars
     fig, ax = plt.subplots()
@@ -48,7 +48,7 @@ def plot_graph(cr_means, cr_stdvs, ir_means, ir_stdvs, name):
     # autolabel(ax, ir, "right")
     fig.tight_layout()
     fname = 'weight_comparison-' + name
-    graph_filename = constants.picture_filename(fname)
+    graph_filename = commons.picture_filename(fname)
     plt.savefig(graph_filename, dpi=600)
     plt.show()
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     fname = args['<csv_fname>']
     if args['--runpath']:
-        constants.run_path = args['--runpath']
-    csv_fname = constants.csv_filename(fname)
+        commons.run_path = args['--runpath']
+    csv_fname = commons.csv_filename(fname)
     df = pd.read_csv(csv_fname)
     describe_weights(df)

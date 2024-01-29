@@ -36,6 +36,7 @@ d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
 
 d3_with_distance = False
+use_prototypes = False
 
 n_sims = 50
 dist_estims = 50
@@ -58,6 +59,7 @@ prep_labels_fname = 'prep_labels.npy'
 image_path = 'images'
 testing_path = 'test'
 memories_path = 'memories'
+prototypes_path = 'prototypes'
 dreams_path = 'dreams'
 
 data_prefix = 'data-'
@@ -65,6 +67,7 @@ labels_prefix = 'labels-'
 features_prefix = 'features-'
 memories_prefix = 'memories-'
 noised_prefix = 'mem_noised-'
+prototypes_prefix = 'prototypes-'
 mem_conf_prefix = 'mem_confrix-'
 model_prefix = 'model-'
 recognition_prefix = 'recognition-'
@@ -93,6 +96,7 @@ testing_suffix = '-testing'
 noised_suffix = '-noised'
 prod_noised_suffix = '-prod_noised'
 memories_suffix = '-memories'
+proto_suffix = '-proto'
 
 # Model suffixes.
 encoder_suffix = '-encoder'
@@ -110,6 +114,9 @@ amsystem_suffix = '-ams'
 nnetwork_suffix = '-rnn'
 learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
     [nnetwork_suffix], [original_suffix, amsystem_suffix]]
+
+def dataset_suffix(dataset):
+    return '-' + dataset
 
 n_folds = 1
 n_jobs = 4
@@ -322,6 +329,9 @@ def labels_name(dataset, es):
 
 def memories_name(dataset, es):
     return memories_prefix + dataset
+
+def prototypes_name(dataset, es):
+    return prototypes_prefix + dataset
 
 def confrix_name(dataset, es):
     return mem_conf_prefix + dataset

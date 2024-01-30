@@ -38,8 +38,8 @@ d4_model_name = "4DEHAM"
 d3_with_distance = False
 use_prototypes = False
 
-n_sims = max(datasets_to_domains.values)
-dist_estims = max(datasets_to_codomains.values)
+n_sims = max(datasets_to_domains.values())
+dist_estims = max(datasets_to_codomains.values())
 mean_matches = 1
 stdv_matches = 0
 minimum_percentile = 0.5

@@ -266,7 +266,7 @@ def plot_distances(distances, prefix, es=None, fold=None):
     plot_relation(distances, prefix, xlabel='Label', ylabel='Label', es=es, fold=fold)
 
 
-def get_min_max(a : np.ndarray):
+def get_min_max(a : np.ndarray, percentiles = False):
     """Produces a desirable minimum and maximum values for features."""
     maximum = np.max(a)
     minimum = np.min(a)
@@ -279,8 +279,7 @@ def get_min_max(a : np.ndarray):
           f'{commons.minimum_percentile}% = {min_percentile}, ' +
             f'median = {median}, {commons.maximum_percentile}% = {max_percentile}, ' +
             f'max = {maximum}; mean = {mean}, stdev = {stdv}')
-    # return min_percentile, max_percentile
-    return minimum, maximum
+    return (min_percentile, max_percentile) if percentiles else (minimum, maximum)
 
 def features_distance(f, g):
     """ Calculates euclidean distance between two arrays of features."""

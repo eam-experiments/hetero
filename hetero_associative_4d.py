@@ -297,7 +297,7 @@ class HeteroAssociativeMemory4D:
             p -= step
         candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
         classifier = self.classifiers[self.alt(dim)]
-        classification = np.argmax(classifier.predict(candidates), axis=1)
+        classification = np.argmax(classifier.predict(candidates, verbose=0), axis=1)
         matches = np.sum([label == c for c in classification])
         return r_io, weights, iterations, last_update, matches/commons.n_sims
 

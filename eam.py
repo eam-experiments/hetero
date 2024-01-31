@@ -605,7 +605,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         recognized, weights = eam_origin.recog_weights(features)
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, n, l, d = recall(features, weights)
+            memory, recognized, weight, relation, n, l, d = recall(features, weights, label)
             if recognized:
                 iterations.append(n)
                 last_updates.append(l)
@@ -1245,7 +1245,7 @@ def test_hetero_filling_per_fold(es, fold):
     left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
     right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
     hetero_eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-                                         rows[left_ds], rows[right_ds], es)
+        rows[left_ds], rows[right_ds], es, fold)
     filling_features = {}
     filling_labels = {}
     testing_features = {}
@@ -1396,7 +1396,7 @@ def hetero_remember_per_fold(es, fold):
         min_maxs[dataset] = [min_value, max_value]
 
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds], es,
+            rows[left_ds], rows[right_ds], es, fold, min_value, max_value,
             [filling_prototypes[left_ds], filling_prototypes[right_ds]])
     
     for f in filling_features[left_ds]:
@@ -1463,7 +1463,7 @@ def check_consistency_per_fold(filling, es, fold):
     left_ds = commons.left_dataset
     right_ds = commons.right_dataset
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-                                  rows[left_ds], rows[right_ds], es)
+            rows[left_ds], rows[right_ds], es, fold)
 
     # Retrieve the classifiers.
     model_prefix = commons.model_name(left_ds, es)

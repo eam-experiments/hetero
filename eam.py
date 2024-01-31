@@ -683,21 +683,26 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         else np.std(correct_weights/mean_weight)
     distances_mean = 0.0 if len(distances) == 0 else np.mean(distances)
     distances_stdv = 0.0 if len(distances) == 0 else np.std(distances)
-    correct_distances_mean = 0.0 if len(correct_distances) == 0 \
-        else np.mean(correct_distances)
-    correct_distances_stdv = 0.0 if len(correct_distances) == 0 \
-        else np.std(correct_distances)
-    incorrect_distances_mean = 0.0 if len(incorrect_distances) == 0 \
-        else np.mean(incorrect_distances)
-    incorrect_distances_stdv = 0.0 if len(incorrect_distances) == 0 \
-        else np.std(incorrect_distances)
+    distances_skew = 0.0 if len(distances) == 0 else stats.skew(distances)
+    distances_kurt = 3 if len(distances) == 0 else stats.kurtosis(distances)
+    correct_distances_mean = 0.0 if len(correct_distances) == 0 else np.mean(correct_distances)
+    correct_distances_stdv = 0.0 if len(correct_distances) == 0 else np.std(correct_distances)
+    correct_distances_skew = 0.0 if len(correct_distances) == 0 else stats.skew(correct_distances)
+    correct_distances_kurt = 3 if len(correct_distances) == 0 else stats.kurtosis(correct_distances)
+    incorrect_distances_mean = 0.0 if len(incorrect_distances) == 0 else np.mean(incorrect_distances)
+    incorrect_distances_stdv = 0.0 if len(incorrect_distances) == 0 else np.std(incorrect_distances)
+    incorrect_distances_skew = 0.0 if len(incorrect_distances) == 0 else stats.skew(incorrect_distances)
+    incorrect_distances_kurt = 3 if len(incorrect_distances) == 0 else stats.kurtosis(incorrect_distances)
     print(f'Mean weight: {mean_weight}')
     print(f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), ' + 
         f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
-    print(f'Distances: mean = {distances_mean}, stdv = {distances_stdv}')
-    print(f'Distances: correct = ({correct_distances_mean}, {correct_distances_stdv}), ' + 
-        f'incorrect = ({incorrect_distances_mean}, {incorrect_distances_stdv})')
+    print(f'Distances: mean = {distances_mean}, stdv = {distances_stdv}, ' +
+            f'skew = {distances_skew}, kurt = {distances_kurt}.')
+    print(f'Distances of correct: ({correct_distances_mean}, {correct_distances_stdv}, ' + 
+            f'{correct_distances_skew}, {correct_distances_kurt}).')
+    print(f'Distances of incorrect: ({incorrect_distances_mean}, {incorrect_distances_stdv}, ' +
+            f'{incorrect_distances_skew}, {incorrect_distances_kurt}).')
     return confrix, behaviour, memories
 
 def check_hetero_memory(remembered_dataset,

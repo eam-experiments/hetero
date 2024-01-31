@@ -298,8 +298,12 @@ class HeteroAssociativeMemory4D:
         candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
         classifier = self.classifiers[self.alt(dim)]
         classification = np.argmax(classifier.predict(candidates, verbose=0), axis=1)
-        matches = np.sum([label == c for c in classification])
-        return r_io, weights, iterations, last_update, matches/commons.n_sims
+        matches = []
+        for l in commons.all_labels:
+            match = np.sum([l == c for c in classification])
+            matches.append(match)
+        best = 1 if matches[label] == max(matches) else 0
+        return r_io, weights, iterations, last_update, best
 
     def get_initial_cue(self, cue, cue_weights, projection, dim):
         if self._prototypes[self.alt(dim)] is None:

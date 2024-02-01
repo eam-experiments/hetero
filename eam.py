@@ -597,7 +597,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     unknown_weights = []
     iterations = []
     last_updates = []
-    distances = []
+    labels_presence = []
     print('Remembering ', end='')
     counter = 0
     counter_name = commons.set_counter()
@@ -605,11 +605,11 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         recognized, weights = eam_origin.recog_weights(features)
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, n, l, d = recall(features, weights, label)
+            memory, recognized, weight, relation, n, l, presence = recall(features, weights, label)
             if recognized:
                 iterations.append(n)
                 last_updates.append(l)
-                distances.append(d)
+                labels_presence.append(presence)
                 memories.append(memory)
                 correct.append(label)
                 mem_weights.append(weight)
@@ -642,21 +642,21 @@ def recall_by_hetero_memory(remembered_dataset, recall,
 
     correct_weights = []
     incorrect_weights = []
-    correct_distances = []
-    incorrect_distances = []
+    correct_presence = []
+    incorrect_presence = []
     print('Validating ', end='')
     if len(memories) > 0:
         memories = rsize_recall(np.array(memories), msize, minimum, maximum)
         predictions = np.argmax(classifier.predict(memories), axis=1)
-        for label, prediction, weight, distance in zip(correct, predictions, mem_weights, distances):
+        for label, prediction, weight, distance in zip(correct, predictions, mem_weights, labels_presence):
             # For calculation of per memory precision and recall
             confrix[label, prediction] += 1
             if label == prediction:
                 correct_weights.append(weight)
-                correct_distances.append(distance)
+                correct_presence.append(distance)
             else:
                 incorrect_weights.append(weight)
-                incorrect_distances.append(distance)
+                incorrect_presence.append(distance)
     print(' done')
     print(' end')
     behaviour[commons.no_response_idx] = unknown
@@ -681,28 +681,30 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         else np.mean(correct_weights/mean_weight)
     correct_weights_stdv = 0.0 if len(correct_weights) == 0 \
         else np.std(correct_weights/mean_weight)
-    distances_mean = 0.0 if len(distances) == 0 else np.mean(distances)
-    distances_stdv = 0.0 if len(distances) == 0 else np.std(distances)
-    distances_skew = 0.0 if len(distances) == 0 else stats.skew(distances)
-    distances_kurt = 3 if len(distances) == 0 else stats.kurtosis(distances)
-    correct_distances_mean = 0.0 if len(correct_distances) == 0 else np.mean(correct_distances)
-    correct_distances_stdv = 0.0 if len(correct_distances) == 0 else np.std(correct_distances)
-    correct_distances_skew = 0.0 if len(correct_distances) == 0 else stats.skew(correct_distances)
-    correct_distances_kurt = 3 if len(correct_distances) == 0 else stats.kurtosis(correct_distances)
-    incorrect_distances_mean = 0.0 if len(incorrect_distances) == 0 else np.mean(incorrect_distances)
-    incorrect_distances_stdv = 0.0 if len(incorrect_distances) == 0 else np.std(incorrect_distances)
-    incorrect_distances_skew = 0.0 if len(incorrect_distances) == 0 else stats.skew(incorrect_distances)
-    incorrect_distances_kurt = 3 if len(incorrect_distances) == 0 else stats.kurtosis(incorrect_distances)
     print(f'Mean weight: {mean_weight}')
     print(f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), ' + 
         f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
-    print(f'Distances: mean = {distances_mean}, stdv = {distances_stdv}, ' +
-            f'skew = {distances_skew}, kurt = {distances_kurt}.')
-    print(f'Distances of correct: ({correct_distances_mean}, {correct_distances_stdv}, ' + 
-            f'{correct_distances_skew}, {correct_distances_kurt}).')
-    print(f'Distances of incorrect: ({incorrect_distances_mean}, {incorrect_distances_stdv}, ' +
-            f'{incorrect_distances_skew}, {incorrect_distances_kurt}).')
+    
+    zeros = np.zeros(commons.n_labels, dtype=float)
+    presence_mean = zeros if len(labels_presence) == 0 else np.mean(labels_presence)
+    presence_stdv = zeros if len(labels_presence) == 0 else np.std(labels_presence)
+    presence_skew = zeros if len(labels_presence) == 0 else stats.skew(labels_presence)
+    presence_kurt = 3 if len(labels_presence) == 0 else stats.kurtosis(labels_presence)
+    correct_presence_mean = zeros if len(correct_presence) == 0 else np.mean(correct_presence)
+    correct_presence_stdv = zeros if len(correct_presence) == 0 else np.std(correct_presence)
+    correct_presence_skew = zeros if len(correct_presence) == 0 else stats.skew(correct_presence)
+    correct_presence_kurt = 3 if len(correct_presence) == 0 else stats.kurtosis(correct_presence)
+    incorrect_presence_mean = zeros if len(incorrect_presence) == 0 else np.mean(incorrect_presence)
+    incorrect_presence_stdv = zeros if len(incorrect_presence) == 0 else np.std(incorrect_presence)
+    incorrect_presence_skew = zeros if len(incorrect_presence) == 0 else stats.skew(incorrect_presence)
+    incorrect_presence_kurt = 3 if len(incorrect_presence) == 0 else stats.kurtosis(incorrect_presence)
+    print(f'Distances: mean = {presence_mean}, stdv = {presence_stdv}, ' +
+            f'skew = {presence_skew}, kurt = {presence_kurt}.')
+    print(f'Distances of correct: ({correct_presence_mean}, {correct_presence_stdv}, ' + 
+            f'{correct_presence_skew}, {correct_presence_kurt}).')
+    print(f'Distances of incorrect: ({incorrect_presence_mean}, {incorrect_presence_stdv}, ' +
+            f'{incorrect_presence_skew}, {incorrect_presence_kurt}).')
     return confrix, behaviour, memories
 
 def check_hetero_memory(remembered_dataset,

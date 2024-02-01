@@ -276,7 +276,7 @@ class HeteroAssociativeMemory4D:
         iterations = 0
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else 0.0
-        r_io, weights, stats = self.get_initial_cue(cue, cue_weights, projection, dim)
+        r_io, weights, stats = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         last_update = 0
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
@@ -294,10 +294,11 @@ class HeteroAssociativeMemory4D:
             p -= step
         return r_io, weights, iterations, last_update, stats
 
-    def get_initial_cue(self, cue, cue_weights, projection, dim):
-        stats = self.labels_in_projection(projection, dim)            
+    def get_initial_cue(self, cue, cue_weights, label, projection, dim):
+        stats = self.labels_in_projection(projection, label, dim)            
         if self._prototypes[self.alt(dim)] is None:
-            return self.reduce(projection, self.alt(dim)), stats
+            r_io, r_ws = self.reduce(projection, self.alt(dim))
+            return r_io, r_ws, stats
         distance = float('inf')
         candidate = None
         candidate_weights = None
@@ -532,18 +533,25 @@ class HeteroAssociativeMemory4D:
         self._iota_relation[:, :, self.m, :] = np.full((self._n, self._p, self._q), 1, dtype=int)
         self._iota_relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
 
-    def labels_in_projection(self, projection, dim):
+    def labels_in_projection(self, projection, label, dim):
         candidates = []
-        n = max(commons.domains)*max(commons.codomains)
+        n = max(commons.domains().values())*max(commons.codomains().values())
         for i in range(n):
             r_io, _ = self.reduce(projection, self.alt(dim))
             candidates.append(r_io)
         candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
         classifier = self.classifiers[self.alt(dim)]
         classification = np.argmax(classifier.predict(candidates, verbose=0), axis=1)
-        stats = np.zeros(commons.n_labels, dtype=float)
-        for label in classification:
-            stats[label] += 1
+        counts = np.zeros(commons.n_labels, dtype=float)
+        for c in classification:
+            counts[c] += 1
+        sorted_labels = np.argsort(counts)[::-1]
+        best_other = 0
+        for l in sorted_labels:
+            if l != label:
+                best_other = l
+                break
+        stats = np.array([counts[label], counts[best_other]])
         return stats / classification.size
 
 

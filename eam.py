@@ -687,23 +687,23 @@ def recall_by_hetero_memory(remembered_dataset, recall,
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
     
     zeros = np.zeros(commons.n_labels, dtype=float)
-    presence_mean = zeros if len(labels_presence) == 0 else np.mean(labels_presence)
-    presence_stdv = zeros if len(labels_presence) == 0 else np.std(labels_presence)
+    presence_mean = zeros if len(labels_presence) == 0 else np.mean(labels_presence, axis=0)
+    presence_stdv = zeros if len(labels_presence) == 0 else np.std(labels_presence, axis=0)
     presence_skew = zeros if len(labels_presence) == 0 else stats.skew(labels_presence)
     presence_kurt = 3 if len(labels_presence) == 0 else stats.kurtosis(labels_presence)
-    correct_presence_mean = zeros if len(correct_presence) == 0 else np.mean(correct_presence)
-    correct_presence_stdv = zeros if len(correct_presence) == 0 else np.std(correct_presence)
+    correct_presence_mean = zeros if len(correct_presence) == 0 else np.mean(correct_presence, axis=0)
+    correct_presence_stdv = zeros if len(correct_presence) == 0 else np.std(correct_presence, axis=0)
     correct_presence_skew = zeros if len(correct_presence) == 0 else stats.skew(correct_presence)
     correct_presence_kurt = 3 if len(correct_presence) == 0 else stats.kurtosis(correct_presence)
-    incorrect_presence_mean = zeros if len(incorrect_presence) == 0 else np.mean(incorrect_presence)
-    incorrect_presence_stdv = zeros if len(incorrect_presence) == 0 else np.std(incorrect_presence)
+    incorrect_presence_mean = zeros if len(incorrect_presence) == 0 else np.mean(incorrect_presence, axis=0)
+    incorrect_presence_stdv = zeros if len(incorrect_presence) == 0 else np.std(incorrect_presence, axis=0)
     incorrect_presence_skew = zeros if len(incorrect_presence) == 0 else stats.skew(incorrect_presence)
     incorrect_presence_kurt = 3 if len(incorrect_presence) == 0 else stats.kurtosis(incorrect_presence)
-    print(f'Distances: mean = {presence_mean}, stdv = {presence_stdv}, ' +
+    print(f'Stats: mean = {presence_mean}, stdv = {presence_stdv}, ' +
             f'skew = {presence_skew}, kurt = {presence_kurt}.')
-    print(f'Distances of correct: ({correct_presence_mean}, {correct_presence_stdv}, ' + 
+    print(f'Stats of correct: ({correct_presence_mean}, {correct_presence_stdv}, ' + 
             f'{correct_presence_skew}, {correct_presence_kurt}).')
-    print(f'Distances of incorrect: ({incorrect_presence_mean}, {incorrect_presence_stdv}, ' +
+    print(f'Stats of incorrect: ({incorrect_presence_mean}, {incorrect_presence_stdv}, ' +
             f'{incorrect_presence_skew}, {incorrect_presence_kurt}).')
     return confrix, behaviour, memories
 

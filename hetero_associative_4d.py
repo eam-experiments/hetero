@@ -254,7 +254,7 @@ class HeteroAssociativeMemory4D:
     def _recall(self, cue, weights, label, dim):
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
-        projection = self.transform(projection)
+        projection = self.transform(projection, label, dim)
         # If there is a column in the projection with only zeros, the cue is not recognized.
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
@@ -535,7 +535,7 @@ class HeteroAssociativeMemory4D:
 
     def labels_in_projection(self, projection, label, dim):
         candidates = []
-        n = max(commons.domains().values())*max(commons.codomains().values())
+        n = commons.presence_iterations
         for i in range(n):
             r_io, _ = self.reduce(projection, self.alt(dim))
             candidates.append(r_io)
@@ -569,11 +569,26 @@ class HeteroAssociativeMemory4D:
         s = f'{s}{p}]'
         return s
 
-    def transform(self, r):
-        return r if commons.projection_transform == commons.project_same \
-            else self.maximum(r) if commons.projection_transform == commons.project_maximum \
-            else self.logistic(r)
+    def transform(self, r, label, dim):
+        match commons.projection_transform:
+            case commons.project_same:
+                return r
+            case commons.project_maximum:
+                return self.maximum(r)
+            case commons.project_logistic:
+                return self.logistic(r)
+            case commons.project_prototype:
+                return self.adjust_by_proto(r, label, dim)
+            case _:
+                raise ValueError('Unexpected value of commons.projection_transform: ' +
+                                 f'{commons.projection_transform}.')
     
+    def adjust_by_proto(self, r, label, dim):
+        proto = self._prototypes[self.alt(dim)][label]
+        s = self.rows(self.alt(dim)) * self.sigma
+        p = self.adjust(r, proto, s)
+        return p
+
     def maximum(self, r):
         q = np.zeros(r.shape, dtype=float)
         for i in range(r.shape[0]):

@@ -29,6 +29,19 @@ FASHION = 'fashion'
 datasets = [MNIST, FASHION]
 datasets_to_domains = {MNIST: 64, FASHION: 128}
 datasets_to_codomains = {MNIST: 32, FASHION: 32}
+
+def domains():
+    doms = {}
+    for d in datasets:
+        doms[d] = domain(d)
+    return doms
+
+def codomains():
+    codoms = {}
+    for d in datasets:
+        codoms[d] = codomain(d)
+    return codoms
+
 left_dataset = MNIST
 right_dataset = FASHION
 
@@ -40,6 +53,7 @@ use_prototypes = False
 
 n_sims = max(datasets_to_domains.values())
 dist_estims = max(datasets_to_codomains.values())
+presence_iterations = max(datasets_to_domains.values())*max(datasets_to_codomains.values())
 mean_matches = 1
 stdv_matches = 0
 minimum_percentile = 0.5
@@ -47,7 +61,8 @@ maximum_percentile = 99.5
 project_same = 0
 project_logistic = 1
 project_maximum = 2
-projection_transform = project_same
+project_prototype = 3
+projection_transform = project_prototype
 # Directory where all results are stored.
 data_path = 'data'
 run_path = 'runs'
@@ -210,18 +225,6 @@ def domain(dataset):
 
 def codomain(dataset):
     return datasets_to_codomains[dataset]
-
-def domains():
-    doms = {}
-    for d in datasets:
-        doms[d] = domain(d)
-    return doms
-
-def codomains():
-    codoms = {}
-    for d in datasets:
-        codoms[d] = codomain(d)
-    return codoms
 
 def print_warning(*s):
     print('WARNING:', *s, file = sys.stderr)

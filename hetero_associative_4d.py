@@ -261,9 +261,11 @@ class HeteroAssociativeMemory4D:
     def _recall(self, cue, weights, label, dim):
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
-        projection, stats = self.transform(projection, label, dim)
-        # If there is a column in the projection with only zeros, the cue is not recognized.
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
+        if recognized:
+            projection, stats = self.transform(projection, label, dim)
+            # If there is a column in the projection with only zeros, the cue is not recognized.
+            recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
@@ -548,6 +550,8 @@ class HeteroAssociativeMemory4D:
             proto = self._prototypes[self.alt(dim)][l]
             s = self.rows(self.alt(dim)) * self.sigma
             p = self.adjust(projection, proto, s)
+            if (np.count_nonzero(np.sum(projection, axis=1) == 0) != 0):
+                continue
             candidates = []
             for i in range(commons.presence_iterations):
                 r_io, _ = self.reduce(p, self.alt(dim))

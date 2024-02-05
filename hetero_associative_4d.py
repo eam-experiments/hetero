@@ -194,6 +194,13 @@ class HeteroAssociativeMemory4D:
     def undefined(self, dim: int):
         return self.m if dim == 0 else self.q
 
+    def is_partial(self, f, dim):
+        u = self.undefined(dim)
+        for v in f:
+            if v == u:
+                return True
+        return False
+    
     def undefined_function(self, dim):
         return np.full(self.cols(dim), self.undefined(dim), dtype=int)
 
@@ -254,7 +261,7 @@ class HeteroAssociativeMemory4D:
     def _recall(self, cue, weights, label, dim):
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
-        projection = self.transform(projection, label, dim)
+        projection, stats = self.transform(projection, label, dim)
         # If there is a column in the projection with only zeros, the cue is not recognized.
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
@@ -268,7 +275,7 @@ class HeteroAssociativeMemory4D:
                     self.optimal_recall(cue, weights, label, projection, dim)
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, iterations, last_update, distance
+        return r_io, recognized, weight, projection, iterations, last_update, stats
 
     def optimal_recall(self, cue, cue_weights, label, projection, dim):
         r_io = None
@@ -276,7 +283,7 @@ class HeteroAssociativeMemory4D:
         iterations = 0
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else 0.0
-        r_io, weights, stats = self.get_initial_cue(cue, cue_weights, label, projection, dim)
+        r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         last_update = 0
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
@@ -292,13 +299,14 @@ class HeteroAssociativeMemory4D:
                 iterations += 1
                 last_update = i
             p -= step
-        return r_io, weights, iterations, last_update, stats
+        return r_io, weights, iterations, last_update, distance
 
     def get_initial_cue(self, cue, cue_weights, label, projection, dim):
-        stats = self.labels_in_projection(projection, label, dim)            
+        r_io, r_ws = self.reduce(projection, self.alt(dim))
+        return r_io, r_ws
         if self._prototypes[self.alt(dim)] is None:
             r_io, r_ws = self.reduce(projection, self.alt(dim))
-            return r_io, r_ws, stats
+            return r_io, r_ws
         distance = float('inf')
         candidate = None
         candidate_weights = None
@@ -322,7 +330,7 @@ class HeteroAssociativeMemory4D:
                     distance = d
         if candidate is None:
             candidate, candidate_weights = self.reduce(projection, self.alt(dim))
-        return candidate, candidate_weights, stats
+        return candidate, candidate_weights
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
@@ -534,25 +542,31 @@ class HeteroAssociativeMemory4D:
         self._iota_relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
 
     def labels_in_projection(self, projection, label, dim):
-        candidates = []
-        n = commons.presence_iterations
-        for i in range(n):
-            r_io, _ = self.reduce(projection, self.alt(dim))
-            candidates.append(r_io)
-        candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
+        counts = np.zeros(commons.n_labels, dtype=int)
         classifier = self.classifiers[self.alt(dim)]
-        classification = np.argmax(classifier.predict(candidates, verbose=0), axis=1)
-        counts = np.zeros(commons.n_labels, dtype=float)
-        for c in classification:
-            counts[c] += 1
+        for l in commons.all_labels:
+            proto = self._prototypes[self.alt(dim)][l]
+            s = self.rows(self.alt(dim)) * self.sigma
+            p = self.adjust(projection, proto, s)
+            candidates = []
+            for i in range(commons.presence_iterations):
+                r_io, _ = self.reduce(p, self.alt(dim))
+                if not self.is_partial(r_io, self.alt(dim)):
+                    candidates.append(r_io)
+            if len(candidates) > 0:
+                candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
+                classification = np.argmax(classifier.predict(candidates, verbose=0), axis=1)
+                for c in classification:
+                    counts[l] += (c == l)
         sorted_labels = np.argsort(counts)[::-1]
         best_other = 0
         for l in sorted_labels:
             if l != label:
                 best_other = l
                 break
-        stats = np.array([counts[label], counts[best_other]])
-        return stats / classification.size
+        stats = {label: counts[label]/commons.presence_iterations,
+                best_other: counts[best_other]/commons.presence_iterations}
+        return stats
 
 
     def rsize_recalls(self, recalls, dim):
@@ -570,13 +584,14 @@ class HeteroAssociativeMemory4D:
         return s
 
     def transform(self, r, label, dim):
+        zeros = np.zeros(2, dtype = float)
         match commons.projection_transform:
             case commons.project_same:
-                return r
+                return r, zeros
             case commons.project_maximum:
-                return self.maximum(r)
+                return self.maximum(r), zeros
             case commons.project_logistic:
-                return self.logistic(r)
+                return self.logistic(r), zeros
             case commons.project_prototype:
                 return self.adjust_by_proto(r, label, dim)
             case _:
@@ -584,10 +599,13 @@ class HeteroAssociativeMemory4D:
                                  f'{commons.projection_transform}.')
     
     def adjust_by_proto(self, r, label, dim):
-        proto = self._prototypes[self.alt(dim)][label]
+        stats = self.labels_in_projection(r, label, dim)
+        other = [k for k in stats][1]
+        l = label if stats[label] >= stats[other] else other
+        proto = self._prototypes[self.alt(dim)][l]
         s = self.rows(self.alt(dim)) * self.sigma
         p = self.adjust(r, proto, s)
-        return p
+        return p, np.array([v for v in stats.values()])
 
     def maximum(self, r):
         q = np.zeros(r.shape, dtype=float)

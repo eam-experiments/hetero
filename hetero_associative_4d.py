@@ -262,6 +262,7 @@ class HeteroAssociativeMemory4D:
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
+        stats = np.zeros(2, dtype = float)
         if recognized:
             projection, stats = self.transform(projection, label, dim)
             # If there is a column in the projection with only zeros, the cue is not recognized.
@@ -271,9 +272,8 @@ class HeteroAssociativeMemory4D:
             weight = 0.0
             iterations = 0
             last_update = 0
-            distance = 0.0
         else:
-            r_io, weights, iterations, last_update, distance = \
+            r_io, weights, iterations, last_update, _ = \
                     self.optimal_recall(cue, weights, label, projection, dim)
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
@@ -286,14 +286,14 @@ class HeteroAssociativeMemory4D:
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else 0.0
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
-        distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
+        distance, _ = self.class_entropy_recall(cue, cue_weights, label, r_io, weights, dim)
         last_update = 0
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             s = self.rows(self.alt(dim)) * beta
-            excluded = self.random_exclusion(r_io, p)
-            s_projection = self.adjust(projection, r_io, s)
+            excluded = None # self.random_exclusion(r_io, p)
+            s_projection = projection # self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            d, _ = self.class_entropy_recall(cue, cue_weights, label, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -304,8 +304,7 @@ class HeteroAssociativeMemory4D:
         return r_io, weights, iterations, last_update, distance
 
     def get_initial_cue(self, cue, cue_weights, label, projection, dim):
-        r_io, r_ws = self.reduce(projection, self.alt(dim))
-        return r_io, r_ws
+        return self.reduce(projection, self.alt(dim))
         if self._prototypes[self.alt(dim)] is None:
             r_io, r_ws = self.reduce(projection, self.alt(dim))
             return r_io, r_ws
@@ -334,7 +333,7 @@ class HeteroAssociativeMemory4D:
             candidate, candidate_weights = self.reduce(projection, self.alt(dim))
         return candidate, candidate_weights
 
-    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
+    def distance_recall(self, cue, cue_weights, label, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
         distance = self.calculate_distance(cue, cue_weights, p_io, dim)
         return distance, 0
@@ -348,6 +347,14 @@ class HeteroAssociativeMemory4D:
             distance += d
         return distance / np.sum(cue_weights)
 
+    def class_entropy_recall(self, cue, cue_weights, label, q_io, q_ws, dim):
+        p_io = self.project(q_io, q_ws, self.alt(dim))
+        class_presence = self.labels_presence(p_io, dim)
+        c = np.argmax(class_presence)
+        if c != label:
+            return float('inf'), class_presence[label]
+        return 1.0 - class_presence[label], class_presence[label]
+    
     def abstract(self, r_io):
         self._relation = np.where(
             self._relation == self.absolute_max_value,
@@ -571,7 +578,34 @@ class HeteroAssociativeMemory4D:
         stats = {label: counts[label]/commons.presence_iterations,
                 best_other: counts[best_other]/commons.presence_iterations}
         return stats
+    
+    def labels_presence(self, projection, dim):
+        r_ios = []
+        for i in range(commons.dist_estims):
+            r_io, _ = self.reduce(projection, dim)
+            r_ios.append(r_io)
+        r_ios = np.array(r_ios)
+        r_ios = self.rsize_recalls(r_ios, dim)
+        presence = np.zeros(commons.n_labels, dtype=int)
+        classifier = self.classifiers[dim]
+        classification = np.argmax(classifier.predict(r_ios, verbose=0), axis=1)
+        for c in classification:
+            presence[c] += 1
+        return presence/commons.dist_estims
 
+
+
+    def projection_entropy(self, projection, dim):
+        entropies = []
+        for i in range(self.cols(dim)):
+            total = np.sum(projection[i])
+            if total > 0:
+                column = projection[i]/total
+            else:
+                column = projection[i].copy()
+            column = np.multiply(-column, np.log2(np.where(column == 0.0, 1.0, column)))
+            entropies.append(np.sum(column))
+        return np.mean(entropies)
 
     def rsize_recalls(self, recalls, dim):
         return (self.max_value - self.min_value) * recalls.astype(dtype=float) \

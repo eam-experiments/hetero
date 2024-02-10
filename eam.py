@@ -597,7 +597,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     unknown_weights = []
     iterations = []
     last_updates = []
-    distances = []
+    labels_presence = []
     print('Remembering ', end='')
     counter = 0
     counter_name = commons.set_counter()
@@ -605,11 +605,11 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         recognized, weights = eam_origin.recog_weights(features)
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, n, l, d = recall(features, weights)
+            memory, recognized, weight, relation, n, l, presence = recall(features, weights, label)
             if recognized:
                 iterations.append(n)
                 last_updates.append(l)
-                distances.append(d)
+                labels_presence.append(presence)
                 memories.append(memory)
                 correct.append(label)
                 mem_weights.append(weight)
@@ -642,21 +642,21 @@ def recall_by_hetero_memory(remembered_dataset, recall,
 
     correct_weights = []
     incorrect_weights = []
-    correct_distances = []
-    incorrect_distances = []
+    correct_presence = []
+    incorrect_presence = []
     print('Validating ', end='')
     if len(memories) > 0:
         memories = rsize_recall(np.array(memories), msize, minimum, maximum)
         predictions = np.argmax(classifier.predict(memories), axis=1)
-        for label, prediction, weight, distance in zip(correct, predictions, mem_weights, distances):
+        for label, prediction, weight, distance in zip(correct, predictions, mem_weights, labels_presence):
             # For calculation of per memory precision and recall
             confrix[label, prediction] += 1
             if label == prediction:
                 correct_weights.append(weight)
-                correct_distances.append(distance)
+                correct_presence.append(distance)
             else:
                 incorrect_weights.append(weight)
-                incorrect_distances.append(distance)
+                incorrect_presence.append(distance)
     print(' done')
     print(' end')
     behaviour[commons.no_response_idx] = unknown
@@ -681,23 +681,30 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         else np.mean(correct_weights/mean_weight)
     correct_weights_stdv = 0.0 if len(correct_weights) == 0 \
         else np.std(correct_weights/mean_weight)
-    distances_mean = 0.0 if len(distances) == 0 else np.mean(distances)
-    distances_stdv = 0.0 if len(distances) == 0 else np.std(distances)
-    correct_distances_mean = 0.0 if len(correct_distances) == 0 \
-        else np.mean(correct_distances)
-    correct_distances_stdv = 0.0 if len(correct_distances) == 0 \
-        else np.std(correct_distances)
-    incorrect_distances_mean = 0.0 if len(incorrect_distances) == 0 \
-        else np.mean(incorrect_distances)
-    incorrect_distances_stdv = 0.0 if len(incorrect_distances) == 0 \
-        else np.std(incorrect_distances)
     print(f'Mean weight: {mean_weight}')
     print(f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), ' + 
         f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
-    print(f'Distances: mean = {distances_mean}, stdv = {distances_stdv}')
-    print(f'Distances: correct = ({correct_distances_mean}, {correct_distances_stdv}), ' + 
-        f'incorrect = ({incorrect_distances_mean}, {incorrect_distances_stdv})')
+    
+    zeros = np.zeros(2, dtype=float)
+    presence_mean = zeros if len(labels_presence) == 0 else np.mean(labels_presence, axis=0)
+    presence_stdv = zeros if len(labels_presence) == 0 else np.std(labels_presence, axis=0)
+    presence_skew = zeros if len(labels_presence) == 0 else stats.skew(labels_presence)
+    presence_kurt = zeros if len(labels_presence) == 0 else stats.kurtosis(labels_presence)
+    correct_presence_mean = zeros if len(correct_presence) == 0 else np.mean(correct_presence, axis=0)
+    correct_presence_stdv = zeros if len(correct_presence) == 0 else np.std(correct_presence, axis=0)
+    correct_presence_skew = zeros if len(correct_presence) == 0 else stats.skew(correct_presence)
+    correct_presence_kurt = zeros if len(correct_presence) == 0 else stats.kurtosis(correct_presence)
+    incorrect_presence_mean = zeros if len(incorrect_presence) == 0 else np.mean(incorrect_presence, axis=0)
+    incorrect_presence_stdv = zeros if len(incorrect_presence) == 0 else np.std(incorrect_presence, axis=0)
+    incorrect_presence_skew = zeros if len(incorrect_presence) == 0 else stats.skew(incorrect_presence)
+    incorrect_presence_kurt = zeros if len(incorrect_presence) == 0 else stats.kurtosis(incorrect_presence)
+    print(f'Stats: mean = {presence_mean}, stdv = {presence_stdv}, ' +
+            f'skew = {presence_skew}, kurt = {presence_kurt}.')
+    print(f'Stats of correct: ({correct_presence_mean}, {correct_presence_stdv}, ' + 
+            f'{correct_presence_skew}, {correct_presence_kurt}).')
+    print(f'Stats of incorrect: ({incorrect_presence_mean}, {incorrect_presence_stdv}, ' +
+            f'{incorrect_presence_skew}, {incorrect_presence_kurt}).')
     return confrix, behaviour, memories
 
 def check_hetero_memory(remembered_dataset,
@@ -1245,7 +1252,7 @@ def test_hetero_filling_per_fold(es, fold):
     left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
     right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
     hetero_eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-                                         rows[left_ds], rows[right_ds], es)
+        rows[left_ds], rows[right_ds], es, fold)
     filling_features = {}
     filling_labels = {}
     testing_features = {}
@@ -1396,7 +1403,7 @@ def hetero_remember_per_fold(es, fold):
         min_maxs[dataset] = [min_value, max_value]
 
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds], es,
+            rows[left_ds], rows[right_ds], es, fold, min_value, max_value,
             [filling_prototypes[left_ds], filling_prototypes[right_ds]])
     
     for f in filling_features[left_ds]:
@@ -1463,7 +1470,7 @@ def check_consistency_per_fold(filling, es, fold):
     left_ds = commons.left_dataset
     right_ds = commons.right_dataset
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-                                  rows[left_ds], rows[right_ds], es)
+            rows[left_ds], rows[right_ds], es, fold)
 
     # Retrieve the classifiers.
     model_prefix = commons.model_name(left_ds, es)

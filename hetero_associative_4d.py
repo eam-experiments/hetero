@@ -15,11 +15,12 @@
 import math
 import random
 import numpy as np
+import tensorflow as tf
 import commons
 
 class HeteroAssociativeMemory4D:
     def __init__(self, n: int, p: int, m: int, q: int,
-        es: commons.ExperimentSettings,
+        es: commons.ExperimentSettings, fold, min_value = None, max_value = None,
         prototypes = None):
         """
         Parameters
@@ -56,6 +57,19 @@ class HeteroAssociativeMemory4D:
         # In order to accept partial functions, the borders (_m-1 and _q-1)
         # should not be zero.
         self._set_margins()
+
+        # Set original limits of features values.
+        self.min_value = 0 if min_value is None else min_value
+        self.max_value = 1 if max_value is None else max_value
+
+        # Retrieve the classifiers.
+        self.classifiers = []
+        for dataset in commons.datasets:
+            model_prefix = commons.model_name(dataset, es)
+            filename = commons.classifier_filename(model_prefix, es, fold)
+            classifier = tf.keras.models.load_model(filename)
+            self.classifiers.append(classifier)
+
         print(f'Relational memory {self.model_name} {{n: {self.n}, p: {self.p}, ' +
             f'm: {self.m}, q: {self.q}, ' +
             f'xi: {self.xi}, iota: {self.iota}, ' +
@@ -180,6 +194,13 @@ class HeteroAssociativeMemory4D:
     def undefined(self, dim: int):
         return self.m if dim == 0 else self.q
 
+    def is_partial(self, f, dim):
+        u = self.undefined(dim)
+        for v in f:
+            if v == u:
+                return True
+        return False
+    
     def undefined_function(self, dim):
         return np.full(self.cols(dim), self.undefined(dim), dtype=int)
 
@@ -227,22 +248,24 @@ class HeteroAssociativeMemory4D:
             recognized = recognized and (self._kappa*self.mean <= np.mean(weights))
         return recognized, weights
 
-    def recall_from_left(self, cue, weights = None):
+    def recall_from_left(self, cue, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
-        return self._recall(cue, weights, 0)
+        return self._recall(cue, weights, label, 0)
 
-    def recall_from_right(self, cue, weights = None):
+    def recall_from_right(self, cue, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
-        return self._recall(cue, weights, 1)
+        return self._recall(cue, weights, label, 1)
 
-    def _recall(self, cue, weights, dim):
+    def _recall(self, cue, weights, label, dim):
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
-        projection = self.transform(projection)
-        # If there is a column in the projection with only zeros, the cue is not recognized.
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
+        if recognized:
+            projection, stats = self.transform(projection, label, dim)
+            # If there is a column in the projection with only zeros, the cue is not recognized.
+            recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
@@ -251,18 +274,18 @@ class HeteroAssociativeMemory4D:
             distance = 0.0
         else:
             r_io, weights, iterations, last_update, distance = \
-                    self.optimal_recall(cue, weights, projection, dim)
+                    self.optimal_recall(cue, weights, label, projection, dim)
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, iterations, last_update, distance
+        return r_io, recognized, weight, projection, iterations, last_update, stats
 
-    def optimal_recall(self, cue, cue_weights, projection, dim):
+    def optimal_recall(self, cue, cue_weights, label, projection, dim):
         r_io = None
         weights = None
         iterations = 0
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else 0.0
-        r_io, weights = self.get_initial_cue(cue, cue_weights, projection, dim)
+        r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         last_update = 0
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
@@ -280,9 +303,12 @@ class HeteroAssociativeMemory4D:
             p -= step
         return r_io, weights, iterations, last_update, distance
 
-    def get_initial_cue(self, cue, cue_weights, projection, dim):
+    def get_initial_cue(self, cue, cue_weights, label, projection, dim):
+        r_io, r_ws = self.reduce(projection, self.alt(dim))
+        return r_io, r_ws
         if self._prototypes[self.alt(dim)] is None:
-            return self.reduce(projection, self.alt(dim))
+            r_io, r_ws = self.reduce(projection, self.alt(dim))
+            return r_io, r_ws
         distance = float('inf')
         candidate = None
         candidate_weights = None
@@ -307,7 +333,6 @@ class HeteroAssociativeMemory4D:
         if candidate is None:
             candidate, candidate_weights = self.reduce(projection, self.alt(dim))
         return candidate, candidate_weights
-        
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
@@ -518,6 +543,40 @@ class HeteroAssociativeMemory4D:
         self._iota_relation[:, :, self.m, :] = np.full((self._n, self._p, self._q), 1, dtype=int)
         self._iota_relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
 
+    def labels_in_projection(self, projection, label, dim):
+        counts = np.zeros(commons.n_labels, dtype=int)
+        classifier = self.classifiers[self.alt(dim)]
+        for l in commons.all_labels:
+            proto = self._prototypes[self.alt(dim)][l]
+            s = self.rows(self.alt(dim)) * self.sigma
+            p = self.adjust(projection, proto, s)
+            if (np.count_nonzero(np.sum(projection, axis=1) == 0) != 0):
+                continue
+            candidates = []
+            for i in range(commons.presence_iterations):
+                r_io, _ = self.reduce(p, self.alt(dim))
+                if not self.is_partial(r_io, self.alt(dim)):
+                    candidates.append(r_io)
+            if len(candidates) > 0:
+                candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
+                classification = np.argmax(classifier.predict(candidates, verbose=0), axis=1)
+                for c in classification:
+                    counts[l] += (c == l)
+        sorted_labels = np.argsort(counts)[::-1]
+        best_other = 0
+        for l in sorted_labels:
+            if l != label:
+                best_other = l
+                break
+        stats = {label: counts[label]/commons.presence_iterations,
+                best_other: counts[best_other]/commons.presence_iterations}
+        return stats
+
+
+    def rsize_recalls(self, recalls, dim):
+        return (self.max_value - self.min_value) * recalls.astype(dtype=float) \
+                / (self.rows(dim) - 1.0) + self.min_value
+
     def relation_to_string(self, a, p = ''):
         if a.ndim == 1:
             return f'{p}{a}'
@@ -528,11 +587,30 @@ class HeteroAssociativeMemory4D:
         s = f'{s}{p}]'
         return s
 
-    def transform(self, r):
-        return r if commons.projection_transform == commons.project_same \
-            else self.maximum(r) if commons.projection_transform == commons.project_maximum \
-            else self.logistic(r)
+    def transform(self, r, label, dim):
+        zeros = np.zeros(2, dtype = float)
+        match commons.projection_transform:
+            case commons.project_same:
+                return r, zeros
+            case commons.project_maximum:
+                return self.maximum(r), zeros
+            case commons.project_logistic:
+                return self.logistic(r), zeros
+            case commons.project_prototype:
+                return self.adjust_by_proto(r, label, dim)
+            case _:
+                raise ValueError('Unexpected value of commons.projection_transform: ' +
+                                 f'{commons.projection_transform}.')
     
+    def adjust_by_proto(self, r, label, dim):
+        stats = self.labels_in_projection(r, label, dim)
+        other = [k for k in stats][1]
+        l = label if stats[label] >= stats[other] else other
+        proto = self._prototypes[self.alt(dim)][l]
+        s = self.rows(self.alt(dim)) * self.sigma
+        p = self.adjust(r, proto, s)
+        return p, np.array([v for v in stats.values()])
+
     def maximum(self, r):
         q = np.zeros(r.shape, dtype=float)
         for i in range(r.shape[0]):

@@ -16,11 +16,12 @@
 
 Usage:
   plot_presence -h | --help
-  plot_presence [ -p ]
+  plot_presence --fname=FNAME [ -p ]
 
 Options:
   -h    Show this screen.
   -p    Show presence when using the prototype of the expected class.
+  --fname Name of filename, without the '-proto' suffix nor extension.
 """
 from docopt import docopt, DocoptExit
 import numpy as np
@@ -29,7 +30,6 @@ import matplotlib as mpl
 import commons
 
 runpath = 'runs_4d'
-filename = 'presence'
 
 def plot_presence(xtags, means, stdev, skewn, kurto, dataset, fname):
     ymax = 100.0
@@ -71,6 +71,7 @@ def gen_graph(stats, dataset, fname):
 
 if __name__ == "__main__":
     args = docopt(__doc__)
+    filename = args['--fname']
     suffix = '-proto' if args['-p'] else ''
     for dataset in commons.datasets:
         fname = runpath + '/' + filename + '-' + dataset + suffix

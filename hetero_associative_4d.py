@@ -353,9 +353,9 @@ class HeteroAssociativeMemory4D:
 
     def presence_entropy(self, cue, cue_weights, label, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        presence = self.labels_presence(p_io, dim)
+        presence = self.label_presence(p_io, label, dim)
         entropy = self.projection_entropy(p_io, dim)
-        return presence[label], entropy
+        return presence, entropy
     
     def abstract(self, r_io):
         self._relation = np.where(
@@ -581,20 +581,15 @@ class HeteroAssociativeMemory4D:
                 best_other: counts[best_other]/commons.presence_iterations}
         return stats
     
-    def labels_presence(self, projection, dim):
-        r_ios = []
+    def label_presence(self, projection, label, dim):
+        r_ios = np.zeros((commons.dist_estims, self.cols(dim)), dtype = int)
         for i in range(commons.dist_estims):
-            r_io, _ = self.reduce(projection, dim)
-            r_ios.append(r_io)
-        r_ios = self.rsize_recalls(np.array(r_ios), dim)
-        presence = np.zeros(commons.n_labels, dtype=int)
+            r_ios[i] = self.reduce(projection, dim)
+        r_ios = self.rsize_recalls(r_ios, dim)
         classifier = self.classifiers[dim]
         classification = np.argmax(classifier.predict(r_ios, verbose=0), axis=1)
-        labels, counts = np.unique(classification, return_counts=True)
-        presence[labels] = counts
+        presence = np.count_nonzero(classification == label)
         return presence/commons.dist_estims
-
-
 
     def projection_entropy(self, projection, dim):
         entropies = []

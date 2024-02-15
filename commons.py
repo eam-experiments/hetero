@@ -51,8 +51,8 @@ d4_model_name = "4DEHAM"
 d3_with_distance = False
 use_prototypes = False
 
-n_sims = max(datasets_to_domains.values())
-dist_estims = max(datasets_to_codomains.values())
+n_sims = min(datasets_to_domains.values())
+dist_estims = n_sims # max(datasets_to_codomains.values())
 presence_iterations = max(datasets_to_domains.values())*max(datasets_to_codomains.values())
 mean_matches = 1
 stdv_matches = 0
@@ -62,7 +62,7 @@ project_same = 0
 project_logistic = 1
 project_maximum = 2
 project_prototype = 3
-projection_transform = project_prototype
+projection_transform = project_same
 # Directory where all results are stored.
 data_path = 'data'
 run_path = 'runs'

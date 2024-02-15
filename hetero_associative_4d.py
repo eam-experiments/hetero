@@ -284,16 +284,20 @@ class HeteroAssociativeMemory4D:
         weights = None
         iterations = 0
         p = 1.0
-        step = p / commons.n_sims if commons.n_sims > 0 else 0.0
+        step = p / commons.n_sims if commons.n_sims > 0 else p
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
-        distance, _ = self.class_entropy_recall(cue, cue_weights, label, r_io, weights, dim)
+        presence, entropy = self.presence_entropy(cue, cue_weights, label, r_io, weights, dim)
+        # distance = (1.0 - presence)*entropy
+        distance = 1.0 - presence
         last_update = 0
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
-            s = self.rows(self.alt(dim)) * beta
+            # s = self.rows(self.alt(dim)) * beta
             excluded = None # self.random_exclusion(r_io, p)
             s_projection = projection # self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            d, _ = self.class_entropy_recall(cue, cue_weights, label, q_io, q_ws, dim)
+            presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
+            # d = (1.0 - presence)*entropy
+            d = 1.0 - presence
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -347,13 +351,11 @@ class HeteroAssociativeMemory4D:
             distance += d
         return distance / np.sum(cue_weights)
 
-    def class_entropy_recall(self, cue, cue_weights, label, q_io, q_ws, dim):
+    def presence_entropy(self, cue, cue_weights, label, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
-        class_presence = self.labels_presence(p_io, dim)
-        c = np.argmax(class_presence)
-        if c != label:
-            return float('inf'), class_presence[label]
-        return 1.0 - class_presence[label], class_presence[label]
+        presence = self.labels_presence(p_io, dim)
+        entropy = self.projection_entropy(p_io, dim)
+        return presence[label], entropy
     
     def abstract(self, r_io):
         self._relation = np.where(
@@ -584,13 +586,12 @@ class HeteroAssociativeMemory4D:
         for i in range(commons.dist_estims):
             r_io, _ = self.reduce(projection, dim)
             r_ios.append(r_io)
-        r_ios = np.array(r_ios)
-        r_ios = self.rsize_recalls(r_ios, dim)
+        r_ios = self.rsize_recalls(np.array(r_ios), dim)
         presence = np.zeros(commons.n_labels, dtype=int)
         classifier = self.classifiers[dim]
         classification = np.argmax(classifier.predict(r_ios, verbose=0), axis=1)
-        for c in classification:
-            presence[c] += 1
+        labels, counts = np.unique(classification, return_counts=True)
+        presence[labels] = counts
         return presence/commons.dist_estims
 
 

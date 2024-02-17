@@ -287,7 +287,7 @@ class HeteroAssociativeMemory4D:
         step = p / commons.n_sims if commons.n_sims > 0 else p
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         presence, entropy = self.presence_entropy(cue, cue_weights, label, r_io, weights, dim)
-        distance = (1.0 - presence)*entropy
+        distance = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
         last_update = 0
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             # s = self.rows(self.alt(dim)) * beta
@@ -295,7 +295,7 @@ class HeteroAssociativeMemory4D:
             s_projection = projection # self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
             presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
-            d = (1.0 - presence)*entropy
+            d = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -587,8 +587,10 @@ class HeteroAssociativeMemory4D:
         r_ios = self.rsize_recalls(r_ios, dim)
         classifier = self.classifiers[dim]
         classification = np.argmax(classifier.predict(r_ios, verbose=0), axis=1)
-        presence = np.count_nonzero(classification == label)
-        return presence/commons.dist_estims
+        frequencies = dict(zip(np.unique(classification, return_counts=True)))
+        maximum = max(frequencies.values())
+        presence = frequencies[label] if label in frequencies.keys() else 0
+        return presence/commons.dist_estims if presence == maximum else 0.0
 
     def projection_entropy(self, projection, dim):
         entropies = []

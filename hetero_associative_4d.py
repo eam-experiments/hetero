@@ -279,8 +279,9 @@ class HeteroAssociativeMemory4D:
                 recognized = False
                 r_io = self.undefined_function(self.alt(dim))
                 weight = 0.0
-            weight = np.mean(weights)
-            r_io = self.revalidate(r_io, self.alt(dim))
+            else:
+                weight = np.mean(weights)
+                r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, projection, iterations, last_update, stats
 
     def optimal_recall(self, cue, cue_weights, label, projection, dim):
@@ -598,7 +599,8 @@ class HeteroAssociativeMemory4D:
         r_ios = self.rsize_recalls(r_ios, dim)
         classifier = self.classifiers[dim]
         classification = np.argmax(classifier.predict(r_ios, verbose=0), axis=1)
-        frequencies = dict(zip(np.unique(classification, return_counts=True)))
+        labels, counts = np.unique(classification, return_counts=True)
+        frequencies = dict(zip(labels, counts))
         maximum = max(frequencies.values())
         presence = frequencies[label] if label in frequencies.keys() else 0
         return presence/commons.dist_estims if presence == maximum else 0.0

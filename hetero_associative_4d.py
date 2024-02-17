@@ -275,6 +275,10 @@ class HeteroAssociativeMemory4D:
         else:
             r_io, weights, iterations, last_update, _ = \
                     self.optimal_recall(cue, weights, label, projection, dim)
+            if r_io is None:
+                recognized = False
+                r_io = self.undefined_function(self.alt(dim))
+                weight = 0.0
             weight = np.mean(weights)
             r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, projection, iterations, last_update, stats
@@ -293,22 +297,23 @@ class HeteroAssociativeMemory4D:
             r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
             presence, entropy = self.presence_entropy(cue, cue_weights, label, r_io, weights, dim)
             n += 1
-        if presence > 0.0:
-            distance = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
-            for i, beta in zip(range(n, commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims-n)):
-                # s = self.rows(self.alt(dim)) * beta
-                excluded = None # self.random_exclusion(r_io, p)
-                s_projection = projection # self.adjust(projection, r_io, s)
-                q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-                presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
-                d = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
-                if d < distance:
-                    r_io = q_io
-                    weights = q_ws
-                    distance = d
-                    iterations += 1
-                    last_update = i
-                p -= step
+        if presence == 0.0:
+            return None, None, iterations, last_update, float('inf')
+        distance = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
+        for i, beta in zip(range(n, commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims-n)):
+            # s = self.rows(self.alt(dim)) * beta
+            excluded = None # self.random_exclusion(r_io, p)
+            s_projection = projection # self.adjust(projection, r_io, s)
+            q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
+            presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
+            d = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
+            if d < distance:
+                r_io = q_io
+                weights = q_ws
+                distance = d
+                iterations += 1
+                last_update = i
+            p -= step
         return r_io, weights, iterations, last_update, distance
 
     def get_initial_cue(self, cue, cue_weights, label, projection, dim):

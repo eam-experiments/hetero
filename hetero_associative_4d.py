@@ -285,24 +285,30 @@ class HeteroAssociativeMemory4D:
         iterations = 0
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else p
+        last_update = 0
+        n = 0
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         presence, entropy = self.presence_entropy(cue, cue_weights, label, r_io, weights, dim)
-        distance = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
-        last_update = 0
-        for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
-            # s = self.rows(self.alt(dim)) * beta
-            excluded = None # self.random_exclusion(r_io, p)
-            s_projection = projection # self.adjust(projection, r_io, s)
-            q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
-            d = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
-            if d < distance:
-                r_io = q_io
-                weights = q_ws
-                distance = d
-                iterations += 1
-                last_update = i
-            p -= step
+        while (n < commons.n_sims) and (presence == 0.0):
+            r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
+            presence, entropy = self.presence_entropy(cue, cue_weights, label, r_io, weights, dim)
+            n += 1
+        if presence > 0.0:
+            distance = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
+            for i, beta in zip(range(n, commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims-n)):
+                # s = self.rows(self.alt(dim)) * beta
+                excluded = None # self.random_exclusion(r_io, p)
+                s_projection = projection # self.adjust(projection, r_io, s)
+                q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
+                presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
+                d = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
+                if d < distance:
+                    r_io = q_io
+                    weights = q_ws
+                    distance = d
+                    iterations += 1
+                    last_update = i
+                p -= step
         return r_io, weights, iterations, last_update, distance
 
     def get_initial_cue(self, cue, cue_weights, label, projection, dim):

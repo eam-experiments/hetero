@@ -26,9 +26,10 @@ import numpy as np
 
 MNIST ='mnist'
 FASHION = 'fashion'
-datasets = [MNIST, FASHION]
-datasets_to_domains = {MNIST: 64, FASHION: 128}
-datasets_to_codomains = {MNIST: 32, FASHION: 32}
+EMNIST = 'emnist'
+datasets = [MNIST, EMNIST]
+datasets_to_domains = {MNIST: 64, EMNIST: 128}
+datasets_to_codomains = {MNIST: 32, EMNIST: 32}
 
 def domains():
     doms = {}

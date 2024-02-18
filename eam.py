@@ -735,7 +735,7 @@ def check_hetero_memory(remembered_dataset,
     counter_name = commons.set_counter()
     for features, cue, label in zip(testing_features, testing_cues, testing_labels):
         rel_recognized, _ = recognize(cue, features) if inverted else recognize(features, cue) 
-        _, recognized, weight, relation, _, _ = recall(features)
+        _, recognized, weight, relation, _, _, _ = recall(features)
         recog_not_recall += rel_recognized and not recognized
         recall_not_recog += recognized and not rel_recognized
         if recognized:

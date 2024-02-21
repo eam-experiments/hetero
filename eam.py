@@ -1364,14 +1364,14 @@ def hetero_remember_per_fold(es, fold):
         filling_features_filename = commons.data_filename(
             filling_features_filename, es, fold)
         # Original tagging of filling data.
-        # filling_labels_filename = commons.labels_name(dataset, es) + suffix
-        # filling_labels_filename = commons.data_filename(
-        #     filling_labels_filename, es, fold)
-        # filling_labels[dataset] = np.load(filling_labels_filename)
+        filling_labels_filename = commons.labels_name(dataset, es) + suffix
+        filling_labels_filename = commons.data_filename(
+            filling_labels_filename, es, fold)
+        filling_labels[dataset] = np.load(filling_labels_filename)
         f_features = np.load(filling_features_filename)
         # Tagging of filling data produced by the classifier
-        labels = np.argmax(classifiers[dataset].predict(f_features), axis=1)
-        filling_labels[dataset] = labels
+        # labels = np.argmax(classifiers[dataset].predict(f_features), axis=1)
+        # filling_labels[dataset] = labels
         prototypes = None
         if commons.use_prototypes:
             proto_suffix = suffix + commons.proto_suffix
@@ -1385,14 +1385,14 @@ def hetero_remember_per_fold(es, fold):
         testing_features_filename = commons.data_filename(
             testing_features_filename, es, fold)
         # Original tagging of testing data.
-        # testing_labels_filename = commons.labels_name(dataset, es) + suffix
-        # testing_labels_filename = commons.data_filename(
-        #     testing_labels_filename, es, fold)
-        # testing_labels[dataset] = np.load(testing_labels_filename)
+        testing_labels_filename = commons.labels_name(dataset, es) + suffix
+        testing_labels_filename = commons.data_filename(
+            testing_labels_filename, es, fold)
+        testing_labels[dataset] = np.load(testing_labels_filename)
         t_features = np.load(testing_features_filename)
         # Tagging of testing data produced by the classifier
-        labels = np.argmax(classifiers[dataset].predict(t_features), axis=1)
-        testing_labels[dataset] = labels
+        # labels = np.argmax(classifiers[dataset].predict(t_features), axis=1)
+        # testing_labels[dataset] = labels
         validating_network_data(
             f_features, filling_labels[dataset], classifiers[dataset],
             dataset, 'filling data')

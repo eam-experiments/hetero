@@ -300,7 +300,7 @@ class HeteroAssociativeMemory4D:
             n += 1
         if presence == 0.0:
             return None, None, iterations, last_update, float('inf')
-        d1 = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
+        d1, _ = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
         d2 = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
         distance = d1*d2
         for i, beta in zip(range(n, commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims-n)):
@@ -308,7 +308,7 @@ class HeteroAssociativeMemory4D:
             excluded = None # self.random_exclusion(r_io, p)
             s_projection = projection # self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            d1 = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
+            d1, _ = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
             presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
             d2 = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
             d = d1*d2

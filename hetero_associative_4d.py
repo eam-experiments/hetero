@@ -285,30 +285,18 @@ class HeteroAssociativeMemory4D:
         return r_io, recognized, weight, projection, iterations, last_update, stats
 
     def optimal_recall(self, cue, cue_weights, label, projection, dim):
-        r_io = None
-        weights = None
         iterations = 0
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else p
         last_update = 0
         n = 0
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
-        # presence, entropy = self.presence_entropy(cue, cue_weights, label, r_io, weights, dim)
-        # while (n < commons.n_sims) and (presence == 0.0):
-        #     r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
-        #     presence, entropy = self.presence_entropy(cue, cue_weights, label, r_io, weights, dim)
-        #     n += 1
-        # if presence == 0.0:
-        #     return None, None, iterations, last_update, float('inf')
-        # distance = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
         distance = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
         for i, beta in zip(range(n, commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims-n)):
             # s = self.rows(self.alt(dim)) * beta
             excluded = None # self.random_exclusion(r_io, p)
             s_projection = projection # self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            # presence, entropy = self.presence_entropy(cue, cue_weights, label, q_io, q_ws, dim)
-            # d = (1.0 - presence)*entropy if presence > 0.0 else float('inf')
             d = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io

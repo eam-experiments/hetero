@@ -26,9 +26,12 @@ import numpy as np
 
 MNIST ='mnist'
 FASHION = 'fashion'
-datasets = [MNIST, FASHION]
-datasets_to_domains = {MNIST: 64, FASHION: 128}
-datasets_to_codomains = {MNIST: 32, FASHION: 32}
+EMNIST = 'emnist'
+left_dataset = MNIST
+right_dataset = EMNIST
+datasets = [left_dataset, right_dataset]
+datasets_to_domains = {left_dataset: 64, right_dataset: 64}
+datasets_to_codomains = {left_dataset: 4, right_dataset: 2}
 
 def domains():
     doms = {}
@@ -41,9 +44,6 @@ def codomains():
     for d in datasets:
         codoms[d] = codomain(d)
     return codoms
-
-left_dataset = MNIST
-right_dataset = FASHION
 
 d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"

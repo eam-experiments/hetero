@@ -31,7 +31,7 @@ left_dataset = MNIST
 right_dataset = EMNIST
 datasets = [left_dataset, right_dataset]
 datasets_to_domains = {left_dataset: 64, right_dataset: 64}
-datasets_to_codomains = {left_dataset: 4, right_dataset: 2}
+datasets_to_codomains = {left_dataset: 16, right_dataset: 32}
 
 def domains():
     doms = {}

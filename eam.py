@@ -46,7 +46,7 @@ import gettext
 import json
 import random
 import numpy as np
-from scipy import stats
+import scipy
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn
@@ -484,7 +484,7 @@ def normality_test(relation):
     ps = []
     for column in relation:
         xs = freqs_to_values(column)
-        shapiro_test = stats.shapiro(xs)
+        shapiro_test = scipy.stats.shapiro(xs)
         ps.append(shapiro_test.pvalue)
     return np.mean(ps), np.std(ps)
 
@@ -595,9 +595,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     mem_weights = []
     unknown = 0
     unknown_weights = []
-    iterations = []
-    last_updates = []
-    labels_presence = []
+    stats = []
     print('Remembering ', end='')
     counter = 0
     counter_name = commons.set_counter()
@@ -605,11 +603,9 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         recognized, weights = eam_origin.recog_weights(features)
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, n, l, presence = recall(features, weights, label)
+            memory, recognized, weight, relation, s = recall(features, weights, label)
             if recognized:
-                iterations.append(n)
-                last_updates.append(l)
-                labels_presence.append(presence)
+                stats.append(s)
                 memories.append(memory)
                 correct.append(label)
                 mem_weights.append(weight)
@@ -629,34 +625,23 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         commons.print_counter(counter, 1000, 100, symbol='+',
             prefix = f'(Recognized : {len(memories)})', name = counter_name)
     print(' done')
-    iter_total = len(iterations)
-    iter_mean = 0.0 if iter_total == 0 else np.mean(iterations)
-    iter_stdv = 0.0 if iter_total == 0 else np.std(iterations)
-    print(f'Iterations: total = {iter_total}, ' + 
-          f'mean = {iter_mean}, stdev = {iter_stdv}')
-    last_upd_total = len(last_updates)
-    last_upd_mean = 0.0 if last_upd_total == 0 else np.mean(last_updates)
-    last_upd_stdv = 0.0 if last_upd_total == 0 else np.std(last_updates)
-    print(f'Last update: total = {last_upd_total}, ' + 
-          f'mean = {last_upd_mean}, stdev = {last_upd_stdv}')
-
     correct_weights = []
     incorrect_weights = []
-    correct_presence = []
-    incorrect_presence = []
+    correct_stats = []
+    incorrect_stats = []
     print('Validating ', end='')
     if len(memories) > 0:
         memories = rsize_recall(np.array(memories), msize, minimum, maximum)
         predictions = np.argmax(classifier.predict(memories), axis=1)
-        for label, prediction, weight, distance in zip(correct, predictions, mem_weights, labels_presence):
+        for label, prediction, weight, s in zip(correct, predictions, mem_weights, stats):
             # For calculation of per memory precision and recall
             confrix[label, prediction] += 1
             if label == prediction:
                 correct_weights.append(weight)
-                correct_presence.append(distance)
+                correct_stats.append(s)
             else:
                 incorrect_weights.append(weight)
-                incorrect_presence.append(distance)
+                incorrect_stats.append(s)
     print(' done')
     print(' end')
     behaviour[commons.no_response_idx] = unknown
@@ -686,25 +671,38 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
     
-    zeros = np.zeros(2, dtype=float)
-    presence_mean = zeros if len(labels_presence) == 0 else np.mean(labels_presence, axis=0)
-    presence_stdv = zeros if len(labels_presence) == 0 else np.std(labels_presence, axis=0)
-    presence_skew = zeros if len(labels_presence) == 0 else stats.skew(labels_presence)
-    presence_kurt = zeros if len(labels_presence) == 0 else stats.kurtosis(labels_presence)
-    correct_presence_mean = zeros if len(correct_presence) == 0 else np.mean(correct_presence, axis=0)
-    correct_presence_stdv = zeros if len(correct_presence) == 0 else np.std(correct_presence, axis=0)
-    correct_presence_skew = zeros if len(correct_presence) == 0 else stats.skew(correct_presence)
-    correct_presence_kurt = zeros if len(correct_presence) == 0 else stats.kurtosis(correct_presence)
-    incorrect_presence_mean = zeros if len(incorrect_presence) == 0 else np.mean(incorrect_presence, axis=0)
-    incorrect_presence_stdv = zeros if len(incorrect_presence) == 0 else np.std(incorrect_presence, axis=0)
-    incorrect_presence_skew = zeros if len(incorrect_presence) == 0 else stats.skew(incorrect_presence)
-    incorrect_presence_kurt = zeros if len(incorrect_presence) == 0 else stats.kurtosis(incorrect_presence)
-    print(f'Stats: mean = {presence_mean}, stdv = {presence_stdv}, ' +
-            f'skew = {presence_skew}, kurt = {presence_kurt}.')
-    print(f'Stats of correct: ({correct_presence_mean}, {correct_presence_stdv}, ' + 
-            f'{correct_presence_skew}, {correct_presence_kurt}).')
-    print(f'Stats of incorrect: ({incorrect_presence_mean}, {incorrect_presence_stdv}, ' +
-            f'{incorrect_presence_skew}, {incorrect_presence_kurt}).')
+    if len(stats) > 0:
+        for s in stats:
+            print(len(s))
+        stats = np.array(stats)
+        stats_mean = np.mean(stats, axis=0)
+        stats_stdv = np.std(stats, axis=0)
+        stats_skew = scipy.stats.skew(stats)
+        stats_kurt = scipy.stats.kurtosis(stats)
+        print(f'Stats: mean = {stats_mean}, stdv = {stats_stdv}, ' +
+                f'skew = {stats_skew}, kurt = {stats_kurt}.')
+    else:
+        print(f'Stats not available')
+    if len(correct_stats) > 0:
+        correct_stats = np.array(correct_stats)
+        correct_stats_mean = np.mean(correct_stats, axis=0)
+        correct_stats_stdv = np.std(correct_stats, axis=0)
+        correct_stats_skew = scipy.stats.skew(correct_stats)
+        correct_stats_kurt = scipy.stats.kurtosis(correct_stats)
+        print(f'Stats of correct: mean = {correct_stats_mean}, stdev = {correct_stats_stdv}, ' + 
+                f'skew = {correct_stats_skew}, kurt = {correct_stats_kurt}.')
+    else:
+        print('Stats of correct not available')
+    if len(incorrect_stats) > 0:
+        incorrect_stats = np.array(incorrect_stats)
+        incorrect_stats_mean = np.mean(incorrect_stats, axis=0)
+        incorrect_stats_stdv = np.std(incorrect_stats, axis=0)
+        incorrect_stats_skew = scipy.stats.skew(incorrect_stats)
+        incorrect_stats_kurt = scipy.stats.kurtosis(incorrect_stats)
+        print(f'Stats of incorrect: mean = {incorrect_stats_mean}, stdev = {incorrect_stats_stdv}, ' + 
+                f'skew = {incorrect_stats_skew}, kurt = {incorrect_stats_kurt}.')
+    else:
+        print('Stats of incorrect not available')
     return confrix, behaviour, memories
 
 def check_hetero_memory(remembered_dataset,

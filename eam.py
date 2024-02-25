@@ -1453,8 +1453,9 @@ def hetero_remember_per_fold(es, fold):
         no_response = behaviours[:, commons.no_response_idx]
         correct = behaviours[:, commons.correct_response_idx]
         incorrect = behaviours[:, commons.no_correct_response_idx]
-        fold_precision.append(np.where((correct + incorrect) == 0,
-            1.0, correct/(correct+incorrect)))
+        with np.errstate(divide='ignore'):
+            fold_precision.append(np.where((correct + incorrect) == 0,
+                1.0, correct/(correct+incorrect)))
         fold_recall.append(
             behaviours[:, commons.correct_response_idx]/(no_response + correct + incorrect))
         start = end

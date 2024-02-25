@@ -262,9 +262,8 @@ class HeteroAssociativeMemory4D:
         cue = self.validate(cue, dim)
         projection = self.project(cue, weights, dim)
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
-        stats = np.zeros(2, dtype = float)
         if recognized:
-            projection, stats = self.transform(projection, label, dim)
+            projection = self.transform(projection, label, dim)
             # If there is a column in the projection with only zeros, the cue is not recognized.
             recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
@@ -272,8 +271,9 @@ class HeteroAssociativeMemory4D:
             weight = 0.0
             iterations = 0
             last_update = 0
+            distance = 0
         else:
-            r_io, weights, iterations, last_update, _ = \
+            r_io, weights, iterations, last_update, distance = \
                     self.optimal_recall(cue, weights, label, projection, dim)
             if r_io is None:
                 recognized = False
@@ -282,22 +282,21 @@ class HeteroAssociativeMemory4D:
             else:
                 weight = np.mean(weights)
                 r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, iterations, last_update, stats
+        return r_io, recognized, weight, projection, [iterations, last_update, distance]
 
     def optimal_recall(self, cue, cue_weights, label, projection, dim):
         iterations = 0
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else p
         last_update = 0
-        n = 0
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
-        distance = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
-        for i, beta in zip(range(n, commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims-n)):
+        distance, _ = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
+        for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             # s = self.rows(self.alt(dim)) * beta
             excluded = None # self.random_exclusion(r_io, p)
             s_projection = projection # self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
-            d = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
+            d, _ = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -622,14 +621,13 @@ class HeteroAssociativeMemory4D:
         return s
 
     def transform(self, r, label, dim):
-        zeros = np.zeros(2, dtype = float)
         match commons.projection_transform:
             case commons.project_same:
-                return r, zeros
+                return r
             case commons.project_maximum:
-                return self.maximum(r), zeros
+                return self.maximum(r)
             case commons.project_logistic:
-                return self.logistic(r), zeros
+                return self.logistic(r)
             case commons.project_prototype:
                 return self.adjust_by_proto(r, label, dim)
             case _:
@@ -642,8 +640,8 @@ class HeteroAssociativeMemory4D:
         l = label if stats[label] >= stats[other] else other
         proto = self._prototypes[self.alt(dim)][l]
         s = self.rows(self.alt(dim)) * self.sigma
-        p = self.adjust(r, proto, s)
-        return p, np.array([v for v in stats.values()])
+        q = self.adjust(r, proto, s)
+        return q
 
     def maximum(self, r):
         q = np.zeros(r.shape, dtype=float)

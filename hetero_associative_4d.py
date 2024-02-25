@@ -290,7 +290,7 @@ class HeteroAssociativeMemory4D:
         step = p / commons.n_sims if commons.n_sims > 0 else p
         last_update = 0
         i = 0
-        r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
+        r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim, max=True)
         distance = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
         better_found = True
         while better_found:
@@ -319,8 +319,8 @@ class HeteroAssociativeMemory4D:
                 weights = p_ws
         return r_io, weights, iterations, last_update, distance
 
-    def get_initial_cue(self, cue, cue_weights, label, projection, dim):
-        return self.reduce(projection, self.alt(dim))
+    def get_initial_cue(self, cue, cue_weights, label, projection, dim, max = False):
+        return self.reduce(projection, self.alt(dim), excluded=None, max = max)
         if self._prototypes[self.alt(dim)] is None:
             r_io, r_ws = self.reduce(projection, self.alt(dim))
             return r_io, r_ws
@@ -400,11 +400,11 @@ class HeteroAssociativeMemory4D:
         return integration
 
     # Reduces a relation to a function
-    def reduce(self, relation, dim, excluded = None):
+    def reduce(self, relation, dim, excluded = None, max = False):
         cols = self.cols(dim)
-        v = np.array([self.choose(column, dim) for column in relation]) \
+        v = np.array([self.choose(column, dim, excluded=None, max=max) for column in relation]) \
             if excluded is None else \
-                np.array([self.choose(column, dim, exc) for column, exc in zip(relation, excluded)])
+                np.array([self.choose(column, dim, exc, max) for column, exc in zip(relation, excluded)])
         weights = []
         for i in range(cols):
             if self.is_undefined(v[i], dim):
@@ -413,19 +413,21 @@ class HeteroAssociativeMemory4D:
                 weights.append(relation[i, v[i]])
         return v, np.array(weights)
 
-    def choose(self, column, dim, excluded = None):
+    def choose(self, column, dim, excluded, max):
         """Choose a value from the column given a cue
         
         It assumes the column as a probabilistic distribution.
         """
         s = column.sum()
+        if s == 0:
+            return self.undefined(dim)
+        if max:
+            return np.argmax(column)
         if (excluded is not None):
             if s > column[excluded]:
                 s -= column[excluded]
             else:
                 excluded = None
-        if s == 0:
-            return self.undefined(dim)
         r = s*random.random()
         for j in range(column.size):
             if (excluded is not None) and (j == excluded):

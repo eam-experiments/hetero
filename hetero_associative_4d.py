@@ -291,11 +291,19 @@ class HeteroAssociativeMemory4D:
         last_update = 0
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
+        visited = [r_io]
         for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             # s = self.rows(self.alt(dim)) * beta
             excluded = None # self.random_exclusion(r_io, p)
             s_projection = projection # self.adjust(projection, r_io, s)
             q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
+            j = 0
+            while self.already_visited(q_io, visited) and (j < commons.dist_estims):
+                q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
+                j += 1
+            if j == commons.dist_estims:
+                continue
+            visited.append(q_io)
             d, _ = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
@@ -406,13 +414,13 @@ class HeteroAssociativeMemory4D:
         It assumes the column as a probabilistic distribution.
         """
         s = column.sum()
+        if s == 0:
+            return self.undefined(dim)
         if (excluded is not None):
             if s > column[excluded]:
                 s -= column[excluded]
             else:
                 excluded = None
-        if s == 0:
-            return self.undefined(dim)
         r = s*random.random()
         for j in range(column.size):
             if (excluded is not None) and (j == excluded):
@@ -620,6 +628,12 @@ class HeteroAssociativeMemory4D:
         s = f'{s}{p}]'
         return s
 
+    def already_visited(r_io, visited):
+        for q_io in visited:
+            if np.array_equal(r_io, q_io):
+                return True
+        return False
+    
     def transform(self, r, label, dim):
         match commons.projection_transform:
             case commons.project_same:

@@ -672,8 +672,6 @@ def recall_by_hetero_memory(remembered_dataset, recall,
           f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
     
     if len(stats) > 0:
-        for s in stats:
-            print(len(s))
         stats = np.array(stats)
         stats_mean = np.mean(stats, axis=0)
         stats_stdv = np.std(stats, axis=0)

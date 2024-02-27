@@ -290,7 +290,7 @@ class HeteroAssociativeMemory4D:
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
         visited = [r_io]
-        for i, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
+        for k, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
             # s = self.rows(self.alt(dim)) * beta
             excluded = None # self.random_exclusion(r_io, p)
             s_projection = projection # self.adjust(projection, r_io, s)
@@ -308,10 +308,11 @@ class HeteroAssociativeMemory4D:
                 weights = q_ws
                 distance = d
                 iterations += 1
-                last_update = i
+                last_update = k
             p -= step
         distance2 = distance
         better_found = True
+        k = commons.n_sims
         while better_found:
             neighbors = self.neighborhood(projection, r_io, self.alt(dim))
             better_found = False
@@ -325,13 +326,13 @@ class HeteroAssociativeMemory4D:
                 q_io = np.array([r_io[j] if j != i else v for j in range(self.cols(self.alt(dim)))])
                 q_ws = self.weights_in_projection(projection, q_io, self.alt(dim))
                 d, _ = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
-                i += 1
+                k += 1
                 if d < distance2:
                     p_io = q_io
                     p_ws = q_ws
                     distance2 = d
                     iterations += 1
-                    last_update = i
+                    last_update = k
                     better_found = True
                     break
             if better_found:

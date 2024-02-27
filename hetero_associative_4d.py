@@ -269,11 +269,9 @@ class HeteroAssociativeMemory4D:
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
-            iterations = 0
-            last_update = 0
-            distance = 0
+            stats = [0, 0, 0.0, 0.0]
         else:
-            r_io, weights, iterations, last_update, distance = \
+            r_io, weights, stats = \
                     self.optimal_recall(cue, weights, label, projection, dim)
             if r_io is None:
                 recognized = False
@@ -282,7 +280,7 @@ class HeteroAssociativeMemory4D:
             else:
                 weight = np.mean(weights)
                 r_io = self.revalidate(r_io, self.alt(dim))
-        return r_io, recognized, weight, projection, [iterations, last_update, distance]
+        return r_io, recognized, weight, projection, stats
 
     def optimal_recall(self, cue, cue_weights, label, projection, dim):
         iterations = 0
@@ -312,7 +310,34 @@ class HeteroAssociativeMemory4D:
                 iterations += 1
                 last_update = i
             p -= step
-        return r_io, weights, iterations, last_update, distance
+        distance2 = distance
+        better_found = True
+        while better_found:
+            neighbors = self.neighborhood(projection, r_io, self.alt(dim))
+            better_found = False
+            p_io = None
+            p_ws = None
+            while neighbors:
+                t = random.choice(neighbors)
+                i = t[0]
+                v = t[1]
+                neighbors.remove(t)
+                q_io = np.array([r_io[j] if j != i else v for j in range(self.cols(self.alt(dim)))])
+                q_ws = self.weights_in_projection(projection, q_io, self.alt(dim))
+                d, _ = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
+                i += 1
+                if d < distance2:
+                    p_io = q_io
+                    p_ws = q_ws
+                    distance2 = d
+                    iterations += 1
+                    last_update = i
+                    better_found = True
+                    break
+            if better_found:
+                r_io = p_io
+                weights = p_ws
+        return r_io, weights, [iterations, last_update, distance2, (distance - distance2)]
 
     def get_initial_cue(self, cue, cue_weights, label, projection, dim):
         return self.reduce(projection, self.alt(dim))
@@ -430,6 +455,18 @@ class HeteroAssociativeMemory4D:
             r -= column[j]
         return self.undefined(dim)
 
+    def neighborhood(self, projection, r_io, dim):
+        neigh = []
+        rows = self.rows(dim)-1
+        for i in range(self.cols(dim)):
+            column = projection[i]
+            value = r_io[i]
+            if (value < rows) and (column[value+1] > 0):
+                neigh.append((i, value+1))
+            if (0 < value) and (column[value-1] > 0):
+                neigh.append((i, value-1))
+        return neigh
+
     def adjust(self, projection, cue, s):
         if cue is None:
             return projection
@@ -448,6 +485,9 @@ class HeteroAssociativeMemory4D:
         weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
         return weights
         
+    def weights_in_projection(self, projection, q_io, dim):
+        return projection[np.arange(self.cols(dim)), q_io]
+    
     def random_exclusion(self, cue, p):
         excluded = []
         for v in cue:
@@ -628,7 +668,7 @@ class HeteroAssociativeMemory4D:
         s = f'{s}{p}]'
         return s
 
-    def already_visited(r_io, visited):
+    def already_visited(self, r_io, visited):
         for q_io in visited:
             if np.array_equal(r_io, q_io):
                 return True

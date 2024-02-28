@@ -616,7 +616,7 @@ class HeteroAssociativeMemory4D:
                     candidates.append(r_io)
             if len(candidates) > 0:
                 candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
-                classification = np.argmax(classifier.predict(candidates, verbose=0), axis=1)
+                classification = np.argmax(classifier(candidates, training=False), axis=1)
                 for c in classification:
                     counts[l] += (c == l)
         sorted_labels = np.argsort(counts)[::-1]

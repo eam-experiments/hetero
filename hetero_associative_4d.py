@@ -595,7 +595,7 @@ class HeteroAssociativeMemory4D:
             r_ios[i] = np.array(r_io, dtype=int)
         r_ios = self.rsize_recalls(r_ios, dim)
         classifier = self.classifiers[dim]
-        classification = np.argmax(classifier.predict(r_ios, verbose=0), axis=1)
+        classification = np.argmax(classifier(r_ios, training=False), axis=1)
         labels, counts = np.unique(classification, return_counts=True)
         frequencies = dict(zip(labels, counts))
         maximum = max(frequencies.values())

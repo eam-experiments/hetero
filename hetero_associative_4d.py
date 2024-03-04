@@ -283,7 +283,7 @@ class HeteroAssociativeMemory4D:
         return r_io, recognized, weight, projection, stats
 
     def optimal_recall(self, cue, cue_weights, label, projection, dim):
-        iterations = 0
+        sampling_iterations = 0
         p = 1.0
         step = p / commons.n_sims if commons.n_sims > 0 else p
         last_update = 0
@@ -307,12 +307,13 @@ class HeteroAssociativeMemory4D:
                 r_io = q_io
                 weights = q_ws
                 distance = d
-                iterations += 1
+                sampling_iterations += 1
                 last_update = k
             p -= step
         distance2 = distance
         better_found = True
         k = commons.n_sims
+        search_iterations = 0
         while better_found:
             neighbors = self.neighborhood(projection, r_io, self.alt(dim))
             better_found = False
@@ -331,14 +332,14 @@ class HeteroAssociativeMemory4D:
                     p_io = q_io
                     p_ws = q_ws
                     distance2 = d
-                    iterations += 1
+                    search_iterations += 1
                     last_update = k
                     better_found = True
                     break
             if better_found:
                 r_io = p_io
                 weights = p_ws
-        return r_io, weights, [iterations, last_update, distance2, (distance - distance2)]
+        return r_io, weights, [sampling_iterations, search_iterations, last_update, distance2, (distance2- distance)]
 
     def get_initial_cue(self, cue, cue_weights, label, projection, dim):
         return self.reduce(projection, self.alt(dim))

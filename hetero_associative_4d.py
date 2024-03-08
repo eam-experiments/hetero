@@ -341,9 +341,9 @@ class HeteroAssociativeMemory4D:
             if better_found:
                 r_io = p_io
                 weights = p_ws
-        samp_search_distance = self.functions_distance(sampling_io, sampling_ws, r_io, weights)
+        diffs, length = self.functions_distance(sampling_io, sampling_ws, r_io, weights)
         return r_io, weights, [sampling_iterations, search_iterations,
-                last_update, distance2, (distance2- distance), samp_search_distance]
+                last_update, distance2, (distance2- distance), diffs, length]
 
     def get_initial_cue(self, cue, cue_weights, label, projection, dim):
         return self.reduce(projection, self.alt(dim))
@@ -390,8 +390,10 @@ class HeteroAssociativeMemory4D:
         return distance / np.sum(cue_weights)
     
     def functions_distance(self, p_io, p_ws, q_io, q_ws):
-        d = np.sum(np.abs(p_io - q_io))
-        return d
+        abs = np.abs(p_io - q_io)
+        diff = np.sum(abs)
+        length = np.max(abs)
+        return diff, length
 
     def presence_entropy(self, cue, cue_weights, label, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))

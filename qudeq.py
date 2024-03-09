@@ -57,4 +57,4 @@ class QuDeq:
         return round((m-1)*(x - min)/(max - min))
 
     def _dequantize(self, i, min, max, m):
-        return (max - min)*i/(m - 1) + min
+        return (max - min)/2 if m == 1 else (max - min)*i/(m - 1) + min

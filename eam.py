@@ -576,24 +576,29 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     counter = 0
     counter_name = commons.set_counter()
     for features, label in zip(testing_features, testing_labels):
-        recognized, weights = eam_origin.recog_weights(features)
+        memory, recognized, weights = eam_origin.recall_weights(features)
         if recognized:
             # Recalling using weights.
-            memory, recognized, weight, relation, s = recall(features, weights, label)
+            memory, recognized, weight, relation, s = recall(memory, weights, label)
             if recognized:
-                stats.append(s)
-                memories.append(memory)
-                correct.append(label)
-                mem_weights.append(weight)
-                if random.randrange(100) == 0:
-                    prefix = 'projection-' + remembered_dataset + \
-                        '-fill_' + str(int(mfill)).zfill(3) + \
-                        '-lbl_' + str(label).zfill(3)
-                    plot_relation(relation, prefix)
+                memory, recognized, weight = eam_destination.recall(memory)
+                if recognized:
+                    stats.append(s)
+                    memories.append(memory)
+                    correct.append(label)
+                    mem_weights.append(weight)
+                    if random.randrange(100) == 0:
+                        prefix = 'projection-' + remembered_dataset + \
+                            '-fill_' + str(int(mfill)).zfill(3) + \
+                            '-lbl_' + str(label).zfill(3)
+                        plot_relation(relation, prefix)
+                else:
+                    unknown += 1
+                    confrix[label, commons.n_labels] += 1
+                    unknown_weights.append(weight)
             else:
                 unknown += 1
                 confrix[label, commons.n_labels] += 1
-                unknown_weights.append(weight)
         else:
             unknown += 1
             confrix[label, commons.n_labels] += 1

@@ -56,6 +56,7 @@ from docopt import docopt, DocoptExit
 # This disables importation of this file but allows selection of model
 args = docopt(__doc__)
 import commons
+import qudeq
 import dataset as ds
 import neural_net
 from custom_set import CustomSet
@@ -266,21 +267,6 @@ def plot_distances(distances, prefix, es=None, fold=None):
     plot_relation(distances, prefix, xlabel='Label', ylabel='Label', es=es, fold=fold)
 
 
-def get_min_max(a : np.ndarray, percentiles = False):
-    """Produces a desirable minimum and maximum values for features."""
-    maximum = np.max(a)
-    minimum = np.min(a)
-    min_percentile = np.percentile(a, commons.minimum_percentile)
-    max_percentile = np.percentile(a, commons.maximum_percentile)
-    median = np.median(a)
-    mean = np.mean(a)
-    stdv = np.std(a)
-    print(f'Min_maxs array stats: min = {minimum}, ' +
-          f'{commons.minimum_percentile}% = {min_percentile}, ' +
-            f'median = {median}, {commons.maximum_percentile}% = {max_percentile}, ' +
-            f'max = {maximum}; mean = {mean}, stdev = {stdv}')
-    return (min_percentile, max_percentile) if percentiles else (minimum, maximum)
-
 def features_distance(f, g):
     """ Calculates euclidean distance between two arrays of features."""
     return np.linalg.norm(f - g)
@@ -356,16 +342,6 @@ def distance_matrices(filling_features, filling_labels,
     means = np.concatenate((ff_means, ft_means), axis=1)
     stdvs = np.concatenate((ff_stdvs, ft_stdvs), axis=1)
     return means, stdvs
-
-
-def msize_features(features, msize, min_value, max_value):
-    return np.round((msize-1)*(features-min_value) / (max_value-min_value)).astype(int)
-
-
-def rsize_recall(recall, msize, min_value, max_value):
-    if msize == 1:
-        return np.full(recall.size, (min_value + max_value)/2.0)
-    return (max_value - min_value) * recall.astype(dtype=float) / (msize - 1.0) + min_value
 
 
 def features_per_fold(dataset, es, fold):
@@ -507,7 +483,7 @@ def distances_per_fold(dataset, es, fold):
     return means, stdvs
 
 
-def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifier):
+def recognize_by_memory(eam, tef_rounded, tel, msize, qd, classifier):
     data = []
     labels = []
     confrix = np.zeros(
@@ -517,7 +493,7 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, minimum, maximum, classifi
     for features, label in zip(tef_rounded, tel):
         memory, recognized, _ = eam.recall(features)
         if recognized:
-            mem = rsize_recall(memory, msize, minimum, maximum)
+            mem = qd.dequantize(memory, msize)
             data.append(mem)
             labels.append(label)
         else:
@@ -583,7 +559,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         eam_origin: AssociativeMemory,
         eam_destination: AssociativeMemory,
         classifier, testing_features, testing_labels,
-        msize, mfill, minimum, maximum, mean_weight):
+        msize, mfill, qd, mean_weight):
     gc.collect()
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
@@ -631,7 +607,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     incorrect_stats = []
     print('Validating ', end='')
     if len(memories) > 0:
-        memories = rsize_recall(np.array(memories), msize, minimum, maximum)
+        memories = qd.dequantize(np.array(memories), msize)
         predictions = np.argmax(classifier.predict(memories), axis=1)
         for label, prediction, weight, s in zip(correct, predictions, mem_weights, stats):
             # For calculation of per memory precision and recall
@@ -706,7 +682,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
 def check_hetero_memory(remembered_dataset,
             recall, recognize, inverted, classifier,
             testing_features, testing_cues, testing_labels, fully,
-            msize, mfill, minimum, maximum, mean_weight):
+            msize, mfill, qd, mean_weight):
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
     gc.collect()
@@ -765,7 +741,7 @@ def check_hetero_memory(remembered_dataset,
     incorrect_weights = []
     print('Validating... ', end='')
     if len(memories) > 0:
-        memories = rsize_recall(np.array(memories), msize, minimum, maximum)
+        memories = qd.dequantize(np.array(memories), msize)
         predictions = np.argmax(classifier.predict(memories), axis=1)
         for label, prediction, weight in zip(correct_labels, predictions, recog_weights):
             # For calculation of per memory precision and recall
@@ -802,7 +778,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
                               left_eam: AssociativeMemory, right_eam: AssociativeMemory,
                               left_classifier, right_classifier,
                               testing_features, testing_labels,
-                              min_maxs, percent, es, fold):
+                              qudeqs, percent, es, fold):
     left_ds = commons.left_dataset
     right_ds = commons.right_dataset
     rows = commons.codomains()
@@ -810,11 +786,11 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     behaviours = []
     mean_weight = eam.mean
     print('Remembering from left by hetero memory')
-    minimum, maximum = min_maxs[right_ds]
+    qd = qudeqs[right_ds]
     confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
             eam.recall_from_left, left_eam, right_eam, right_classifier,
             testing_features[left_ds], testing_labels[right_ds],
-            rows[right_ds], percent, minimum, maximum, mean_weight)
+            rows[right_ds], percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = commons.memories_name(left_ds, es)
@@ -822,11 +798,11 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     filename = commons.data_filename(prefix, es, fold)
     np.save(filename, memories)
     print('Remembering from right by hetero memory')
-    minimum, maximum = min_maxs[left_ds]
+    qd = qudeqs[left_ds]
     confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
             eam.recall_from_right, right_eam, left_eam, left_classifier,
             testing_features[right_ds], testing_labels[left_ds],
-            rows[left_ds], percent, minimum, maximum, mean_weight)
+            rows[left_ds], percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = commons.memories_name(right_ds, es)
@@ -841,7 +817,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
 
 def check_consistency_hetero_memory(
         eam, left_classifier, right_classifier,
-        testing_features, testing_labels, fully, min_maxs, percent, es, fold):
+        testing_features, testing_labels, fully, qudeqs, percent, es, fold):
     left_ds = commons.left_dataset
     right_ds = commons.right_dataset
     rows = commons.codomains()
@@ -849,11 +825,11 @@ def check_consistency_hetero_memory(
     behaviours = []
     mean_weight = eam.mean
     print('Checking consistency of hetero memory from left')
-    minimum, maximum = min_maxs[right_ds]
+    qd = qudeqs[right_ds]
     confrix, behaviour, memories = check_hetero_memory(right_ds,
             eam.recall_from_left, eam.recognize, False, right_classifier,
             testing_features[left_ds], testing_features[right_ds], testing_labels[right_ds], fully,
-            rows[right_ds], percent, minimum, maximum, mean_weight)
+            rows[right_ds], percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = commons.memories_name(left_ds, es)
@@ -861,11 +837,11 @@ def check_consistency_hetero_memory(
     filename = commons.data_filename(prefix, es, fold)
     np.save(filename, memories)
     print('Checking consistency of hetero memory from right')
-    minimum, maximum = min_maxs[left_ds]
+    qd = qudeqs[left_ds]
     confrix, behaviour, memories = check_hetero_memory(left_ds,
             eam.recall_from_right, eam.recognize, True, left_classifier,
             testing_features[right_ds], testing_features[left_ds], testing_labels[left_ds], fully,
-            rows[left_ds], percent, minimum, maximum, mean_weight)
+            rows[left_ds], percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
     prefix = commons.memories_name(right_ds, es)
@@ -894,10 +870,9 @@ def get_ams_results(
         filling_features, testing_features,
         filling_labels, testing_labels, classifier, es):
     # Round the values
-    min_value, max_value = get_min_max(filling_features)
-
-    trf_rounded = msize_features(filling_features, msize, min_value, max_value)
-    tef_rounded = msize_features(testing_features, msize, min_value, max_value)
+    qd = qudeq.QuDeq(filling_features)
+    trf_rounded = qd.quantize(filling_features, msize)
+    tef_rounded = qd.quantize(testing_features, msize)
     behaviour = np.zeros(commons.n_behaviours, dtype=np.float64)
 
     # Create the memory using default parameters.
@@ -910,7 +885,7 @@ def get_ams_results(
 
     # Recognize test data.
     confrix, behaviour = recognize_by_memory(
-        eam, tef_rounded, testing_labels, msize, min_value, max_value, classifier)
+        eam, tef_rounded, testing_labels, msize, qd, classifier)
     responses = len(testing_labels) - behaviour[commons.no_response_idx]
     precision = behaviour[commons.correct_response_idx]/float(responses)
     recall = behaviour[commons.correct_response_idx] / \
@@ -1089,14 +1064,14 @@ def test_memory_sizes(dataset, es):
 
 
 def test_filling_percent(
-        eam, msize, min_value, max_value,
+        eam, msize, qd,
         trf, tef, tel, percent, classifier):
     # Registrate filling data.
     for features in trf:
         eam.register(features)
     print(f'Filling of memories done at {percent}%')
     _, behaviour = recognize_by_memory(
-        eam, tef, tel, msize, min_value, max_value, classifier)
+        eam, tef, tel, msize, qd, classifier)
     responses = len(tel) - behaviour[commons.no_response_idx]
     precision = behaviour[commons.correct_response_idx]/float(responses)
     recall = behaviour[commons.correct_response_idx]/float(len(tel))
@@ -1132,7 +1107,7 @@ def hetero_remember_percent(
         right_eam: AssociativeMemory,
         left_classifier, right_classifier,
         filling_features, testing_features, testing_labels,
-        min_maxs, percent, es, fold):
+        qudeqs, percent, es, fold):
     # Register filling data.
     print('Filling hetero memory')
     counter = 0
@@ -1147,13 +1122,13 @@ def hetero_remember_percent(
     print(f'Memory full at {100*eam.fullness}%')
     confrixes, behaviours = remember_by_hetero_memory(
         eam, left_eam, right_eam, left_classifier, right_classifier,
-        testing_features, testing_labels, min_maxs, percent, es, fold)
+        testing_features, testing_labels, qudeqs, percent, es, fold)
     return confrixes, behaviours, eam.entropy
 
 def hetero_check_consistency_percent(
         eam: HeteroAssociativeMemory, left_classifier, right_classifier,
         filling_features, filling_labels, testing_features, testing_labels, fully, 
-        min_maxs, percent, es, fold):
+        qudeqs, percent, es, fold):
     # Register filling data in the hetero-associative memory.
     print('Filling hetero memory')
     counter = 0
@@ -1169,7 +1144,7 @@ def hetero_check_consistency_percent(
     confrixes, behaviours = check_consistency_hetero_memory(eam,
             left_classifier, right_classifier,
             testing_features, testing_labels, fully,
-            min_maxs, percent, es, fold)
+            qudeqs, percent, es, fold)
     return confrixes, behaviours, eam.entropy
     
 def test_filling_per_fold(mem_size, domain, dataset, es, fold):
@@ -1201,11 +1176,9 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     testing_features = np.load(testing_features_filename)
     testing_labels = np.load(testing_labels_filename)
 
-    min_value, max_value = get_min_max(filling_features)
-    filling_features = msize_features(
-        filling_features, mem_size, min_value, max_value)
-    testing_features = msize_features(
-        testing_features, mem_size, min_value, max_value)
+    qd = qudeq.QuDeq(filling_features)
+    filling_features = qd.quantize(filling_features, mem_size)
+    testing_features = qd.quantize(testing_features, mem_size)
 
     total = len(filling_labels)
     percents = np.array(commons.memory_fills)
@@ -1221,7 +1194,7 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
         print(f'Filling from {start} to {end}.')
         behaviour, entropy = \
             test_filling_percent(eam, mem_size,
-                                 min_value, max_value, features,
+                                 qd, features,
                                  testing_features, testing_labels, percent, classifier)
         # A list of tuples (position, label, features)
         # fold_recalls += recalls
@@ -1276,11 +1249,9 @@ def test_hetero_filling_per_fold(es, fold):
         testing_labels[dataset] = np.load(testing_labels_filename)
         f_features = np.load(filling_features_filename)
         t_features = np.load(testing_features_filename)
-        min_value, max_value = get_min_max(f_features)
-        filling_features[dataset] = msize_features(
-            f_features, rows[dataset], min_value, max_value)
-        testing_features[dataset] = msize_features(
-            t_features, rows[dataset], min_value, max_value)
+        qd = qudeq.QuDeq(f_features)
+        filling_features[dataset] = qd.quantize(f_features, rows[dataset])
+        testing_features[dataset] = qd.quantize(t_features, rows[dataset])
     match_labels(filling_features, filling_labels)
     describe(filling_features, filling_labels)
     match_labels(testing_features, testing_labels, half=True)
@@ -1352,7 +1323,7 @@ def hetero_remember_per_fold(es, fold):
     testing_features = {}
     testing_labels = {}
     filling_prototypes = {}
-    min_maxs = {}
+    qudeqs = {}
     for dataset in commons.datasets:
         suffix = commons.filling_suffix
         filling_features_filename = commons.features_name(
@@ -1395,17 +1366,15 @@ def hetero_remember_per_fold(es, fold):
         validating_network_data(
             t_features, testing_labels[dataset], classifiers[dataset],
             dataset, 'testing data')
-        min_value, max_value = get_min_max(f_features)
-        filling_features[dataset] = msize_features(
-            f_features, rows[dataset], min_value, max_value)
+        qd = qudeq.QuDeq(f_features)
+        filling_features[dataset] = qd.quantize(f_features, rows[dataset])
         filling_prototypes[dataset] = None if prototypes is None \
-                else msize_features(prototypes, rows[dataset], min_value, max_value)
-        testing_features[dataset] = msize_features(
-            t_features, rows[dataset], min_value, max_value)
-        min_maxs[dataset] = [min_value, max_value]
+                else qd.quantize(prototypes, rows[dataset])
+        testing_features[dataset] = qd.quantize(t_features, rows[dataset])
+        qudeqs[dataset] = qd
 
     eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds], es, fold, min_value, max_value,
+            rows[left_ds], rows[right_ds], es, fold, qudeqs[left_ds], qudeqs[right_ds],
             [filling_prototypes[left_ds], filling_prototypes[right_ds]])
     
     for f in filling_features[left_ds]:
@@ -1441,7 +1410,7 @@ def hetero_remember_per_fold(es, fold):
         confrixes, behaviours, entropy = \
             hetero_remember_percent(
                 eam, left_eam, right_eam, left_classifier, right_classifier,
-                features, testing_features, testing_labels, min_maxs, percent, es, fold)
+                features, testing_features, testing_labels, qudeqs, percent, es, fold)
         fold_entropies.append(entropy)
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)
@@ -1490,7 +1459,7 @@ def check_consistency_per_fold(filling, es, fold):
     filling_labels = {}
     testing_features = {}
     testing_labels = {}
-    min_maxs = {}
+    qudeqs = {}
     for dataset in commons.datasets:
         suffix = commons.filling_suffix
         filling_features_filename = commons.features_name(
@@ -1520,12 +1489,10 @@ def check_consistency_per_fold(filling, es, fold):
         validating_network_data(
             t_features, testing_labels[dataset], classifiers[dataset],
             dataset, 'testing data')
-        min_value, max_value = get_min_max(f_features)
-        filling_features[dataset] = msize_features(
-            f_features, rows[dataset], min_value, max_value)
-        testing_features[dataset] = msize_features(
-            t_features, rows[dataset], min_value, max_value)
-        min_maxs[dataset] = [min_value, max_value]
+        qd = qudeq.QuDeq(f_features)
+        filling_features[dataset] = qd.quantize(f_features, rows[dataset])
+        testing_features[dataset] = qd.quantize(t_features, rows[dataset])
+        qudeqs[dataset] = qd
 
     match_labels(filling_features, filling_labels)
     describe(filling_features, filling_labels)
@@ -1558,7 +1525,7 @@ def check_consistency_per_fold(filling, es, fold):
             hetero_check_consistency_percent(
                 eam, left_classifier, right_classifier,
                 features, labels, testing_features, testing_labels, not filling,
-                min_maxs, percent, es, fold)
+                qudeqs, percent, es, fold)
         fold_entropies.append(entropy)
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)

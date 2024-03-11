@@ -20,7 +20,7 @@ import commons
 
 class HeteroAssociativeMemory4D:
     def __init__(self, n: int, p: int, m: int, q: int,
-        es: commons.ExperimentSettings, fold, min_value = None, max_value = None,
+        es: commons.ExperimentSettings, fold, nm_qd = None, pq_qd = None,
         prototypes = None):
         """
         Parameters
@@ -58,9 +58,8 @@ class HeteroAssociativeMemory4D:
         # should not be zero.
         self._set_margins()
 
-        # Set original limits of features values.
-        self.min_value = 0 if min_value is None else min_value
-        self.max_value = 1 if max_value is None else max_value
+        # Set quantizers/dequantizers per dimension.
+        self.qudeqs = [nm_qd, pq_qd]
 
         # Retrieve the classifiers.
         self.classifiers = []
@@ -667,8 +666,7 @@ class HeteroAssociativeMemory4D:
         return np.mean(entropies)
 
     def rsize_recalls(self, recalls, dim):
-        return (self.max_value - self.min_value) * recalls.astype(dtype=float) \
-                / (self.rows(dim) - 1.0) + self.min_value
+        return self.qudeqs[dim].dequantize(recalls, self.rows(dim))
 
     def relation_to_string(self, a, p = ''):
         if a.ndim == 1:

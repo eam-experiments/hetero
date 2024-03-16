@@ -247,12 +247,14 @@ class HeteroAssociativeMemory4D:
             recognized = recognized and (self._kappa*self.mean <= np.mean(weights))
         return recognized, weights
 
-    def recall_from_left(self, cue, weights = None, label = None):
+    def recall_from_left(self, cue, method = commons.recall_with_search,
+            euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
         return self._recall(cue, weights, label, 0)
 
-    def recall_from_right(self, cue, weights = None, label = None):
+    def recall_from_right(self, cue, method = commons.recall_with_search,
+            euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
         return self._recall(cue, weights, label, 1)
@@ -284,12 +286,12 @@ class HeteroAssociativeMemory4D:
     def optimal_recall(self, cue, cue_weights, label, projection, dim):
         sampling_iterations = 0
         p = 1.0
-        step = p / commons.n_sims if commons.n_sims > 0 else p
+        step = p / commons.sample_size if commons.sample_size > 0 else p
         last_update = 0
         r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
         distance, _ = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
         visited = [r_io]
-        for k, beta in zip(range(commons.n_sims), np.linspace(1.0, self.sigma, commons.n_sims)):
+        for k, beta in zip(range(commons.sample_size), np.linspace(1.0, self.sigma, commons.sample_size)):
             # s = self.rows(self.alt(dim)) * beta
             excluded = None # self.random_exclusion(r_io, p)
             s_projection = projection # self.adjust(projection, r_io, s)
@@ -311,7 +313,7 @@ class HeteroAssociativeMemory4D:
             p -= step
         distance2 = distance
         better_found = True
-        k = commons.n_sims
+        k = commons.sample_size
         search_iterations = 0
         sampling_io = r_io
         sampling_ws = weights
@@ -595,9 +597,9 @@ class HeteroAssociativeMemory4D:
         for i in range(self.n):
             k = cue_a[i]
             for j in range(self.p):
-                l = cue_b[j]
+                label = cue_b[j]
                 w = math.sqrt(weights_a[i]*weights_b[j])
-                relation[i, j, k, l] = int(w)
+                relation[i, j, k, label] = int(w)
         return relation
 
     def _set_margins(self):
@@ -613,8 +615,8 @@ class HeteroAssociativeMemory4D:
     def labels_in_projection(self, projection, label, dim):
         counts = np.zeros(commons.n_labels, dtype=int)
         classifier = self.classifiers[self.alt(dim)]
-        for l in commons.all_labels:
-            proto = self._prototypes[self.alt(dim)][l]
+        for lbl in commons.all_labels:
+            proto = self._prototypes[self.alt(dim)][lbl]
             s = self.rows(self.alt(dim)) * self.sigma
             p = self.adjust(projection, proto, s)
             if (np.count_nonzero(np.sum(projection, axis=1) == 0) != 0):
@@ -628,12 +630,12 @@ class HeteroAssociativeMemory4D:
                 candidates = self.rsize_recalls(np.array(candidates), self.alt(dim))
                 classification = np.argmax(classifier(candidates, training=False), axis=1)
                 for c in classification:
-                    counts[l] += (c == l)
+                    counts[lbl] += (c == lbl)
         sorted_labels = np.argsort(counts)[::-1]
         best_other = 0
-        for l in sorted_labels:
-            if l != label:
-                best_other = l
+        for lbl in sorted_labels:
+            if lbl != label:
+                best_other = lbl
                 break
         stats = {label: counts[label]/commons.presence_iterations,
                 best_other: counts[best_other]/commons.presence_iterations}
@@ -701,8 +703,8 @@ class HeteroAssociativeMemory4D:
     def adjust_by_proto(self, r, label, dim):
         stats = self.labels_in_projection(r, label, dim)
         other = [k for k in stats][1]
-        l = label if stats[label] >= stats[other] else other
-        proto = self._prototypes[self.alt(dim)][l]
+        lbl = label if stats[label] >= stats[other] else other
+        proto = self._prototypes[self.alt(dim)][lbl]
         s = self.rows(self.alt(dim)) * self.sigma
         q = self.adjust(r, proto, s)
         return q

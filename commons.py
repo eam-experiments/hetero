@@ -17,7 +17,6 @@ import csv
 import os
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
 import re
-from signal import Sigmasks
 import sys
 import random
 import string
@@ -47,12 +46,10 @@ def codomains():
 
 d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
-
 d3_with_distance = False
-use_prototypes = False
 
-n_sims = min(datasets_to_domains.values())
-dist_estims = n_sims # max(datasets_to_codomains.values())
+sample_size = max(datasets_to_domains.values())
+dist_estims = sample_size # max(datasets_to_codomains.values())
 presence_iterations = max(datasets_to_domains.values())*max(datasets_to_codomains.values())
 mean_matches = 1
 stdv_matches = 0
@@ -63,6 +60,12 @@ project_logistic = 1
 project_maximum = 2
 project_prototype = 3
 projection_transform = project_same
+
+recall_with_search = 0
+recall_with_protos = 1
+recall_with_correct_proto = 2
+recall_with_cue = 3
+
 # Directory where all results are stored.
 data_path = 'data'
 run_path = 'runs'
@@ -122,6 +125,19 @@ memory_suffix = '-memory'
 data_suffix = '_X'
 labels_suffix = '_Y'
 matrix_suffix = '-confrix'
+
+search_suffix = '-search'
+protos_suffix = '-protos'
+correct_proto_suffix = '-correct_proto'
+cue_suffix = '-cue'
+
+def recall_suffix(n: int):
+    if (0 <= n) and (n < len(recall_suffix.suffixes)):
+        return recall_suffix.suffixes[n]
+    raise ValueError(f'There is no suffix with {n} index.')
+
+recall_suffix.suffixes = [search_suffix, proto_suffix, 
+            correct_proto_suffix, cue_suffix]
 
 agreed_suffix = '-agr'
 original_suffix = '-ori'
@@ -290,12 +306,6 @@ def msize_suffix(msize):
 
 def sigma_suffix(sigma):
     return float_suffix(sigma, 'sgm')
-
-def learned_suffix(learned):
-    return numeric_suffix('lrn', learned)
-
-def stage_suffix(stage):
-    return numeric_suffix('stg', stage)
 
 def dream_depth_suffix(cycle):
     return numeric_suffix('dph', cycle)

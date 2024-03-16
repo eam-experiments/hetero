@@ -49,7 +49,7 @@ d4_model_name = "4DEHAM"
 d3_with_distance = False
 
 sample_size = max(datasets_to_domains.values())
-dist_estims = sample_size # max(datasets_to_codomains.values())
+early_threshold = sample_size # max(datasets_to_codomains.values())
 presence_iterations = max(datasets_to_domains.values())*max(datasets_to_codomains.values())
 mean_matches = 1
 stdv_matches = 0

@@ -251,29 +251,27 @@ class HeteroAssociativeMemory4D:
             euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
-        return self._recall(cue, weights, label, 0)
+        return self._recall(cue, method, euc, weights, label, 0)
 
     def recall_from_right(self, cue, method = commons.recall_with_search,
             euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
-        return self._recall(cue, weights, label, 1)
+        return self._recall(cue, method, euc, weights, label, 1)
 
-    def _recall(self, cue, weights, label, dim):
+    def _recall(self, cue, method, euc, weights, label, dim):
         cue = self.validate(cue, dim)
+        if euc is not None:
+            euc = self.validate(euc, self.alt(dim))
         projection = self.project(cue, weights, dim)
         recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
-        if recognized:
-            projection = self.transform(projection, label, dim)
-            # If there is a column in the projection with only zeros, the cue is not recognized.
-            recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
             stats = [0, 0, 0.0, 0.0]
         else:
             r_io, weights, stats = \
-                    self.optimal_recall(cue, weights, label, projection, dim)
+                    self.optimal_recall(cue, method, euc, weights, label, projection, dim)
             if r_io is None:
                 recognized = False
                 r_io = self.undefined_function(self.alt(dim))
@@ -283,27 +281,28 @@ class HeteroAssociativeMemory4D:
                 r_io = self.revalidate(r_io, self.alt(dim))
         return r_io, recognized, weight, projection, stats
 
-    def optimal_recall(self, cue, cue_weights, label, projection, dim):
+    def optimal_recall(self, cue, method, euc, cue_weights, label, projection, dim):
+        if method == commons.recall_with_search:
+            return self.sample_n_search_recall(cue, cue_weights, projection, dim)
+
+    def sample_n_search_recall(self, cue, cue_weights, projection, dim):
         sampling_iterations = 0
         p = 1.0
         step = p / commons.sample_size if commons.sample_size > 0 else p
         last_update = 0
-        r_io, weights = self.get_initial_cue(cue, cue_weights, label, projection, dim)
-        distance, _ = self.distance_recall(cue, cue_weights, label, r_io, weights, dim)
+        r_io, weights = self.reduce(projection, self.alt(dim))
+        distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
-        for k, beta in zip(range(commons.sample_size), np.linspace(1.0, self.sigma, commons.sample_size)):
-            # s = self.rows(self.alt(dim)) * beta
-            excluded = None # self.random_exclusion(r_io, p)
-            s_projection = projection # self.adjust(projection, r_io, s)
-            q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
+        for k in range(commons.sample_size):
+            q_io, q_ws = self.reduce(projection, self.alt(dim))
             j = 0
-            while self.already_visited(q_io, visited) and (j < commons.dist_estims):
-                q_io, q_ws = self.reduce(s_projection, self.alt(dim), excluded)
+            while self.already_visited(q_io, visited) and (j < commons.early_threshold):
+                q_io, q_ws = self.reduce(projection, self.alt(dim))
                 j += 1
-            if j == commons.dist_estims:
+            if j == commons.early_threshold:
                 continue
             visited.append(q_io)
-            d, _ = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
+            d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -328,8 +327,11 @@ class HeteroAssociativeMemory4D:
                 v = t[1]
                 neighbors.remove(t)
                 q_io = np.array([r_io[j] if j != i else v for j in range(self.cols(self.alt(dim)))])
+                if self.already_visited(q_io, visited):
+                    continue
+                visited.append(q_io)
                 q_ws = self.weights_in_projection(projection, q_io, self.alt(dim))
-                d, _ = self.distance_recall(cue, cue_weights, label, q_io, q_ws, dim)
+                d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
                 k += 1
                 if d < distance2:
                     p_io = q_io
@@ -346,37 +348,7 @@ class HeteroAssociativeMemory4D:
         return r_io, weights, [sampling_iterations, search_iterations,
                 last_update, distance2, (distance2- distance), diffs, length]
 
-    def get_initial_cue(self, cue, cue_weights, label, projection, dim):
-        return self.reduce(projection, self.alt(dim))
-        if self._prototypes[self.alt(dim)] is None:
-            r_io, r_ws = self.reduce(projection, self.alt(dim))
-            return r_io, r_ws
-        distance = float('inf')
-        candidate = None
-        candidate_weights = None
-        for proto in self._prototypes[self.alt(dim)]:
-            ws = []
-            for i in range(proto.size):
-                if self.is_undefined(proto[i], self.alt(dim)) \
-                        or (projection[i, proto[i]] == 0):
-                    ws = []
-                    break
-                else:
-                    ws.append(projection[i, proto[i]])
-            if not ws:
-                continue
-            else:
-                ws = np.array(ws)
-                d, _ = self.distance_recall(cue, cue_weights, proto, ws, dim)
-                if d < distance:
-                    candidate = proto
-                    candidate_weights = ws
-                    distance = d
-        if candidate is None:
-            candidate, candidate_weights = self.reduce(projection, self.alt(dim))
-        return candidate, candidate_weights
-
-    def distance_recall(self, cue, cue_weights, label, q_io, q_ws, dim):
+    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
         p_io = self.project(q_io, q_ws, self.alt(dim))
         distance = self.calculate_distance(cue, cue_weights, p_io, dim)
         return distance, 0
@@ -642,8 +614,8 @@ class HeteroAssociativeMemory4D:
         return stats
     
     def label_presence(self, projection, label, dim):
-        r_ios = np.zeros((commons.dist_estims, self.cols(dim)), dtype = int)
-        for i in range(commons.dist_estims):
+        r_ios = np.zeros((commons.early_threshold, self.cols(dim)), dtype = int)
+        for i in range(commons.early_threshold):
             r_io, _ = self.reduce(projection, dim)
             r_ios[i] = np.array(r_io, dtype=int)
         r_ios = self.rsize_recalls(r_ios, dim)
@@ -653,7 +625,7 @@ class HeteroAssociativeMemory4D:
         frequencies = dict(zip(labels, counts))
         maximum = max(frequencies.values())
         presence = frequencies[label] if label in frequencies.keys() else 0
-        return presence/commons.dist_estims if presence == maximum else 0.0
+        return presence/commons.early_threshold if presence == maximum else 0.0
 
     def projection_entropy(self, projection, dim):
         entropies = []

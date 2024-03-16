@@ -1193,7 +1193,7 @@ def hetero_remember_per_fold(recall_method, es, fold):
         validating_network_data(
             t_features, testing_labels[dataset], classifiers[dataset],
             dataset, 'testing data')
-        qd = qudeq.QuDeq(f_features)
+        qd = qudeq.QuDeq(f_features, percentiles=True)
         filling_features[dataset] = qd.quantize(f_features, rows[dataset])
         filling_prototypes[dataset] = qd.quantize(prototypes, rows[dataset])
         testing_features[dataset] = qd.quantize(t_features, rows[dataset])

@@ -469,12 +469,14 @@ class HeteroAssociativeMemory4D:
     def protos_coherence(self, projection, dim):
         frequencies = self.prototypes_frequencies(projection, dim)
         coherence = []
+        adjustment = -math.log2(0.9999)
         for label in commons.all_labels:
             freqs = frequencies[label]
             s = np.sum(freqs)
             probs = freqs if s == 0 else freqs/s
-            entropy = np.multiply(-probs, np.log2(np.where(probs == 0.0, 1.0, probs)))
-            coherence.append(probs[label]/entropy)
+            entropy = np.sum(np.multiply(-probs, np.log2(np.where(probs == 0.0, 1.0, probs))))
+            coherence.append(probs[label]/(entropy+adjustment))
+        return np.array(coherence)
 
     # Reduces a relation to a function
     def reduce(self, relation, dim, excluded = None):
@@ -660,7 +662,7 @@ class HeteroAssociativeMemory4D:
         self._iota_relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
 
     def prototypes_frequencies(self, projection, dim):
-        freqs = []
+        frequencies = []
         classifier = self.classifiers[dim]
         for lbl in commons.all_labels:
             counts = np.zeros(commons.n_labels, dtype=int)
@@ -680,8 +682,8 @@ class HeteroAssociativeMemory4D:
                 labels, freqs = np.unique(classification, return_counts=True)
                 for lbl, freq in zip(labels, freqs):
                     counts[lbl] = freq
-            freqs.append(counts)
-        return np.array(freqs, dtype=float)
+            frequencies.append(counts)
+        return np.array(frequencies, dtype=float)
     
     def rsize_recalls(self, recalls, dim):
         return self.qudeqs[dim].dequantize(recalls, self.rows(dim))

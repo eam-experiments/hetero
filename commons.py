@@ -50,7 +50,7 @@ d3_with_distance = False
 
 sample_size = max(datasets_to_domains.values())
 early_threshold = sample_size # max(datasets_to_codomains.values())
-presence_iterations = max(datasets_to_domains.values())*max(datasets_to_codomains.values())
+presence_iterations = 2*sample_size
 mean_matches = 1
 stdv_matches = 0
 minimum_percentile = 0.5

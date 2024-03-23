@@ -13,40 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Entropic Hetero-Associative Memory Testing
-
-Usage:
-  test-hetero -h | --help
-  test-hetero --dims=N
-
-Options:
-  -h        Show this screen.
-  --dims=N    Dimensions of the model (they can be 3 or 4)
-"""
-
+import random
 import numpy as np
-from docopt import docopt
 import commons
-from hetero_associative_4d import *
-from hetero_associative_3d import *
-
-args = docopt(__doc__)
-try:
-    d = int(args['--dims'])
-except:
-    print(__doc__)
-    exit(1)
+from hetero_associative_4d import HeteroAssociativeMemory4D
 
 es = commons.ExperimentSettings()
-h = None
-if d == 3:
-    h = HeteroAssociativeMemory3D(2,3,3,2, es)
-elif d == 4:
-    h = HeteroAssociativeMemory4D(2,3,3,2, es)
-else:
-    print(__doc__)
-    exit(1)
-
+h = HeteroAssociativeMemory4D(2,3,3,2, es)
 random.seed()
 
 # Memory for associations between functions of two characteristics and three values,
@@ -111,19 +84,19 @@ print("h.register(vd,w0)")
 h.register(vd, w0)
 print(h)
 
-print(f'h.recognize(v0,w0):')
+print('h.recognize(v0,w0):')
 r = h.recognize(v0,w0)
 print(f'Result: {r}')
 
-print(f'h.recognize(v1,w1):')
+print('h.recognize(v1,w1):')
 r = h.recognize(v1,w1)
 print(f'Result: {r}')
 
-print(f'h.recognize(v0,w1):')
+print('h.recognize(v0,w1):')
 r = h.recognize(v0,w1)
 print(f'Result: {r}')
 
-print(f'h.recognize(v1,w0):')
+print('h.recognize(v1,w0):')
 r = h.recognize(v1,w0)
 print(f'Result: {r}')
 
@@ -131,7 +104,7 @@ if h.model_name == commons.d4_model_name:
     print(f'vu: {vu}')
     print(f'wn: {wn}')
 
-    print(f'h.recognize(vu,wn):')
+    print('h.recognize(vu,wn):')
     r = h.recognize(vu,wn)
     print(f'Result: {r}')
 

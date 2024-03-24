@@ -285,7 +285,7 @@ class HeteroAssociativeMemory4D:
         if method == commons.recall_with_search:
             return self.sample_n_search_recall(cue, cue_weights, projection, dim)
         elif method == commons.recall_with_protos:
-            return self.prototypes_recall(cue, cue_weights, projection, dim)
+            return self.prototypes_recall(cue, cue_weights, label, projection, dim)
         elif method == commons.recall_with_correct_proto:
             return self.correct_proto_recall(cue, cue_weights, label, projection, dim)
         elif method == commons.recall_with_cue:
@@ -297,7 +297,7 @@ class HeteroAssociativeMemory4D:
         sampling_iterations = 0
         last_update = 0
         r_io, weights = self.reduce(projection, self.alt(dim))
-        distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
+        distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights
         for k in range(commons.sample_size):
@@ -308,7 +308,7 @@ class HeteroAssociativeMemory4D:
             if j == commons.early_threshold:
                 continue
             visited.append(q_io)
-            d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -336,7 +336,7 @@ class HeteroAssociativeMemory4D:
                     continue
                 visited.append(q_io)
                 q_ws = self.weights_in_projection(projection, q_io, self.alt(dim))
-                d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+                d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
                 k += 1
                 if d < distance2:
                     p_io = q_io
@@ -353,16 +353,24 @@ class HeteroAssociativeMemory4D:
         return r_io, weights, [sampling_iterations, search_iterations,
                 last_update, distance2, (distance2- distance), diffs, length]
     
-    def prototypes_recall(self, cue, cue_weights, projection, dim):
+    def prototypes_recall(self, cue, cue_weights, label, projection, dim):
+        classifier = self.classifiers[self.alt(dim)]
         sampling_iterations = 0
         last_update = 0
+        giving_ups = 0
         coherence = self.protos_coherence(projection, self.alt(dim))
         if np.sum(coherence) == 0:
             return None, None, [sampling_iterations, last_update, np.nan]
         p = self.choose_from_distrib(coherence)
         s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
         r_io, weights = self.reduce(s_projection, self.alt(dim))
-        distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
+        i = 0
+        while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
+                and (i < commons.early_threshold):
+            r_io, weights = self.reduce(s_projection, self.alt(dim))
+            i += 1
+            giving_ups += (i == commons.early_threshold)
+        distance = self.distance_recall(cue, cue_weights, r_io, weights, dim, label=label)
         visited = [r_io]
         q_io, q_ws = r_io, weights
         for k in range(commons.sample_size):
@@ -371,25 +379,31 @@ class HeteroAssociativeMemory4D:
                 p = self.choose_from_distrib(coherence)
                 s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
                 q_io, q_ws = self.reduce(s_projection, self.alt(dim))
+                i = 0
+                while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
+                        and (i < commons.early_threshold):
+                    q_io, q_ws = self.reduce(s_projection, self.alt(dim))
+                    i += 1
+                giving_ups += (i == commons.early_threshold)
                 j += 1
             if j == commons.early_threshold:
                 continue
             visited.append(q_io)
-            d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
                 sampling_iterations += 1
                 last_update = k
-        return r_io, weights, [sampling_iterations, last_update, distance]
+        return r_io, weights, [sampling_iterations, last_update, distance, giving_ups]
 
     def correct_proto_recall(self, cue, cue_weights, label, projection, dim):
         sampling_iterations = 0
         last_update = 0
         s_projection = self.adjust_by_proto(projection, label, self.alt(dim))
         r_io, weights = self.reduce(s_projection, self.alt(dim))
-        distance, _ = self.distance_recall(cue, cue_weights, r_io, weights, dim)
+        distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights
         for k in range(commons.sample_size):
@@ -400,7 +414,7 @@ class HeteroAssociativeMemory4D:
             if j == commons.early_threshold:
                 continue
             visited.append(q_io)
-            d, _ = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -446,10 +460,12 @@ class HeteroAssociativeMemory4D:
                         0, integration + w[i]*projection)
         return integration
 
-    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim):
-        p_io = self.project(q_io, q_ws, self.alt(dim))
-        distance = self.calculate_distance(cue, cue_weights, p_io, dim)
-        return distance, 0
+    def distance_recall(self, cue, cue_weights, q_io, q_ws, dim, label=None):
+        projection = self.project(q_io, q_ws, self.alt(dim))
+        if label is not None:
+            projection = self.adjust_by_proto(projection, label, dim)
+        distance = self.calculate_distance(cue, cue_weights, projection, dim)
+        return distance
 
     def calculate_distance(self, cue, cue_weights, p_io, dim):
         distance = 0.0
@@ -704,10 +720,10 @@ class HeteroAssociativeMemory4D:
                 return True
         return False
     
-    def adjust_by_proto(self, r, label, dim):
+    def adjust_by_proto(self, relation, label, dim):
         proto = self._prototypes[dim][label]
         s = self.rows(dim) * self.sigma
-        q = self.adjust(r, proto, s)
+        q = self.adjust(relation, proto, s)
         return q
 
     def normpdf(self, x, mean, sd):

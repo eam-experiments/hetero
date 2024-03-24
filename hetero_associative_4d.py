@@ -285,7 +285,7 @@ class HeteroAssociativeMemory4D:
         if method == commons.recall_with_search:
             return self.sample_n_search_recall(cue, cue_weights, projection, dim)
         elif method == commons.recall_with_protos:
-            return self.prototypes_recall(cue, cue_weights, projection, dim)
+            return self.prototypes_recall(cue, cue_weights, label, projection, dim)
         elif method == commons.recall_with_correct_proto:
             return self.correct_proto_recall(cue, cue_weights, label, projection, dim)
         elif method == commons.recall_with_cue:
@@ -353,10 +353,10 @@ class HeteroAssociativeMemory4D:
         return r_io, weights, [sampling_iterations, search_iterations,
                 last_update, distance2, (distance2- distance), diffs, length]
     
-    def prototypes_recall(self, cue, cue_weights, projection, dim):
+    def prototypes_recall(self, cue, cue_weights, label, projection, dim):
         sampling_iterations = 0
         last_update = 0
-        coherence = self.protos_coherence(projection, self.alt(dim))
+        coherence = self.protos_coherence(projection, label, self.alt(dim))
         if np.sum(coherence) == 0:
             return None, None, [sampling_iterations, last_update, np.nan]
         p = self.choose_from_distrib(coherence)
@@ -466,16 +466,17 @@ class HeteroAssociativeMemory4D:
         length = np.max(abs)
         return diff, length
 
-    def protos_coherence(self, projection, dim):
+    def protos_coherence(self, projection, label, dim):
         frequencies = self.prototypes_frequencies(projection, dim)
         coherence = []
         adjustment = -math.log2(0.9999)
-        for label in commons.all_labels:
-            freqs = frequencies[label]
+        for lbl in commons.all_labels:
+            freqs = frequencies[lbl]
             s = np.sum(freqs)
             probs = freqs if s == 0 else freqs/s
             entropy = np.sum(np.multiply(-probs, np.log2(np.where(probs == 0.0, 1.0, probs))))
-            coherence.append(probs[label]/(entropy+adjustment))
+            coherence.append(probs[lbl]/(entropy+adjustment))
+        print(f'Coherence for label {label}: {coherence}')
         return np.array(coherence)
 
     # Reduces a relation to a function

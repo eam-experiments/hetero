@@ -40,6 +40,7 @@ def filter_and_remap(images, labels, map):
     
 
 if __name__=='__main__':
+    random.seed(0)
     dirname = os.path.join(commons.data_path, 'emnist')
     images, labels = load_mnist_like(dirname, 'train')
     unique, counts = np.unique(labels, return_counts=True)

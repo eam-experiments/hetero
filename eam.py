@@ -101,11 +101,11 @@ def plot_prerec_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
     # Replace undefined precision with 1.0.
     pre_mean = np.nan_to_num(pre_mean, copy=False, nan=100.0)
 
-    plt.errorbar(x, pre_mean, fmt='r-o', yerr=pre_std, label=_('Precision'))
-    plt.errorbar(x, rec_mean, fmt='b--s', yerr=rec_std, label=_('Recall'))
+    plt.errorbar(x, pre_mean, fmt='r-o', yerr=pre_std, capsize=3, label=_('Precision'))
+    plt.errorbar(x, rec_mean, fmt='b--s', yerr=rec_std, capsize=3, label=_('Recall'))
     if (acc_mean is not None) and (acc_std is not None):
         plt.errorbar(x, acc_mean, fmt='g--d',
-                     yerr=acc_std, label=_('Accuracy'))
+                     yerr=acc_std, capsize=3, label=_('Accuracy'))
     plt.xlim(0, xmax)
     plt.ylim(0, ymax)
     plt.xticks(x, xlabels)
@@ -207,7 +207,7 @@ def plot_features_graph(domain, means, stdevs, dataset, es):
     for i in commons.all_labels:
         plt.clf()
         plt.figure(figsize=(12,5))
-        plt.errorbar(xrange, means[i], fmt=fmts[i], yerr=stdevs[i], label=str(i))
+        plt.errorbar(xrange, means[i], fmt=fmts[i], yerr=stdevs[i], capsize=3, label=str(i))
         plt.xlim(0, 100)
         plt.ylim(ymin, ymax)
         plt.xticks(xrange, labels='')
@@ -361,19 +361,24 @@ def match_labels(features, labels, half=False):
     right_labels = []
     used_idx = set()
     last = 0
-    left_ds = commons.left_dataset
-    right_ds = commons.right_dataset
+    if len(labels[commons.left_dataset]) < len(labels[commons.right_dataset]):
+        smaller_ds = commons.left_dataset
+        larger_ds = commons.right_dataset
+    else:
+        smaller_ds = commons.right_dataset
+        larger_ds = commons.left_dataset
     # Assuming ten clases on each dataset.
-    midx = round(len(labels[left_ds]) * 4.0 / 9.0)
-    matching_labels = labels[left_ds][:midx] if half else labels[left_ds]
+    midx = round(len(labels[smaller_ds]) * 4.0 / 9.0)
+    matching_labels = labels[smaller_ds][:midx] if half else labels[smaller_ds]
     counter = 0
-    print(f'Matching {len(labels[left_ds])} in {left_ds} with {len(labels[right_ds])} in {right_ds}:')
+    print(f'Matching {len(labels[smaller_ds])} in {smaller_ds} '
+            + f' with {len(labels[larger_ds])} in {larger_ds}:')
     for left_label in matching_labels:
         while last in used_idx:
             last += 1
         i = last
         found = False
-        for right_feats, right_label in zip(features[right_ds][i:], labels[right_ds][i:]):
+        for right_feats, right_label in zip(features[larger_ds][i:], labels[larger_ds][i:]):
             if (i not in used_idx) and (left_label == right_label):
                 right_features.append(right_feats)
                 right_labels.append(right_label)
@@ -388,16 +393,16 @@ def match_labels(features, labels, half=False):
     print(' end')
     if half:
         i = 0
-        for right_feats, right_label in zip(features[right_ds], labels[right_ds]):
+        for right_feats, right_label in zip(features[larger_ds], labels[larger_ds]):
             if i not in used_idx:
                 right_features.append(right_feats)
                 right_labels.append(right_label)
             i += 1
     n = len(right_features)
-    features[left_ds] = features[left_ds][:n]
-    labels[left_ds] = labels[left_ds][:n]
-    features[right_ds] = np.array(right_features, dtype=int)
-    labels[right_ds] = np.array(right_labels, dtype=int)
+    features[smaller_ds] = features[smaller_ds][:n]
+    labels[smaller_ds] = labels[smaller_ds][:n]
+    features[larger_ds] = np.array(right_features, dtype=int)
+    labels[larger_ds] = np.array(right_labels, dtype=int)
 
 
 def describe(features, labels):
@@ -1725,8 +1730,8 @@ def run_separate_evaluation(dataset, es):
     best_memory_sizes = test_memory_sizes(dataset, es)
     print(f'Best memory sizes: {best_memory_sizes}')
     best_filling_percents = test_memory_fills(
-        best_memory_sizes, dataset, es)
-    save_learned_params(best_memory_sizes, best_filling_percents, dataset, es)
+        commons.memory_sizes, dataset, es)
+    save_learned_params(commons.memory_sizes, best_filling_percents, dataset, es)
 
 def run_evaluation(es):
     test_hetero_fills(es)

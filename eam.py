@@ -367,17 +367,17 @@ def match_labels(features, labels, half=False):
     midx = round(len(labels[left_ds]) * 4.0 / 9.0)
     matching_labels = labels[left_ds][:midx] if half else labels[left_ds]
     counter = 0
-    print('Matching:')
+    print(f'Matching {len(labels[left_ds])} in {left_ds} with {len(labels[right_ds])} in {right_ds}:')
     for left_label in matching_labels:
         while last in used_idx:
             last += 1
         i = last
         found = False
-        for right_feat, right_lab in zip(features[right_ds][i:], labels[right_ds][i:]):
-            if (i not in used_idx) and (left_label == right_lab):
+        for right_feats, right_label in zip(features[right_ds][i:], labels[right_ds][i:]):
+            if (i not in used_idx) and (left_label == right_label):
+                right_features.append(right_feats)
+                right_labels.append(right_label)
                 used_idx.add(i)
-                right_features.append(right_feat)
-                right_labels.append(right_lab)
                 found = True
                 break
             i += 1
@@ -388,10 +388,10 @@ def match_labels(features, labels, half=False):
     print(' end')
     if half:
         i = 0
-        for right_feat, right_lab in zip(features[right_ds], labels[right_ds]):
+        for right_feats, right_label in zip(features[right_ds], labels[right_ds]):
             if i not in used_idx:
-                right_features.append(right_feat)
-                right_labels.append(right_lab)
+                right_features.append(right_feats)
+                right_labels.append(right_label)
             i += 1
     n = len(right_features)
     features[left_ds] = features[left_ds][:n]

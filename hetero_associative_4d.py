@@ -364,12 +364,12 @@ class HeteroAssociativeMemory4D:
         p = self.choose_from_distrib(coherence)
         s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
         r_io, weights = self.reduce(s_projection, self.alt(dim))
-        i = 0
-        while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
-                and (i < commons.early_threshold):
-            r_io, weights = self.reduce(s_projection, self.alt(dim))
-            i += 1
-            giving_ups += (i == commons.early_threshold)
+        # i = 0
+        # while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
+        #         and (i < commons.early_threshold):
+        #     r_io, weights = self.reduce(s_projection, self.alt(dim))
+        #     i += 1
+        #     giving_ups += (i == commons.early_threshold)
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim, label=label)
         visited = [r_io]
         q_io, q_ws = r_io, weights
@@ -379,12 +379,12 @@ class HeteroAssociativeMemory4D:
                 p = self.choose_from_distrib(coherence)
                 s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
                 q_io, q_ws = self.reduce(s_projection, self.alt(dim))
-                i = 0
-                while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
-                        and (i < commons.early_threshold):
-                    q_io, q_ws = self.reduce(s_projection, self.alt(dim))
-                    i += 1
-                giving_ups += (i == commons.early_threshold)
+                # i = 0
+                # while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
+                #         and (i < commons.early_threshold):
+                #     q_io, q_ws = self.reduce(s_projection, self.alt(dim))
+                #     i += 1
+                # giving_ups += (i == commons.early_threshold)
                 j += 1
             if j == commons.early_threshold:
                 continue

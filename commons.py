@@ -61,10 +61,11 @@ project_maximum = 2
 project_prototype = 3
 projection_transform = project_same
 
-recall_with_search = 0
+recall_with_sampling_n_search = 0
 recall_with_protos = 1
 recall_with_correct_proto = 2
 recall_with_cue = 3
+sampling_without_search = True
 
 # Directory where all results are stored.
 data_path = 'data'

@@ -247,13 +247,13 @@ class HeteroAssociativeMemory4D:
             recognized = recognized and (self._kappa*self.mean <= np.mean(weights))
         return recognized, weights
 
-    def recall_from_left(self, cue, method = commons.recall_with_search,
+    def recall_from_left(self, cue, method = commons.recall_with_sampling_n_search,
             euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
         return self._recall(cue, method, euc, weights, label, 0)
 
-    def recall_from_right(self, cue, method = commons.recall_with_search,
+    def recall_from_right(self, cue, method = commons.recall_with_sampling_n_search,
             euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
@@ -282,7 +282,7 @@ class HeteroAssociativeMemory4D:
         return r_io, recognized, weight, projection, stats
 
     def optimal_recall(self, cue, method, euc, cue_weights, label, projection, dim):
-        if method == commons.recall_with_search:
+        if method == commons.recall_with_sampling_n_search:
             return self.sample_n_search_recall(cue, cue_weights, projection, dim)
         elif method == commons.recall_with_protos:
             return self.prototypes_recall(cue, cue_weights, label, projection, dim)
@@ -321,7 +321,7 @@ class HeteroAssociativeMemory4D:
         search_iterations = 0
         sampling_io = r_io
         sampling_ws = weights
-        while better_found:
+        while not commons.sampling_without_search and better_found:
             neighbors = self.neighborhood(projection, r_io, self.alt(dim))
             better_found = False
             p_io = None

@@ -571,7 +571,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     counter_name = commons.set_counter()
     for a_feats, b_feats, label in zip(a_features, b_features, b_labels):
         memory, recognized, weight, relation, s = recall(
-                a_feats, recall_method) if recall_method == commons.recall_with_search else recall(
+                a_feats, recall_method) if recall_method == commons.recall_with_sampling_n_search else recall(
                         a_feats, recall_method, euc = b_feats, weights = None, label = label)
         if recognized:
             stats.append(s)
@@ -1083,7 +1083,7 @@ def test_hetero_filling_per_fold(es, fold):
         testing_labels[dataset] = np.load(testing_labels_filename)
         f_features = np.load(filling_features_filename)
         t_features = np.load(testing_features_filename)
-        qd = qudeq.QuDeq(f_features)
+        qd = qudeq.QuDeq(f_features, percentiles=True)
         filling_features[dataset] = qd.quantize(f_features, rows[dataset])
         testing_features[dataset] = qd.quantize(t_features, rows[dataset])
     match_labels(filling_features, filling_labels)
@@ -1810,7 +1810,7 @@ if __name__ == "__main__":
     elif args['-e']:
         run_evaluation(exp_settings)
     elif args['-r']:
-        generate_memories(commons.recall_with_search, exp_settings)
+        generate_memories(commons.recall_with_sampling_n_search, exp_settings)
     elif args['-p']:
         generate_memories(commons.recall_with_protos, exp_settings)
     elif args['-P']:

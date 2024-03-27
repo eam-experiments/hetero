@@ -27,7 +27,7 @@ import dataset
 
 batch_size = 32
 epochs = 300
-patience = 7
+patience = 10
 truly_training_percentage = 0.80
 
 def conv_block(entry, layers, filters, dropout, first_block = False):
@@ -41,7 +41,7 @@ def conv_block(entry, layers, filters, dropout, first_block = False):
             conv = Conv2D(kernel_size =3, padding ='same', activation='relu', 
                 filters = filters)(entry)
         entry = BatchNormalization()(conv)
-    pool = MaxPool2D(pool_size = 3, strides =2, padding ='same')(entry)
+    pool = MaxPool2D(pool_size = 2, strides =2, padding ='same')(entry)
     drop = SpatialDropout2D(dropout)(pool)
     return drop
 

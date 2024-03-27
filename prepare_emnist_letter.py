@@ -46,7 +46,7 @@ if __name__=='__main__':
     unique, counts = np.unique(labels, return_counts=True)
     print(f'Original labels: {unique}')
     print(f'Original frequencies in train: {counts}')
-    chosen = np.random.choice(unique, commons.n_labels, False)
+    chosen = np.array([15, 13, 23, 16, 26, 19, 3, 20, 2, 24]) # np.random.choice(unique, commons.n_labels, False)
     print(f'Chosen labels: {chosen}')
     map = {}
     for i in range(commons.n_labels):

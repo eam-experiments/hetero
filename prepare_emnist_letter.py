@@ -27,7 +27,12 @@ def load_mnist_like(dirname, kind):
     with gzip.open(images_path, 'rb') as imgpath:
         images = np.frombuffer(imgpath.read(),
             dtype=np.uint8, offset=16).reshape(len(labels), 28, 28)
+    transpose(images)
     return images, labels
+
+def transpose(images):
+    for i in len(images):
+        images[i] = np.transpose(images[i])
 
 def filter_and_remap(images, labels, map):
     chosen_images = []

@@ -474,6 +474,8 @@ class HeteroAssociativeMemory4D:
     def calculate_distance(self, cue, cue_weights, p_io, dim):
         distance = 0.0
         for v, w, column in zip(cue, cue_weights, p_io):
+            if self.is_undefined(v, dim):
+                continue
             s = np.sum(column)
             ps = column if s == 0.0 else column/np.sum(column)
             d = np.dot(np.square(np.arange(self.rows(dim))-v),ps)*w
@@ -672,9 +674,9 @@ class HeteroAssociativeMemory4D:
         return relation
 
     def to_relation(self, cue, dim):
-        relation = np.zeros((self.cols(dim), self.rows(dim)), dtype=bool)
+        relation = np.zeros((self.cols(dim), self.rows(dim)+1), dtype=bool)
         relation[range(self.cols(dim)), cue] = True
-        return relation
+        return relation[:, self.rows(dim)]
 
     def _set_margins(self):
         """ Set margins to one.

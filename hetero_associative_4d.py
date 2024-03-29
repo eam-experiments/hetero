@@ -354,7 +354,6 @@ class HeteroAssociativeMemory4D:
                 last_update, distance2, (distance2- distance), diffs, length]
     
     def prototypes_recall(self, cue, cue_weights, label, projection, dim):
-        classifier = self.classifiers[self.alt(dim)]
         sampling_iterations = 0
         last_update = 0
         giving_ups = 0

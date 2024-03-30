@@ -356,7 +356,8 @@ class HeteroAssociativeMemory4D:
     def prototypes_recall(self, cue, cue_weights, label, projection, dim):
         sampling_iterations = 0
         last_update = 0
-        giving_ups = 0
+        # giving_ups = 0
+        cue_inclusion_rejection = 0
         coherence = self.protos_coherence(projection, self.alt(dim))
         if np.sum(coherence) == 0:
             return None, None, [sampling_iterations, last_update, np.nan]
@@ -385,17 +386,20 @@ class HeteroAssociativeMemory4D:
                 #     i += 1
                 # giving_ups += (i == commons.early_threshold)
                 j += 1
-            if j == commons.early_threshold:
+            if self.already_visited(q_io, visited):
                 continue
             visited.append(q_io)
             d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-            if d < distance:
+            if d == float('inf'):
+                # The cue was not contained in the projection
+                cue_inclusion_rejection += 1
+            elif d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
                 sampling_iterations += 1
                 last_update = k
-        return r_io, weights, [sampling_iterations, last_update, distance, giving_ups]
+        return r_io, weights, [sampling_iterations, last_update, distance, cue_inclusion_rejection]
 
     def correct_proto_recall(self, cue, cue_weights, label, projection, dim):
         sampling_iterations = 0

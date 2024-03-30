@@ -463,8 +463,9 @@ class HeteroAssociativeMemory4D:
         projection = self.project(q_io, q_ws, self.alt(dim))
         if label is not None:
             projection = self.adjust_by_proto(projection, label, dim)
+        booleans = np.where(projection > 0, True, False)
         r_cue = self.to_relation(cue, dim)
-        r_io = ~r_cue | projection
+        r_io = ~r_cue | booleans
         distance = float('inf') \
                 if np.count_nonzero(r_io == 0) > 0 \
                 else self.calculate_distance(cue, cue_weights, projection, dim)
@@ -675,7 +676,7 @@ class HeteroAssociativeMemory4D:
     def to_relation(self, cue, dim):
         relation = np.zeros((self.cols(dim), self.rows(dim)+1), dtype=bool)
         relation[range(self.cols(dim)), cue] = True
-        return relation[:, self.rows(dim)]
+        return relation[:, :self.rows(dim)]
 
     def _set_margins(self):
         """ Set margins to one.

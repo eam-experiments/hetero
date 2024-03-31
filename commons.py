@@ -66,7 +66,7 @@ recall_with_sampling_n_search = 0
 recall_with_protos = 1
 recall_with_correct_proto = 2
 recall_with_cue = 3
-sampling_without_search = True
+sampling_without_search = False
 
 # Directory where all results are stored.
 data_path = 'data'

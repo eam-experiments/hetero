@@ -652,7 +652,8 @@ class HeteroAssociativeMemory4D:
         threshold = self.rows(dim)
         undefined = self.undefined(dim)
         v = np.nan_to_num(cue, copy=True, nan=undefined)
-        v = np.where((v < 0) | (threshold <= v), undefined, v)
+        v = np.where(v < 0, 0, v)
+        v = np.where(threshold <= v, self.rows(dim)-1, v)
         v = v.round()
         return v.astype('int')
 

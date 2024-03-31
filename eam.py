@@ -726,7 +726,7 @@ def get_ams_results(
         filling_features, testing_features,
         filling_labels, testing_labels, classifier, es):
     # Round the values
-    qd = qudeq.QuDeq(filling_features)
+    qd = qudeq.QuDeq(filling_features, percentiles=commons.use_percentiles)
     trf_rounded = qd.quantize(filling_features, msize)
     tef_rounded = qd.quantize(testing_features, msize)
     behaviour = np.zeros(commons.n_behaviours, dtype=np.float64)
@@ -1010,7 +1010,7 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     testing_features = np.load(testing_features_filename)
     testing_labels = np.load(testing_labels_filename)
 
-    qd = qudeq.QuDeq(filling_features)
+    qd = qudeq.QuDeq(filling_features, percentiles=commons.use_percentiles)
     filling_features = qd.quantize(filling_features, mem_size)
     testing_features = qd.quantize(testing_features, mem_size)
 
@@ -1083,7 +1083,7 @@ def test_hetero_filling_per_fold(es, fold):
         testing_labels[dataset] = np.load(testing_labels_filename)
         f_features = np.load(filling_features_filename)
         t_features = np.load(testing_features_filename)
-        qd = qudeq.QuDeq(f_features, percentiles=True)
+        qd = qudeq.QuDeq(f_features, percentiles=commons.use_percentiles)
         filling_features[dataset] = qd.quantize(f_features, rows[dataset])
         testing_features[dataset] = qd.quantize(t_features, rows[dataset])
     match_labels(filling_features, filling_labels)
@@ -1198,7 +1198,7 @@ def hetero_remember_per_fold(recall_method, es, fold):
         validating_network_data(
             t_features, testing_labels[dataset], classifiers[dataset],
             dataset, 'testing data')
-        qd = qudeq.QuDeq(f_features, percentiles=True)
+        qd = qudeq.QuDeq(f_features, percentiles=commons.use_percentiles)
         filling_features[dataset] = qd.quantize(f_features, rows[dataset])
         filling_prototypes[dataset] = qd.quantize(prototypes, rows[dataset])
         testing_features[dataset] = qd.quantize(t_features, rows[dataset])

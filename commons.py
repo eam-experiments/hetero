@@ -53,6 +53,7 @@ early_threshold = sample_size
 presence_iterations = 2*sample_size
 mean_matches = 1
 stdv_matches = 0
+use_percentiles = False
 minimum_percentile = 0.5
 maximum_percentile = 99.5
 project_same = 0

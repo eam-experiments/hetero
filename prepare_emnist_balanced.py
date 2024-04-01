@@ -1,13 +1,22 @@
+"""Preparation of EMNIST Balanced dataset.
+
+Usage:
+  eam -h | --help
+  eam (-r | -s)
+
+Options:
+  -h    Show this screen.
+"""
 import os
 import random
 import numpy as np
 import gzip
+from docopt import docopt
 import commons
 
-
-def save_mnist_like(images, labels, dirname, kind):
-    labels_path = os.path.join(dirname, '%s-labels-idx1-ubyte' % kind)
-    images_path = os.path.join(dirname, '%s-images-idx3-ubyte' % kind)
+def save_mnist_like(images, labels, dirname, subset):
+    labels_path = os.path.join(dirname, f'{subset}-labels-idx1-ubyte')
+    images_path = os.path.join(dirname, f'{subset}-images-idx3-ubyte')
     header = np.array([0x0801, len(labels)], dtype='>i4')
     with open(labels_path, "wb") as f:
         f.write(header.tobytes())
@@ -17,9 +26,9 @@ def save_mnist_like(images, labels, dirname, kind):
         f.write(header.tobytes())
         f.write(images.tobytes())
     
-def load_mnist_like(dirname, kind):
-    labels_path = os.path.join(dirname, '%s-labels-idx1-ubyte.gz' % kind)
-    images_path = os.path.join(dirname, '%s-images-idx3-ubyte.gz' % kind)
+def load_mnist_like(dirname, subset, transposed):
+    labels_path = os.path.join(dirname, f'{subset}-labels-idx1-ubyte.gz')
+    images_path = os.path.join(dirname, f'{subset}-images-idx3-ubyte.gz')
 
     with gzip.open(labels_path, 'rb') as lbpath:
         labels = np.frombuffer(lbpath.read(),
@@ -27,7 +36,8 @@ def load_mnist_like(dirname, kind):
     with gzip.open(images_path, 'rb') as imgpath:
         images = np.frombuffer(imgpath.read(),
             dtype=np.uint8, offset=16).reshape(len(labels), 28, 28)
-    images = transpose(images)
+    if transposed:
+        images = transpose(images)
     return images, labels
 
 def transpose(images):
@@ -48,26 +58,35 @@ def filter_and_remap(images, labels, map):
 
 if __name__=='__main__':
     random.seed(0)
+    args = docopt(__doc__)
     dirname = os.path.join(commons.data_path, 'emnist')
-    images, labels = load_mnist_like(dirname, 'train')
-    unique, counts = np.unique(labels, return_counts=True)
-    print(f'Original labels: {unique}')
-    print(f'Original frequencies in train: {counts}')
-    chosen = np.array([23, 14, 17, 24, 22, 26, 25, 16, 20, 11]) # np.random.choice(unique, commons.n_labels, False)
-    print(f'Chosen labels: {chosen}')
-    map = {}
-    for i in range(commons.n_labels):
-        map[chosen[i]] = i
-    images, labels = filter_and_remap(images, labels, map)
-    unique, counts = np.unique(labels, return_counts=True)
-    print(f'New labels: {unique}')
-    print(f'New frequencies in train: {counts}')
-    save_mnist_like(images, labels, dirname, 'newtrain')
-    images, labels = load_mnist_like(dirname, 'test')
-    unique, counts = np.unique(labels, return_counts=True)
-    print(f'Original frequencies in test: {counts}')
-    images, labels = filter_and_remap(images, labels, map)
-    unique, counts = np.unique(labels, return_counts=True)
-    print(f'New frequencies in test: {counts}')
-    save_mnist_like(images, labels, dirname, 't10k')
+    if args['-r']:
+        orig_prefix = 'emnist-balanced-'
+        dest_prefix = 'emnist-uppercase-'
+        chosen = list(range(10,36))
+        transposed = True
+    elif args['-s']:
+        orig_prefix = 'emnist-uppercase-'
+        dest_prefix = ''
+        chosen = list(range(26))
+        transposed = False
+    else:
+        exit(1)
+    for subset in ['test', 'train']:
+        name = orig_prefix + subset
+        images, labels = load_mnist_like(dirname, name, transposed)
+        unique, counts = np.unique(labels, return_counts=True)
+        print(f'Original labels: {unique}')
+        print(f'Original frequencies in {name}: {counts}')
+        chosen = list(range(10,36))
+        print(f'Chosen labels: {chosen}')
+        map = {}
+        for i in range(len(chosen)):
+            map[chosen[i]] = i
+        images, labels = filter_and_remap(images, labels, map)
+        unique, counts = np.unique(labels, return_counts=True)
+        name = dest_prefix + subset
+        print(f'New labels in {name}: {unique}')
+        print(f'New frequencies in {name}: {counts}')
+        save_mnist_like(images, labels, dirname, name)
 

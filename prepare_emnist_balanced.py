@@ -68,7 +68,7 @@ if __name__=='__main__':
     elif args['-s']:
         orig_prefix = 'emnist-uppercase-'
         dest_prefix = ''
-        chosen = list(range(26))
+        chosen = [20, 15, 16, 2, 23, 26, 13, 1, 12, 19]
         transposed = False
     else:
         exit(1)
@@ -78,7 +78,6 @@ if __name__=='__main__':
         unique, counts = np.unique(labels, return_counts=True)
         print(f'Original labels: {unique}')
         print(f'Original frequencies in {name}: {counts}')
-        chosen = list(range(10,36))
         print(f'Chosen labels: {chosen}')
         map = {}
         for i in range(len(chosen)):

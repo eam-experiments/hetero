@@ -482,7 +482,7 @@ class HeteroAssociativeMemory4D:
         r_cue = self.to_relation(cue, dim)
         r_io = ~r_cue | booleans
         distance = float('inf') \
-                if np.count_nonzero(r_io == 0) > 0 \
+                if np.count_nonzero(~r_io) > 0 \
                 else self.calculate_distance(cue, cue_weights, projection, dim)
         return distance
 

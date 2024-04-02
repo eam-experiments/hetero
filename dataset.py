@@ -18,7 +18,7 @@ import os
 import random
 import commons
 
-# This code is an abstraction for the MNIST and MNIST Fashion datasets.
+# This code is an abstraction for the MNIST like datasets.
 columns = 28
 rows = 28
 

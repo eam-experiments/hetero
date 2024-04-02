@@ -377,7 +377,7 @@ class HeteroAssociativeMemory4D:
         #     r_io, weights = self.reduce(s_projection, self.alt(dim))
         #     i += 1
         #     giving_ups += (i == commons.early_threshold)
-        distance = self.distance_recall(cue, cue_weights, r_io, weights, dim, label=label)
+        distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights
         for k in range(commons.sample_size):

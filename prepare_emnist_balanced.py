@@ -68,7 +68,7 @@ if __name__=='__main__':
     elif args['-s']:
         orig_prefix = 'emnist-uppercase-'
         dest_prefix = ''
-        chosen = [20, 15, 16, 2, 23, 26, 13, 1, 12, 19]
+        chosen = [19, 14, 15, 1, 22, 25, 12, 0, 11, 18]
         transposed = False
     else:
         exit(1)

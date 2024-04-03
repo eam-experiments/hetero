@@ -40,6 +40,7 @@ Options:
 
 import os
 import sys
+import time
 import gc
 import gettext
 import json
@@ -1775,6 +1776,7 @@ if __name__ == "__main__":
     print(f'Working directory: {commons.run_path}')
     print(f'Experimental settings: {exp_settings}')
 
+    start_of_experiment = time.time()
     # PROCESSING OF MAIN OPTIONS.
     random.seed(0)
     if args['-n']:
@@ -1817,4 +1819,6 @@ if __name__ == "__main__":
         generate_memories(commons.recall_with_correct_proto, exp_settings)
     elif args['-q']:
         generate_memories(commons.recall_with_cue, exp_settings)
-
+    end_of_experiment = time.time()
+    duration_of_experiment = end_of_experiment - start_of_experiment
+    print(f'DURATION: {duration_of_experiment:.1f} seconds')

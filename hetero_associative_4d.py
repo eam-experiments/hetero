@@ -295,7 +295,7 @@ class HeteroAssociativeMemory4D:
             
     def sample_n_search_recall(self, cue, cue_weights, projection, dim):
         sampling_iterations = 0
-        cue_inclusion_rejection = 0
+        giving_ups = 0
         last_update = 0
         r_io, weights = self.reduce(projection, self.alt(dim))
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
@@ -307,13 +307,11 @@ class HeteroAssociativeMemory4D:
                 q_io, q_ws = self.reduce(projection, self.alt(dim))
                 j += 1
             if j == commons.early_threshold:
+                giving_ups += 1
                 continue
             visited.append(q_io)
             d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-            if d == float('inf'):
-                # The cue was not contained in the projection
-                cue_inclusion_rejection += 1
-            elif d < distance:
+            if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
@@ -337,15 +335,13 @@ class HeteroAssociativeMemory4D:
                 neighbors.remove(t)
                 q_io = np.array([r_io[j] if j != i else v for j in range(self.cols(self.alt(dim)))])
                 if self.already_visited(q_io, visited):
+                    giving_ups += 1
                     continue
                 visited.append(q_io)
                 q_ws = self.weights_in_projection(projection, q_io, self.alt(dim))
                 k += 1
                 d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-                if d == float('inf'):
-                    # The cue was not contained in the projection
-                    cue_inclusion_rejection += 1
-                elif d < distance2:
+                if d < distance2:
                     p_io = q_io
                     p_ws = q_ws
                     distance2 = d
@@ -358,13 +354,13 @@ class HeteroAssociativeMemory4D:
                 weights = p_ws
         diffs, length = self.functions_distance(sampling_io, sampling_ws, r_io, weights)
         return r_io, weights, [sampling_iterations, search_iterations,
-                last_update, distance2, (distance2- distance), diffs, length, cue_inclusion_rejection]
+                last_update, giving_ups, distance2, (distance2- distance), diffs, length]
     
     def prototypes_recall(self, cue, cue_weights, label, projection, dim):
         sampling_iterations = 0
         last_update = 0
         # giving_ups = 0
-        cue_inclusion_rejection = 0
+        giving_ups = 0
         coherence = self.protos_coherence(projection, self.alt(dim))
         if np.sum(coherence) == 0:
             return None, None, [sampling_iterations, last_update, np.nan]
@@ -394,24 +390,22 @@ class HeteroAssociativeMemory4D:
                 # giving_ups += (i == commons.early_threshold)
                 j += 1
             if self.already_visited(q_io, visited):
+                giving_ups += 1
                 continue
             visited.append(q_io)
             d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-            if d == float('inf'):
-                # The cue was not contained in the projection
-                cue_inclusion_rejection += 1
-            elif d < distance:
+            if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
                 sampling_iterations += 1
                 last_update = k
-        return r_io, weights, [sampling_iterations, last_update, distance, cue_inclusion_rejection]
+        return r_io, weights, [sampling_iterations, last_update, giving_ups, distance]
 
     def correct_proto_recall(self, cue, cue_weights, label, projection, dim):
         sampling_iterations = 0
         last_update = 0
-        cue_inclusion_rejection = 0
+        giving_ups = 0
         s_projection = self.adjust_by_proto(projection, label, self.alt(dim))
         r_io, weights = self.reduce(s_projection, self.alt(dim))
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
@@ -423,20 +417,17 @@ class HeteroAssociativeMemory4D:
                 q_io, q_ws = self.reduce(s_projection, self.alt(dim))
                 j += 1
             if j == commons.early_threshold:
+                giving_ups += 1
                 continue
             visited.append(q_io)
             d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-            if d == float('inf'):
-                # The cue was not contained in the projection
-                cue_inclusion_rejection += 1
-            elif d < distance:
+            if d < distance:
                 r_io = q_io
                 weights = q_ws
                 distance = d
                 sampling_iterations += 1
                 last_update = k
-        return r_io, weights, [sampling_iterations, last_update, distance, cue_inclusion_rejection]
-
+        return r_io, weights, [sampling_iterations, last_update, giving_ups, distance]
 
     def cue_recall(self, euc, projection, dim):
         s = self.rows(self.alt(dim)) * self.sigma
@@ -478,12 +469,13 @@ class HeteroAssociativeMemory4D:
         projection = self.project(q_io, q_ws, self.alt(dim))
         if label is not None:
             projection = self.adjust_by_proto(projection, label, dim)
-        booleans = np.where(projection > 0, True, False)
-        r_cue = self.to_relation(cue, dim)
-        r_io = ~r_cue | booleans
-        distance = float('inf') \
-                if np.count_nonzero(~r_io) > 0 \
-                else self.calculate_distance(cue, cue_weights, projection, dim)
+        # booleans = np.where(projection > 0, True, False)
+        # r_cue = self.to_relation(cue, dim)
+        # r_io = ~r_cue | booleans
+        # distance = float('inf') \
+        #         if np.count_nonzero(~r_io) > 0 \
+        #         else self.calculate_distance(cue, cue_weights, projection, dim)
+        distance = self.calculate_distance(cue, cue_weights, projection, dim)
         return distance
 
     def calculate_distance(self, cue, cue_weights, p_io, dim):

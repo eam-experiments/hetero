@@ -18,7 +18,7 @@ import os
 import random
 import commons
 
-# This code is an abstraction for the MNIST and MNIST Fashion datasets.
+# This code is an abstraction for the MNIST like datasets.
 columns = 28
 rows = 28
 
@@ -74,7 +74,7 @@ def _load_dataset(dataset, path):
     data, noised_data, labels = _preprocessed_dataset(dirname)
     if (data is None) or (noised_data is None) or (labels is None):
         data_train, labels_train = _load_mnist_like(dirname, kind='train')
-        data_test, labels_test = _load_mnist_like(dirname, kind='t10k')
+        data_test, labels_test = _load_mnist_like(dirname, kind='test')
         data = np.concatenate((data_train, data_test), axis=0).astype(dtype=float)
         noised_data = noised(data, commons.noise_percent)
         labels = np.concatenate((labels_train, labels_test), axis=0)

@@ -1775,7 +1775,7 @@ if __name__ == "__main__":
     exp_settings = commons.ExperimentSettings(params = parameters)
     print(f'Working directory: {commons.run_path}')
     print(f'Experimental settings: {exp_settings}')
-
+    np.set_printoptions(linewidth=1024)
     start_of_experiment = time.time()
     # PROCESSING OF MAIN OPTIONS.
     random.seed(0)

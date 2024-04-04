@@ -654,9 +654,9 @@ class HeteroAssociativeMemory4D:
                     f'but got shape {cue.shape}')
         threshold = self.rows(dim)
         undefined = self.undefined(dim)
-        v = np.nan_to_num(cue, copy=True, nan=undefined)
-        v = np.where(v < 0, 0, v)
+        v = np.where(cue < 0, 0, cue)
         v = np.where(threshold <= v, self.rows(dim)-1, v)
+        v = np.nan_to_num(v, copy=True, nan=undefined)
         v = v.round()
         return v.astype('int')
 

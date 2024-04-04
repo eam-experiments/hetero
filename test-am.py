@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import numpy as np
-from associative import *
+from associative import AssociativeMemory
 
 # Memory for 4 features and 5 values
 m = AssociativeMemory(4,5)
@@ -78,6 +78,12 @@ print(m.recall(vi))
 print('m.recall(vu):')
 print(m.recall(vu))
 
+print('m.recall():')
+print(m.recall())
+print('m.recall():')
+print(m.recall())
+print('m.recall():')
+print(m.recall())
 
 
 

@@ -196,7 +196,9 @@ class AssociativeMemory:
         recognized = recognized and (self.kappa*self.mean <= np.mean(weights))
         return recognized, weights
 
-    def recall(self, cue):
+    def recall(self, cue = None):
+        if cue is None:
+            cue = np.full(self.n, np.nan)
         r_io, recognized, weights = self.recall_weights(cue)
         return r_io, recognized, np.mean(weights)
 
@@ -260,8 +262,9 @@ class AssociativeMemory:
         if len(cue) != self.n:
             raise ValueError('Invalid size of the input data. ' +
                 f'Expected {self.n} and given {cue.size}')
-        v = np.nan_to_num(cue, copy=True, nan=self.undefined)
-        v = np.where((v > self.m) | (v < 0), self.undefined, v)
+        v = np.where(cue >= self.m, self.m-1, cue)
+        v = np.where(v < 0, 0, v)
+        v = np.nan_to_num(v, copy=True, nan=self.undefined)
         return v.astype('int')
 
     def revalidate(self, vector):

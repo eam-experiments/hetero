@@ -117,6 +117,8 @@ noised_suffix = '-noised'
 prod_noised_suffix = '-prod_noised'
 memories_suffix = '-memories'
 proto_suffix = '-proto'
+constructed_suffix = '-constructed'
+extracted_suffix = '-extracted'
 
 # Model suffixes.
 encoder_suffix = '-encoder'
@@ -166,9 +168,7 @@ noise_percent = 50
 n_labels = 10
 labels_per_memory = 1
 all_labels = list(range(n_labels))
-label_formats = ['r:v', 'y--d', 'g-.4', 'y-.3', 'k-.8', 'y--^',
-    'c-..', 'm:*', 'c-1', 'b-p', 'm-.D', 'c:D', 'r--s', 'g:d',
-    'm:+', 'y-._', 'm:_', 'y--h', 'g--*', 'm:_', 'g-_', 'm:d']
+label_formats = ['r--o', 'b:v']
 
 precision_idx = 0
 recall_idx = 1

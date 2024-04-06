@@ -326,13 +326,10 @@ class HeteroAssociativeMemory4D:
         while not commons.sampling_without_search and better_found:
             neighbors = self.neighborhood(projection, r_io, self.alt(dim))
             better_found = False
-            p_io = None
-            p_ws = None
             while neighbors:
-                t = random.choice(neighbors)
+                t = neighbors.pop()
                 i = t[0]
                 v = t[1]
-                neighbors.remove(t)
                 q_io = np.array([r_io[j] if j != i else v for j in range(self.cols(self.alt(dim)))])
                 if self.already_visited(q_io, visited):
                     giving_ups += 1
@@ -342,16 +339,14 @@ class HeteroAssociativeMemory4D:
                 k += 1
                 d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
                 if d < distance2:
-                    p_io = q_io
-                    p_ws = q_ws
                     distance2 = d
                     search_iterations += 1
                     last_update = k
                     better_found = True
                     break
             if better_found:
-                r_io = p_io
-                weights = p_ws
+                r_io = q_io
+                weights = q_ws
         diffs, length = self.functions_distance(sampling_io, sampling_ws, r_io, weights)
         return r_io, weights, [sampling_iterations, search_iterations,
                 last_update, giving_ups, distance2, (distance2- distance), diffs, length]
@@ -569,6 +564,7 @@ class HeteroAssociativeMemory4D:
                 neigh.append((i, value+1))
             if (0 < value) and (column[value-1] > 0):
                 neigh.append((i, value-1))
+        random.shuffle(neigh)
         return neigh
 
     def adjust(self, projection, cue, s):

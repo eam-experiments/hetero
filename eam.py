@@ -213,7 +213,9 @@ def plot_features_graph(domain, means, stdevs, dataset, es):
         plt.errorbar(xrange, means[0,i], fmt=fmts[0], yerr=stdevs[0,i],
                 ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.constructed_suffix)
         plt.errorbar(xrange, means[1,i], fmt=fmts[1], yerr=stdevs[1,i],
-                ecolor='silver', elinewidth=0.5, label=str(i) + commons.extracted_suffix)
+                ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.extracted_suffix)
+        plt.errorbar(xrange, means[2,i], fmt=fmts[2], yerr=stdevs[2,i],
+                ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.extracted_suffix)
         plt.xlim(0, 100)
         plt.ylim(ymin, ymax)
         plt.xticks(xrange, labels='')
@@ -1657,8 +1659,8 @@ def store_image(filename, array):
 def features_parameters(suffix, dataset, es):
     cols = commons.datasets_to_domains[dataset]
     rows = commons.datasets_to_codomains[dataset]
-    means = np.zeros((commons.n_folds, 2, commons.n_labels, cols), dtype=float)
-    stdvs = np.zeros((commons.n_folds, 2, commons.n_labels, cols), dtype=float)
+    means = np.zeros((commons.n_folds, 3, commons.n_labels, cols), dtype=float)
+    stdvs = np.zeros((commons.n_folds, 3, commons.n_labels, cols), dtype=float)
     model_prefix = commons.model_name(dataset, es)
     for fold in range(commons.n_folds):
         features_filename = commons.features_name(dataset, es) + suffix
@@ -1675,6 +1677,9 @@ def features_parameters(suffix, dataset, es):
         extrt_means, extrt_stdvs = extract_prototypes(features, classifier, cols, rows)
         means[fold, 1] = extrt_means
         stdvs[fold, 1] = extrt_stdvs
+        recll_means, recll_stdvs = recall_prototypes(features, classifier, cols, rows)
+        means[fold, 2] = recll_means
+        stdvs[fold, 2] = recll_stdvs
     return means, stdvs
 
 def construct_prototypes(features, labels, cols):
@@ -1718,6 +1723,32 @@ def extract_prototypes(features, classifier, cols, rows):
         stdvs[label] = stdv
     return means, stdvs
 
+def recall_prototypes(features, classifier, cols, rows):
+    qd = qudeq.QuDeq(features, percentiles=commons.use_percentiles)
+    features = qd.quantize(features, rows)
+    ams = AssociativeMemory(cols, rows)
+    for f in features:
+        ams.register(f)
+    samples = []
+    for f in features:
+        recall, _, _ = ams.recall(f)
+        samples.append(recall)
+    samples = qd.dequantize(np.array(samples), rows)
+    predictions = np.argmax(classifier.predict(samples), axis=1)
+    clusters = {i: [] for i in commons.all_labels}
+    for p, s in zip(predictions, samples):
+        clusters[p].append(s)
+    sizes = [len(clusters[i]) for i in commons.all_labels]
+    print(f'Samples per label: {sizes}')
+    means = np.zeros((commons.n_labels, cols), dtype=float)
+    stdvs = np.zeros((commons.n_labels, cols), dtype=float)
+    for label in commons.all_labels:
+        mean = np.mean(clusters[label], axis=0)
+        stdv = np.std(clusters[label], axis=0)
+        means[label] = mean
+        stdvs[label] = stdv
+    return means, stdvs
+
 def save_prototypes(means, stdvs, suffix, dataset, es):
     proto_suffix = suffix + commons.proto_suffix
     means_suffix = '-means'
@@ -1728,7 +1759,8 @@ def save_prototypes(means, stdvs, suffix, dataset, es):
         # Loads the decoder.
         model = tf.keras.models.load_model(model_filename)
         model.summary()
-        for i, s in zip([0,1], [commons.constructed_suffix, commons.extracted_suffix]):
+        for i, s in zip(range(3), [commons.constructed_suffix,
+                commons.extracted_suffix, commons.recalled_suffix]):
             proto_filename = commons.features_name(dataset, es) \
                 + proto_suffix + s
             proto_means_filename = commons.data_filename(proto_filename + means_suffix, es, fold)

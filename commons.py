@@ -119,6 +119,7 @@ memories_suffix = '-memories'
 proto_suffix = '-proto'
 constructed_suffix = '-constructed'
 extracted_suffix = '-extracted'
+recalled_suffix = '-recalled'
 
 # Model suffixes.
 encoder_suffix = '-encoder'
@@ -168,7 +169,7 @@ noise_percent = 50
 n_labels = 10
 labels_per_memory = 1
 all_labels = list(range(n_labels))
-label_formats = ['r--o', 'b:v']
+label_formats = ['r--o', 'b:v', 'g-s']
 
 precision_idx = 0
 recall_idx = 1

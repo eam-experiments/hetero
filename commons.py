@@ -48,7 +48,7 @@ d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
 d3_with_distance = False
 
-sample_size = max(datasets_to_domains.values()) - 1
+sample_size = 2*max(datasets_to_domains.values()) - 1
 early_threshold = sample_size
 presence_iterations = 2*sample_size
 mean_matches = 1

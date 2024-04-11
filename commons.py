@@ -68,6 +68,9 @@ recall_with_correct_proto = 2
 recall_with_cue = 3
 sampling_without_search = False
 
+optimal_recall_fill = 64
+optimal_recall_method = recall_with_protos
+
 # Directory where all results are stored.
 data_path = 'data'
 run_path = 'runs'

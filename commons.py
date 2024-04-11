@@ -32,6 +32,14 @@ datasets = [left_dataset, right_dataset]
 datasets_to_domains = {left_dataset: 64, right_dataset: 64}
 datasets_to_codomains = {left_dataset: 16, right_dataset: 16}
 
+def alt(dataset):
+    if dataset == left_dataset:
+        return right_dataset
+    elif dataset == right_dataset:
+        return left_dataset
+    else:
+        raise ValueError(f'{dataset} is not a valid dataset')
+
 def domains():
     doms = {}
     for d in datasets:
@@ -68,8 +76,9 @@ recall_with_correct_proto = 2
 recall_with_cue = 3
 sampling_without_search = False
 
-optimal_recall_fill = 64
-optimal_recall_method = recall_with_protos
+sequence_length = 10
+sequence_recall_fill = 64
+sequence_recall_method = recall_with_protos
 
 # Directory where all results are stored.
 data_path = 'data'

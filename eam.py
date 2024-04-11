@@ -191,7 +191,42 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     plt.close()
 
 
-def plot_features_graph(domain, means, stdevs, dataset, es):
+def plot_histo_bar(frequencies, dataset, es, xtags=None, xlabel='Categories', label=None, name=''):
+    """ Plots a histogram graph.
+    """
+    plt.clf()
+    # full_length = 100.0
+    # step = 0.1
+    x = range(len(frequencies))
+    if xtags is None:
+        xtags = x
+    # main_step = full_length/len(frequencies)
+    # x = np.arange(0.0, full_length, main_step)
+    frequencies = 100*frequencies / np.sum(frequencies)
+    # One main step less because levels go on sticks, not
+    # on intervals.
+    # xmax = full_length - main_step + step
+    ymax = 100.0
+    # width = 5       # the width of the bars: can also be len(x) sequence
+    # plt.bar(x, frequencies, width, label=label)
+    plt.bar(x, frequencies, label=label)
+    # plt.xlim(-width, xmax + width)
+    plt.ylim(0.0, ymax)
+    plt.xticks(range(len(frequencies)), xtags)
+
+    plt.xlabel(xlabel)
+    plt.ylabel('Percentage')
+
+    plt.legend(loc='best')
+    plt.grid(axis='y')
+
+    fname = name + '-histogram-' + dataset + _('-english')
+    graph_filename = commons.picture_filename(fname, es)
+    plt.savefig(graph_filename, dpi=600)
+    plt.close()
+
+
+def plot_features_graph(domain, means, stdevs, labels, dataset, es):
     """ Draws the characterist shape of features per label.
 
     The graph is a dots and lines graph with error bars denoting standard deviations.
@@ -206,16 +241,13 @@ def plot_features_graph(domain, means, stdevs, dataset, es):
             ymax = ymax if ymax > yx else yx
     main_step = 100.0 / domain
     xrange = np.arange(0, 100, main_step)
-    fmts = commons.label_formats
+    fmts = commons.proto_formats
     for i in commons.all_labels:
         plt.clf()
         plt.figure(figsize=(12,5))
-        plt.errorbar(xrange, means[0,i], fmt=fmts[0], yerr=stdevs[0,i],
-                ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.constructed_suffix)
-        plt.errorbar(xrange, means[1,i], fmt=fmts[1], yerr=stdevs[1,i],
-                ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.extracted_suffix)
-        plt.errorbar(xrange, means[2,i], fmt=fmts[2], yerr=stdevs[2,i],
-                ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.extracted_suffix)
+        for j in range(len(labels)):
+            plt.errorbar(xrange, means[j,i], fmt=fmts[j], yerr=stdevs[j,i],
+                    ecolor='silver', elinewidth=0.5, capsize=3, label=labels[j])
         plt.xlim(0, 100)
         plt.ylim(ymin, ymax)
         plt.xticks(xrange, labels='')
@@ -1455,7 +1487,6 @@ def remember(recall_method, es):
     n_sets = 2
     total_precisions = np.zeros((testing_folds, n_sets, len(memory_fills)))
     total_recalls = np.zeros((testing_folds, n_sets, len(memory_fills)))
-    total_accuracies = np.zeros((testing_folds, n_sets, len(memory_fills)))
     total_confrixes = []
     total_behaviours = []
 
@@ -1476,8 +1507,6 @@ def remember(recall_method, es):
     main_stdev_precisions = np.std(total_precisions, axis=0)
     main_avrge_recalls = np.mean(total_recalls, axis=0)
     main_stdev_recalls = np.std(total_recalls, axis=0)
-    main_avrge_accuracies = np.mean(total_accuracies, axis=0)
-    main_stdev_accuracies = np.std(total_accuracies, axis=0)
     main_avrge_confrixes = np.mean(total_confrixes, axis=0)
     main_stdev_confrixes = np.std(total_confrixes, axis=0)
     main_avrge_behaviours = np.mean(total_behaviours, axis=0)
@@ -1493,10 +1522,6 @@ def remember(recall_method, es):
         main_avrge_recalls, delimiter=',')
     np.savetxt(
         commons.csv_filename(
-            'remember_average_accuracy' + suffix, es),
-        main_avrge_accuracies, delimiter=',')
-    np.savetxt(
-        commons.csv_filename(
             'remember_average_entropy' + suffix, es),
         main_avrge_entropies, delimiter=',')
     np.savetxt(
@@ -1507,10 +1532,6 @@ def remember(recall_method, es):
         commons.csv_filename(
             'remember_stdev_recall' + suffix, es),
         main_stdev_recalls, delimiter=',')
-    np.savetxt(
-        commons.csv_filename(
-            'remember_stdev_accuracy' + suffix, es),
-        main_stdev_accuracies, delimiter=',')
     np.savetxt(
         commons.csv_filename(
             'remember_stdev_entropy' + suffix, es),
@@ -1530,8 +1551,7 @@ def remember(recall_method, es):
             100*main_avrge_precisions[i], 100 *
             main_avrge_recalls[i], main_avrge_entropies,
             100*main_stdev_precisions[i], 100*main_stdev_recalls[i], dataset,
-            es, acc_mean=100*main_avrge_accuracies[i], acc_std=100*main_stdev_accuracies[i],
-            prefix='hetero_remember' + suffix + '-', xlabels=commons.memory_fills,
+            es, prefix='hetero_remember' + suffix + '-', xlabels=commons.memory_fills,
             xtitle=_('Percentage of memory corpus'))
         mean_no_response = main_avrge_behaviours[i, :, commons.no_response_idx]
         mean_no_correct_response = main_avrge_behaviours[i, :, commons.no_correct_response_idx]
@@ -1656,31 +1676,47 @@ def store_image(filename, array):
     png.from_array(pixels, 'L;8').save(filename)
 
 
-def features_parameters(suffix, dataset, es):
+def features_parameters(dataset, es):
     cols = commons.datasets_to_domains[dataset]
     rows = commons.datasets_to_codomains[dataset]
-    means = np.zeros((commons.n_folds, 3, commons.n_labels, cols), dtype=float)
-    stdvs = np.zeros((commons.n_folds, 3, commons.n_labels, cols), dtype=float)
+    means = np.zeros((commons.n_folds, 4, commons.n_labels, cols), dtype=float)
+    stdvs = np.zeros((commons.n_folds, 4, commons.n_labels, cols), dtype=float)
+    hists = np.zeros((commons.n_folds, 4, commons.n_labels), dtype=int)
+    suffixes = []
     model_prefix = commons.model_name(dataset, es)
     for fold in range(commons.n_folds):
-        features_filename = commons.features_name(dataset, es) + suffix
+        features_filename = commons.features_name(dataset, es) + commons.filling_suffix
         features_filename = commons.data_filename(features_filename, es, fold)
-        labels_filename = commons.labels_name(dataset, es) + suffix
+        labels_filename = commons.labels_name(dataset, es) + commons.filling_suffix
         labels_filename = commons.data_filename(labels_filename, es, fold)
-        labels = np.load(labels_filename)
-        features = np.load(features_filename)
-        const_means, const_stdvs = construct_prototypes(features, labels, cols)
+        filling_labels = np.load(labels_filename)
+        filling_features = np.load(features_filename)
+        features_filename = commons.features_name(dataset, es) + commons.testing_suffix
+        features_filename = commons.data_filename(features_filename, es, fold)
+        testing_features = np.load(features_filename)
+        const_means, const_stdvs = construct_prototypes(filling_features, filling_labels, cols)
         means[fold, 0] = const_means
         stdvs[fold, 0] = const_stdvs
+        hists[fold, 0] = np.zeros(commons.n_labels, dtype=int)
+        suffixes.append(commons.constructed_suffix)
         filename = commons.classifier_filename(model_prefix, es, fold)
         classifier = tf.keras.models.load_model(filename)
-        extrt_means, extrt_stdvs = extract_prototypes(features, classifier, cols, rows)
+        extrt_means, extrt_stdvs, extrt_hist = extract_prototypes(filling_features, classifier, cols, rows)
         means[fold, 1] = extrt_means
         stdvs[fold, 1] = extrt_stdvs
-        recll_means, recll_stdvs = recall_prototypes(features, classifier, cols, rows)
+        hists[fold, 1] = extrt_hist
+        suffixes.append(commons.extracted_suffix)
+        recll_means, recll_stdvs, recll_hist = recall_prototypes(filling_features, filling_features, classifier, cols, rows)
         means[fold, 2] = recll_means
         stdvs[fold, 2] = recll_stdvs
-    return means, stdvs
+        hists[fold, 2] = recll_hist
+        suffixes.append(commons.recall_filled_suffix)
+        rectd_means, rectd_stdvs, rectd_hist = recall_prototypes(filling_features, testing_features, classifier, cols, rows)
+        means[fold, 3] = rectd_means
+        stdvs[fold, 3] = rectd_stdvs
+        hists[fold, 3] = rectd_hist
+        suffixes.append(commons.recall_tested_suffix)
+    return means, stdvs, hists, suffixes
 
 def construct_prototypes(features, labels, cols):
     means = np.zeros((commons.n_labels, cols), dtype=float)
@@ -1712,8 +1748,8 @@ def extract_prototypes(features, classifier, cols, rows):
     clusters = {i:[] for i in commons.all_labels}
     for p, s in zip(predictions, samples):
         clusters[p].append(s)
-    sizes = [len(clusters[i]) for i in commons.all_labels]
-    print(f'Samples per label: {sizes}')
+    frequencies = [len(clusters[i]) for i in commons.all_labels]
+    print(f'Samples per label: {frequencies}')
     means = np.zeros((commons.n_labels, cols), dtype=float)
     stdvs = np.zeros((commons.n_labels, cols), dtype=float)
     for label in commons.all_labels:
@@ -1721,25 +1757,26 @@ def extract_prototypes(features, classifier, cols, rows):
         stdv = np.std(clusters[label], axis=0)
         means[label] = mean
         stdvs[label] = stdv
-    return means, stdvs
+    return means, stdvs, frequencies
 
-def recall_prototypes(features, classifier, cols, rows):
-    qd = qudeq.QuDeq(features, percentiles=commons.use_percentiles)
-    features = qd.quantize(features, rows)
+def recall_prototypes(filling_features, testing_features, classifier, cols, rows):
+    qd = qudeq.QuDeq(filling_features, percentiles=commons.use_percentiles)
+    filling_features = qd.quantize(filling_features, rows)
+    testing_features = qd.quantize(testing_features, rows)
     ams = AssociativeMemory(cols, rows)
-    for f in features:
+    for f in filling_features:
         ams.register(f)
     samples = []
-    for f in features:
-        recall, _, _ = ams.recall(f)
+    for t in testing_features:
+        recall, _, _ = ams.recall(t)
         samples.append(recall)
     samples = qd.dequantize(np.array(samples), rows)
     predictions = np.argmax(classifier.predict(samples), axis=1)
     clusters = {i: [] for i in commons.all_labels}
     for p, s in zip(predictions, samples):
         clusters[p].append(s)
-    sizes = [len(clusters[i]) for i in commons.all_labels]
-    print(f'Samples per label: {sizes}')
+    frequencies = [len(clusters[i]) for i in commons.all_labels]
+    print(f'Samples per label: {frequencies}')
     means = np.zeros((commons.n_labels, cols), dtype=float)
     stdvs = np.zeros((commons.n_labels, cols), dtype=float)
     for label in commons.all_labels:
@@ -1747,10 +1784,10 @@ def recall_prototypes(features, classifier, cols, rows):
         stdv = np.std(clusters[label], axis=0)
         means[label] = mean
         stdvs[label] = stdv
-    return means, stdvs
+    return means, stdvs, frequencies
 
-def save_prototypes(means, stdvs, suffix, dataset, es):
-    proto_suffix = suffix + commons.proto_suffix
+def save_prototypes(means, stdvs, suffixes, dataset, es):
+    proto_suffix = commons.proto_suffix
     means_suffix = '-means'
     stdvs_suffix = '-stdvs'
     for fold in range(commons.n_folds):
@@ -1759,8 +1796,7 @@ def save_prototypes(means, stdvs, suffix, dataset, es):
         # Loads the decoder.
         model = tf.keras.models.load_model(model_filename)
         model.summary()
-        for i, s in zip(range(3), [commons.constructed_suffix,
-                commons.extracted_suffix, commons.recalled_suffix]):
+        for i, s in zip(range(len(suffixes)), suffixes):
             proto_filename = commons.features_name(dataset, es) \
                 + proto_suffix + s
             proto_means_filename = commons.data_filename(proto_filename + means_suffix, es, fold)
@@ -1768,15 +1804,20 @@ def save_prototypes(means, stdvs, suffix, dataset, es):
             np.save(proto_means_filename, means[fold,i])
             np.save(proto_stdvs_filename, stdvs[fold,i])
             proto_images = model.predict(means[fold,i])
-            prototypes_path = commons.prototypes_path + s + commons.dataset_suffix(dataset) + suffix
+            prototypes_path = commons.prototypes_path + s + commons.dataset_suffix(dataset)
             for (memory, label) in zip(proto_images, commons.all_labels):
                 store_memory(memory, prototypes_path, label, label, es, fold)
 
-def save_features_graphs(means, stdevs, dataset, es):
-    for fold in range(commons.n_folds):
-        plot_features_graph(
-            commons.datasets_to_domains[dataset],
-            means[fold],stdevs[fold], dataset, es)
+def save_features_graphs(means, stdvs, hists, suffixes, dataset, es):
+    means = np.mean(means, axis=0)
+    stdvs = np.mean(stdvs, axis=0)
+    hists = np.mean(hists, axis=0)
+    labels = [commons.proto_labels[s] for s in suffixes]
+    plot_features_graph(commons.datasets_to_domains[dataset], means, stdvs, labels, dataset, es)
+    for hist, label, suffix in zip(hists, labels, suffixes):
+        fname = commons.prototypes_prefix + dataset + suffix
+        plot_histo_bar(hist, dataset, es, xtags = commons.all_labels,
+                xlabel = 'Label', label=label, name=fname)
         
 
 ##############################################################################
@@ -1801,9 +1842,9 @@ def produce_features_from_data(dataset, es):
 def characterize_features(dataset, es):
     """ Produces a graph of features averages and standard deviations.
     """
-    means, stdvs = features_parameters(commons.filling_suffix, dataset, es)
-    save_prototypes(means, stdvs, commons.filling_suffix, dataset, es)
-    save_features_graphs(means, stdvs, dataset, es)
+    means, stdvs, hists, suffixes  = features_parameters(dataset, es)
+    save_prototypes(means, stdvs, suffixes, dataset, es)
+    save_features_graphs(means, stdvs, hists, suffixes, dataset, es)
 
     
 def describe_dataset(dataset, es):

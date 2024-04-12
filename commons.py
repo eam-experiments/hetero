@@ -56,7 +56,7 @@ d3_model_name = "3DEHAM"
 d4_model_name = "4DEHAM"
 d3_with_distance = False
 
-sample_size = 2*max(datasets_to_domains.values()) - 1
+sample_size = 0 # 2*max(datasets_to_domains.values()) - 1
 early_threshold = sample_size
 presence_iterations = 2*sample_size
 mean_matches = 1
@@ -74,11 +74,11 @@ recall_with_sampling_n_search = 0
 recall_with_protos = 1
 recall_with_correct_proto = 2
 recall_with_cue = 3
-sampling_without_search = False
+sampling_without_search = True
 
 sequence_length = 10
 sequence_recall_fill = 64
-sequence_recall_method = recall_with_protos
+sequence_recall_method = recall_with_sampling_n_search
 
 # Directory where all results are stored.
 data_path = 'data'
@@ -115,6 +115,7 @@ memory_parameters_prefix='mem_params'
 chosen_prefix = 'chosen-'
 distance_prefix = 'distance-'
 fstats_prefix = 'feature_stats-'
+sequence_prefix = 'seq-'
 
 balanced_data = 'balanced'
 seed_data = 'seed'
@@ -329,6 +330,9 @@ def msize_suffix(msize):
 def sigma_suffix(sigma):
     return float_suffix(sigma, 'sgm')
 
+def label_suffix(label):
+    return int_suffix(label, 'lbl')
+
 def dream_depth_suffix(cycle):
     return numeric_suffix('dph', cycle)
 
@@ -494,6 +498,11 @@ def prod_noised_image_filename(dir, idx, label, es, fold):
 
 def memory_image_filename(dir, idx, label, es, fold):
     return image_filename(dir, idx, label, memory_suffix, es, fold)
+
+def dream_image_filename(dir, initial_label, depth, label):
+    name = image_path + '/' + dir + '/' + sequence_prefix + label_suffix(initial_label) \
+        + dream_depth_suffix(depth) + label_suffix(label)
+    return filename(name, extension = '.png')
 
 def mean_idx(m):
     return m

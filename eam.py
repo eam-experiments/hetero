@@ -1801,10 +1801,10 @@ def sample_features_for_sequencing(features, labels):
                     chosen_feats.append(fs)
                     chosen_labls.append(ll)
                     break
-                if ll == u:
+                elif ll == u:
                     i += 1
-        feats[dataset] = np.array(chosen_feats)
-        labls[dataset] = np.array(chosen_labls)
+        feats[dataset] = np.array(chosen_feats, dtype=float)
+        labls[dataset] = np.array(chosen_labls, dtype=int)
     return feats, labls
 
 def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, qds, recall_method):
@@ -1817,6 +1817,7 @@ def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, qds, re
     :param recall_method:   Identifier of the method used by the hetero memory for recalling.
     :return:                A dictionary, an entry for each dataset, with a list of sequences.
     """
+    rows = commons.datasets_to_codomains
     sequences = {}
     origin = 1
     for orig_ds in commons.datasets:
@@ -1826,19 +1827,20 @@ def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, qds, re
         counter = 0
         counter_name = commons.set_counter()
         for feats in features[orig_ds]:
-            sequence = [qds[orig_ds].dequantize(feats, commons.datasets_to_codomains[orig_ds])]
+            sequence = [qds[orig_ds].dequantize(feats, rows[orig_ds])]
             i = 1
             fs = feats
             while i < commons.sequence_length:
                 if (i % 2) == origin:
                     fs, _, _, _, _ = hetero.recall_from_left(fs, method=recall_method)
-                    sequence.append(qds[dest_ds].dequantize(fs, commons.datasets_to_codomains[dest_ds]))
+                    sequence.append(qds[dest_ds].dequantize(fs, rows[dest_ds]))
                 else:
                     fs, _, _, _, _ = hetero.recall_from_right(fs, method=recall_method)
-                    sequence.append(qds[orig_ds].dequantize(fs, commons.datasets_to_codomains[orig_ds]))
+                    sequence.append(qds[orig_ds].dequantize(fs, rows[orig_ds]))
                 i += 1
             sequences[orig_ds].append(sequence)
             commons.print_counter(counter, 10, 1, '+', name = counter_name)
+            counter += 1
         origin = (origin + 1) % 2
     return sequences
 
@@ -1848,7 +1850,8 @@ def sequences_of_memories(recall_method, filling_percent, es):
     sequences = []
     labels = []
     for fold in range(commons.n_folds):
-        filling_features, filling_labels, testing_features, testing_labels = load_features_n_labels(fold, es)
+        filling_features, filling_labels, testing_features, testing_labels \
+                = load_features_n_labels(fold, es)
         testing_features, testing_labels = sample_features_for_sequencing(testing_features, testing_labels)
         match_labels(filling_features, filling_labels)
         total = len(filling_labels[commons.left_dataset])
@@ -1866,7 +1869,7 @@ def sequences_of_memories(recall_method, filling_percent, es):
             filling_prototypes[dataset] = qd.quantize(prototypes, rows[dataset])
             qds[dataset] = qd
         hetero = HeteroAssociativeMemory(cols[commons.left_dataset], cols[commons.right_dataset],
-                rows[commons.right_dataset], rows[commons.right_dataset], es, fold,
+                rows[commons.left_dataset], rows[commons.right_dataset], es, fold,
                 qds[commons.left_dataset], qds[commons.right_dataset],
                 [filling_prototypes[commons.left_dataset], filling_prototypes[commons.right_dataset]])
         for left_feat, right_feat in zip(filling_features[commons.left_dataset],
@@ -1892,14 +1895,13 @@ def save_sequences(sequences, labels, es):
             filename = commons.decoder_filename(model_prefix, es, fold)
             decoder = tf.keras.models.load_model(filename)
             decoders[dataset] = decoder
-        origin = 0
         for orig_ds in commons.datasets:
             dest_ds = commons.alt(orig_ds)
             path = commons.dreams_path + commons.fold_suffix(fold) + commons.dataset_suffix(orig_ds)
             for seq, lbl in zip(seqs[orig_ds], lbls[orig_ds]):
-                i = 0
+                i = 1
                 for features in seq:
-                    if (i % 2) == origin:
+                    if (i % 2):
                         label = np.argmax(classifiers[orig_ds](np.expand_dims(features, axis=0), training = False), axis=1)
                         image = decoders[orig_ds](np.expand_dims(features, axis=0), training = False)
                     else:
@@ -1907,7 +1909,6 @@ def save_sequences(sequences, labels, es):
                         image = decoders[dest_ds](np.expand_dims(features, axis=0), training = False)
                     store_dream(image, lbl, i, label, path)
                     i += 1
-            origin += 1
         fold += 1
 
 

@@ -215,7 +215,7 @@ def plot_features_graph(domain, means, stdevs, dataset, es):
         plt.errorbar(xrange, means[1,i], fmt=fmts[1], yerr=stdevs[1,i],
                 ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.extracted_suffix)
         plt.errorbar(xrange, means[2,i], fmt=fmts[2], yerr=stdevs[2,i],
-                ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.extracted_suffix)
+                ecolor='silver', elinewidth=0.5, capsize=3, label=str(i) + commons.recalled_suffix)
         plt.xlim(0, 100)
         plt.ylim(ymin, ymax)
         plt.xticks(xrange, labels='')

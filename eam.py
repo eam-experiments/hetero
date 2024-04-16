@@ -662,6 +662,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     correct_stats = []
     incorrect_stats = []
     print('Validating ', end='')
+    predictions = []
     if len(memories) > 0:
         memories = qd.dequantize(np.array(memories), msize)
         predictions = np.argmax(classifier.predict(memories), axis=1)
@@ -733,7 +734,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
                 f'skew = {incorrect_stats_skew}, kurt = {incorrect_stats_kurt}.')
     else:
         print('Stats of incorrect not available')
-    return confrix, behaviour, memories
+    return confrix, behaviour, memories, correct, predictions
 
 def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
                               left_eam: AssociativeMemory, right_eam: AssociativeMemory,
@@ -748,28 +749,54 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     mean_weight = eam.mean
     print('Remembering from left by hetero memory')
     qd = qudeqs[right_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
+    confrix, behaviour, memories, correct, predictions = recall_by_hetero_memory(right_ds,
             eam.recall_from_left, left_eam, right_eam, right_classifier,
             testing_features[left_ds], testing_features[right_ds], testing_labels[right_ds],
             rows[right_ds], recall_method, percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
-    prefix = commons.memories_name(left_ds, es)
-    prefix += commons.int_suffix(percent, 'fll')
-    filename = commons.data_filename(prefix, es, fold)
+    name = commons.memories_name(left_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
+    name = commons.recall_labels_name(left_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, correct)
+    name = commons.recall_predicted_labels_name(left_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, predictions)
+    decode_memories(memories, correct, predictions, left_ds, percent, recall_method, es, fold)
+
     print('Remembering from right by hetero memory')
     qd = qudeqs[left_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
+    confrix, behaviour, memories, correct, predictions = recall_by_hetero_memory(left_ds,
             eam.recall_from_right, right_eam, left_eam, left_classifier,
             testing_features[right_ds], testing_features[left_ds], testing_labels[left_ds],
             rows[left_ds], recall_method, percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
-    prefix = commons.memories_name(right_ds, es)
-    prefix += commons.int_suffix(percent, 'fll')
-    filename = commons.data_filename(prefix, es, fold)
+    name = commons.memories_name(right_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
+    name = commons.recall_labels_name(right_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, correct)
+    name = commons.recall_predicted_labels_name(right_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, predictions)
+    decode_memories(memories, correct, predictions, right_ds, percent, recall_method, es, fold)
+
     # confrixes has three dimensions: datasets, correct label, prediction.
     confrixes = np.array(confrixes, dtype=int)
     # behaviours has two dimensions: datasets, behaviours.
@@ -1591,22 +1618,20 @@ def remember(recall_method, es):
                 f'hetero_remember{suffix}-fll_{str(f).zfill(3)}', es)
     print('Remembering done!')
 
-
-def store_memory(memory, directory, idx, label, es, fold):
-    filename = commons.memory_image_filename(directory, idx, label, es, fold)
+def store_memory(image, directory, name, idx, correct, prediction, es, fold):
+    filename = commons.memory_image_filename(directory, name, idx, correct, prediction, es, fold)
     full_directory = commons.dirname(filename)
     commons.create_directory(full_directory)
-    store_image(filename, memory)
+    store_image(filename, image)
 
 def store_dream(image, initial_label, depth, label, path):
     filename = commons.dream_image_filename(path, initial_label, depth, label) 
     full_directory = commons.dirname(filename)
     commons.create_directory(full_directory)
-    store_image(filename, np.array(image))
+    store_image(filename, image)
     
-def store_image(filename, array):
-    pixels = array.reshape(ds.columns, ds.rows)
-    pixels = pixels.round().astype(np.uint8)
+def store_image(filename, image):
+    pixels = image.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(filename)
 
 def store_test(
@@ -1615,6 +1640,26 @@ def store_test(
     prod_test_filename = commons.prod_testing_image_filename(
         directory, idx, label, es, fold)
     store_image(prod_test_filename, prod_test)
+
+def decode_memories(memories, corrects, predictions,
+            dataset, percent, recall_method, es, fold):
+    if len(corrects) == 0:
+        return
+    model_prefix = commons.model_name(commons.alt(dataset), es)
+    model_filename = commons.decoder_filename(model_prefix, es, fold)
+    # Loads the decoder.
+    model = tf.keras.models.load_model(model_filename)
+    model.summary()
+    images = model.predict(memories)
+    name = commons.memories_name(dataset, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    n = len(corrects)
+    memories_path = commons.memories_path
+    for (idx, image, correct, prediction) in \
+            zip(range(n), images, corrects, predictions):
+        store_memory(image, memories_path, name, idx, correct, prediction, es, fold)
+
 
 def decode_test_features(features, labels, dataset, fold, es):
     """ Creates images directly from test features.
@@ -1807,7 +1852,7 @@ def sample_features_for_sequencing(features, labels):
         labls[dataset] = np.array(chosen_labls, dtype=int)
     return feats, labls
 
-def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, qds, recall_method):
+def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, labels, qds, recall_method):
     """
     Produces sequences of memories for an array of features.
 
@@ -1826,16 +1871,16 @@ def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, qds, re
         print(f'Generating sequences starting at {orig_ds}')
         counter = 0
         counter_name = commons.set_counter()
-        for feats in features[orig_ds]:
-            sequence = [qds[orig_ds].dequantize(feats, rows[orig_ds])]
+        for feats, label in zip(features[orig_ds], labels[orig_ds]):
             i = 1
             fs = feats
+            sequence = [qds[orig_ds].dequantize(fs, rows[orig_ds])]
             while i < commons.sequence_length:
                 if (i % 2) == origin:
-                    fs, _, _, _, _ = hetero.recall_from_left(fs, method=recall_method)
+                    fs, _, _, _, _ = hetero.recall_from_left(fs, method=recall_method, label=label)
                     sequence.append(qds[dest_ds].dequantize(fs, rows[dest_ds]))
                 else:
-                    fs, _, _, _, _ = hetero.recall_from_right(fs, method=recall_method)
+                    fs, _, _, _, _ = hetero.recall_from_right(fs, method=recall_method, label=label)
                     sequence.append(qds[orig_ds].dequantize(fs, rows[orig_ds]))
                 i += 1
             sequences[orig_ds].append(sequence)
@@ -1875,7 +1920,7 @@ def sequences_of_memories(recall_method, filling_percent, es):
         for left_feat, right_feat in zip(filling_features[commons.left_dataset],
                 filling_features[commons.right_dataset]):
             hetero.register(left_feat, right_feat)
-        seqs = produce_testing_sequences(hetero, testing_features, qds, recall_method)
+        seqs = produce_testing_sequences(hetero, testing_features, testing_labels, qds, recall_method)
         sequences.append(seqs)
         labels.append(testing_labels)
     return sequences, labels
@@ -1902,11 +1947,16 @@ def save_sequences(sequences, labels, es):
                 i = 1
                 for features in seq:
                     if (i % 2):
-                        label = np.argmax(classifiers[orig_ds](np.expand_dims(features, axis=0), training = False), axis=1)
+                        label = np.argmax(
+                                classifiers[orig_ds](np.expand_dims(features, axis=0), training = False),
+                                axis=1)[0]
                         image = decoders[orig_ds](np.expand_dims(features, axis=0), training = False)
                     else:
-                        label = np.argmax(classifiers[dest_ds](np.expand_dims(features, axis=0), training = False), axis=1)
+                        label = np.argmax(
+                                classifiers[dest_ds](np.expand_dims(features, axis=0), training = False),
+                                axis=1)[0]
                         image = decoders[dest_ds](np.expand_dims(features, axis=0), training = False)
+                    image = np.squeeze(image.numpy())
                     store_dream(image, lbl, i, label, path)
                     i += 1
         fold += 1
@@ -1954,9 +2004,7 @@ def run_evaluation(es):
     test_hetero_fills(es)
 
 def generate_memories(recall_method, es):
-    # decode_test_features(es)
     remember(recall_method, es)
-    # decode_memories(es)
 
 def generate_sequences(recall_method, filling_percent, es):
     sequences, labels = sequences_of_memories(recall_method, filling_percent, es)

@@ -17,7 +17,7 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -p | -P | -q)
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -p | -P | -q | -u)
     [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
@@ -25,13 +25,14 @@ Options:
   -n    Trains the neural network for MNIST (mnist) or Fashion (fashion).
   -f    Generates Features for MNIST (mnist) or Fashion (fashion).
   -c    Characterizes features and generate prototypes per class.
-  -d    Calculate distances intra/inter classes of features.
-  -s    Run separated tests of memories performance for MNIST y Fashion.
-  -e    Evaluation of recognition of hetero-associations.
-  -r    Evaluation of hetero-recalling using search.
-  -p    Validation of hetero-recalling using prototypes.
-  -P    Validation of hetero-recalling using correct prototype.
-  -q    Validation of hetero-recalling using cue.
+  -d    Calculates distances intra/inter classes of features.
+  -s    Runs separated tests of memories performance for MNIST y Fashion.
+  -e    Evaluates recognition of hetero-associations.
+  -r    Evaluates hetero-recalling using search.
+  -p    Validates hetero-recalling using prototypes.
+  -P    Validates hetero-recalling using correct prototype.
+  -q    Validates hetero-recalling using cue.
+  -u    Generates sequences of memories
   --relsmean=MEAN   Average number of relations per data element.
   --relsstdv=STDV   Standard deviation of the number of relations per data element.
   --runpath=PATH    Path to directory where everything will be saved [default: runs]
@@ -516,6 +517,31 @@ def distances_per_fold(dataset, es, fold):
                                      testing_features, testing_labels)
     return means, stdvs
 
+def load_dataset_feats_n_labels(dataset, fold, es):
+    features_filename = commons.features_name(dataset, es) + commons.filling_suffix
+    features_filename = commons.data_filename(features_filename, es, fold)
+    labels_filename = commons.labels_name(dataset, es) + commons.filling_suffix
+    labels_filename = commons.data_filename(labels_filename, es, fold)
+    filling_features = np.load(features_filename)
+    filling_labels = np.load(labels_filename)
+    features_filename = commons.features_name(dataset, es) + commons.testing_suffix
+    features_filename = commons.data_filename(features_filename, es, fold)
+    labels_filename = commons.labels_name(dataset, es) + commons.testing_suffix
+    labels_filename = commons.data_filename(labels_filename, es, fold)
+    testing_features = np.load(features_filename)
+    testing_labels = np.load(labels_filename)
+    return filling_features, filling_labels, testing_features, testing_labels
+
+def load_features_n_labels(fold, es):
+    filling_features = {}
+    filling_labels = {}
+    testing_features = {}
+    testing_labels = {}
+    for dataset in commons.datasets:
+        filling_features[dataset], filling_labels[dataset], \
+        testing_features[dataset], testing_labels[dataset], \
+                = load_dataset_feats_n_labels(dataset, fold, es)
+    return filling_features, filling_labels, testing_features, testing_labels
 
 def recognize_by_memory(eam, tef_rounded, tel, msize, qd, classifier):
     data = []
@@ -636,6 +662,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     correct_stats = []
     incorrect_stats = []
     print('Validating ', end='')
+    predictions = []
     if len(memories) > 0:
         memories = qd.dequantize(np.array(memories), msize)
         predictions = np.argmax(classifier.predict(memories), axis=1)
@@ -707,7 +734,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
                 f'skew = {incorrect_stats_skew}, kurt = {incorrect_stats_kurt}.')
     else:
         print('Stats of incorrect not available')
-    return confrix, behaviour, memories
+    return confrix, behaviour, memories, correct, predictions
 
 def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
                               left_eam: AssociativeMemory, right_eam: AssociativeMemory,
@@ -722,28 +749,54 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     mean_weight = eam.mean
     print('Remembering from left by hetero memory')
     qd = qudeqs[right_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(right_ds,
+    confrix, behaviour, memories, correct, predictions = recall_by_hetero_memory(right_ds,
             eam.recall_from_left, left_eam, right_eam, right_classifier,
             testing_features[left_ds], testing_features[right_ds], testing_labels[right_ds],
             rows[right_ds], recall_method, percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
-    prefix = commons.memories_name(left_ds, es)
-    prefix += commons.int_suffix(percent, 'fll')
-    filename = commons.data_filename(prefix, es, fold)
+    name = commons.memories_name(left_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
+    name = commons.recall_labels_name(left_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, correct)
+    name = commons.recall_predicted_labels_name(left_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, predictions)
+    decode_memories(memories, correct, predictions, left_ds, percent, recall_method, es, fold)
+
     print('Remembering from right by hetero memory')
     qd = qudeqs[left_ds]
-    confrix, behaviour, memories = recall_by_hetero_memory(left_ds,
+    confrix, behaviour, memories, correct, predictions = recall_by_hetero_memory(left_ds,
             eam.recall_from_right, right_eam, left_eam, left_classifier,
             testing_features[right_ds], testing_features[left_ds], testing_labels[left_ds],
             rows[left_ds], recall_method, percent, qd, mean_weight)
     confrixes.append(confrix)
     behaviours.append(behaviour)
-    prefix = commons.memories_name(right_ds, es)
-    prefix += commons.int_suffix(percent, 'fll')
-    filename = commons.data_filename(prefix, es, fold)
+    name = commons.memories_name(right_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
+    name = commons.recall_labels_name(right_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, correct)
+    name = commons.recall_predicted_labels_name(right_ds, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    filename = commons.data_filename(name, es, fold)
+    np.save(filename, predictions)
+    decode_memories(memories, correct, predictions, right_ds, percent, recall_method, es, fold)
+
     # confrixes has three dimensions: datasets, correct label, prediction.
     confrixes = np.array(confrixes, dtype=int)
     # behaviours has two dimensions: datasets, behaviours.
@@ -1565,116 +1618,70 @@ def remember(recall_method, es):
                 f'hetero_remember{suffix}-fll_{str(f).zfill(3)}', es)
     print('Remembering done!')
 
+def store_memory(image, directory, name, idx, correct, prediction, es, fold):
+    filename = commons.memory_image_filename(directory, name, idx, correct, prediction, es, fold)
+    full_directory = commons.dirname(filename)
+    commons.create_directory(full_directory)
+    store_image(filename, image)
 
-def decode_test_features(es):
+def store_dream(image, initial_label, depth, label, path):
+    filename = commons.dream_image_filename(path, initial_label, depth, label) 
+    full_directory = commons.dirname(filename)
+    commons.create_directory(full_directory)
+    store_image(filename, image)
+    
+def store_image(filename, image):
+    pixels = image.round().astype(np.uint8)
+    png.from_array(pixels, 'L;8').save(filename)
+
+def store_test(
+        prod_test, test_dir, idx, label, dataset, es, fold):
+    directory = os.path.join(test_dir, dataset)
+    prod_test_filename = commons.prod_testing_image_filename(
+        directory, idx, label, es, fold)
+    store_image(prod_test_filename, prod_test)
+
+def decode_memories(memories, corrects, predictions,
+            dataset, percent, recall_method, es, fold):
+    if len(corrects) == 0:
+        return
+    model_prefix = commons.model_name(commons.alt(dataset), es)
+    model_filename = commons.decoder_filename(model_prefix, es, fold)
+    # Loads the decoder.
+    model = tf.keras.models.load_model(model_filename)
+    model.summary()
+    images = model.predict(memories)
+    name = commons.memories_name(dataset, es) \
+            + commons.recall_suffix(recall_method) \
+            + commons.int_suffix(percent, 'fll')
+    n = len(corrects)
+    memories_path = commons.memories_path
+    for (idx, image, correct, prediction) in \
+            zip(range(n), images, corrects, predictions):
+        store_memory(image, memories_path, name, idx, correct, prediction, es, fold)
+
+
+def decode_test_features(features, labels, dataset, fold, es):
     """ Creates images directly from test features.
 
     Uses the decoder part of the neural networks to (re)create
     images from features generated by the encoder.
     """
-    for dataset in commons.datasets:
-        model_prefix = commons.model_name(dataset, es)
-        suffix = commons.testing_suffix
-        testing_features_prefix = commons.features_name(dataset, es) + suffix
-        suffix = commons.noised_suffix
-        noised_features_prefix = commons.features_name(dataset, es) + suffix
-
-        for fold in range(commons.n_folds):
-            # Load test features and labels
-            testing_features_filename = commons.data_filename(
-                testing_features_prefix, es, fold)
-            testing_features = np.load(testing_features_filename)
-            testing_data, testing_labels = ds.get_testing(dataset, fold)
-            noised_features_filename = commons.data_filename(
-                noised_features_prefix, es, fold)
-            noised_features = np.load(noised_features_filename)
-            noised_data, _ = ds.get_testing(dataset, fold, noised=True)
-
-            # Loads the decoder.
-            model_filename = commons.decoder_filename(model_prefix, es, fold)
-            model = tf.keras.models.load_model(model_filename)
-            model.summary()
-            # Generate images.
-            prod_test_images = model.predict(testing_features)
-            prod_nsed_images = model.predict(noised_features)
-            n = len(testing_labels)
-            # Save images.
-            for (i, testing, prod_test, noised, prod_noise, label) in \
-                    zip(range(n), testing_data, prod_test_images, noised_data,
-                        prod_nsed_images, testing_labels):
-                store_original_and_test(
-                    testing, prod_test, noised, prod_noise,
-                    commons.testing_path, i, label, dataset, es, fold)
-
-
-def decode_memories(msize, es):
-
-    for dataset in commons.datasets:
-        model_prefix = commons.model_name(dataset, es)
-        testing_labels_prefix = commons.labels_prefix + commons.testing_suffix
-        memories_prefix = commons.memories_name(es)
-        noised_prefix = commons.noised_memories_name(es)
-        for fold in range(commons.n_folds):
-            # Load test features and labels
-            memories_features_filename = commons.data_filename(
-                memories_prefix, es, fold)
-            noised_features_filename = commons.data_filename(
-                noised_prefix, es, fold)
-            testing_labels_filename = commons.data_filename(
-                testing_labels_prefix, es, fold)
-            memories_features = np.load(memories_features_filename)
-            noised_features = np.load(noised_features_filename)
-            testing_labels = np.load(testing_labels_filename)
-            # Loads the decoder.
-            model_filename = commons.decoder_filename(model_prefix, es, fold)
-            model = tf.keras.models.load_model(model_filename)
-            model.summary()
-
-            memories_images = model.predict(memories_features)
-            noised_images = model.predict(noised_features)
-            n = len(testing_labels)
-            memories_path = commons.memories_path
-            for (i, memory, noised, label) in \
-                    zip(range(n), memories_images, noised_images, testing_labels):
-                store_memory(memory, memories_path, i, label, es, fold)
-                store_noised_memory(noised, memories_path, i, label, es, fold)
-
-
-def store_original_and_test(testing, prod_test, noised, prod_noise,
-                            test_dir, idx, label, dataset, es, fold):
-    directory = os.path.join(test_dir, dataset)
-    testing_filename = commons.testing_image_filename(
-        directory, idx, label, es, fold)
-    prod_test_filename = commons.prod_testing_image_filename(
-        directory, idx, label, es, fold)
-    noised_filename = commons.noised_image_filename(
-        directory, idx, label, es, fold)
-    prod_noise_filename = commons.prod_noised_image_filename(
-        directory, idx, label, es, fold)
-    store_image(testing_filename, testing)
-    store_image(prod_test_filename, prod_test)
-    store_image(noised_filename, noised)
-    store_image(prod_noise_filename, prod_noise)
-
-
-def store_memory(memory, directory, idx, label, es, fold):
-    filename = commons.memory_image_filename(directory, idx, label, es, fold)
-    full_directory = commons.dirname(filename)
-    commons.create_directory(full_directory)
-    store_image(filename, memory)
-
-
-def store_noised_memory(memory, directory, idx, label, es, fold):
-    memory_filename = commons.noised_image_filename(
-        directory, idx, label, es, fold)
-    store_image(memory_filename, memory)
-
-
-def store_image(filename, array):
-    pixels = array.reshape(ds.columns, ds.rows)
-    pixels = pixels.round().astype(np.uint8)
-    png.from_array(pixels, 'L;8').save(filename)
-
+    model_prefix = commons.model_name(dataset, es)
+    # Load test features and labels
+    model_filename = commons.decoder_filename(model_prefix, es, fold)
+    model = tf.keras.models.load_model(model_filename)
+    model.summary()
+    # Generate images.
+    prod_test_images = model.predict(features)
+    n = len(labels)
+    # Save images.
+    for (i, image, label) in \
+            zip(range(n), prod_test_images, labels):
+        # if testing_label != label:
+        #    raise ValueError(
+        #        f'La etiqueta en los datos ({testing_label}) es diferente a ({label})')
+        store_test(image, commons.testing_path, i, label, dataset, es, fold)
 
 def features_parameters(dataset, es):
     cols = commons.datasets_to_domains[dataset]
@@ -1689,11 +1696,15 @@ def features_parameters(dataset, es):
         features_filename = commons.data_filename(features_filename, es, fold)
         labels_filename = commons.labels_name(dataset, es) + commons.filling_suffix
         labels_filename = commons.data_filename(labels_filename, es, fold)
-        filling_labels = np.load(labels_filename)
         filling_features = np.load(features_filename)
+        filling_labels = np.load(labels_filename)
         features_filename = commons.features_name(dataset, es) + commons.testing_suffix
         features_filename = commons.data_filename(features_filename, es, fold)
+        labels_filename = commons.labels_name(dataset, es) + commons.testing_suffix
+        labels_filename = commons.data_filename(labels_filename, es, fold)
         testing_features = np.load(features_filename)
+        testing_labels = np.load(labels_filename)
+        decode_test_features(testing_features, testing_labels, dataset, fold, es)
         const_means, const_stdvs = construct_prototypes(filling_features, filling_labels, cols)
         means[fold, 0] = const_means
         stdvs[fold, 0] = const_stdvs
@@ -1819,6 +1830,137 @@ def save_features_graphs(means, stdvs, hists, suffixes, dataset, es):
         plot_histo_bar(hist, dataset, es, xtags = commons.all_labels,
                 xlabel = 'Label', label=label, name=fname)
         
+def sample_features_for_sequencing(features, labels):
+    feats = {}
+    labls = {}
+    for dataset in commons.datasets:
+        unique, counts = np.unique(labels[dataset], return_counts = True)
+        chosen_feats = []
+        chosen_labls = []
+        for u, c in zip(unique, counts):
+            target = int(random.randrange(c))
+            i = 0
+            print(f'Choosing feautures number {target} with label {u} from {dataset}')
+            for fs, ll in zip(features[dataset], labels[dataset]):
+                if (ll == u) and (i == target):
+                    chosen_feats.append(fs)
+                    chosen_labls.append(ll)
+                    break
+                elif ll == u:
+                    i += 1
+        feats[dataset] = np.array(chosen_feats, dtype=float)
+        labls[dataset] = np.array(chosen_labls, dtype=int)
+    return feats, labls
+
+def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, labels, qds, recall_method):
+    """
+    Produces sequences of memories for an array of features.
+
+    :param hetero:          A filled hetero-associative memory.
+    :param features:        Features to be used as starting points.
+    :param qds:             A dictionary of QuDeq (quantizer-dequantizer).
+    :param recall_method:   Identifier of the method used by the hetero memory for recalling.
+    :return:                A dictionary, an entry for each dataset, with a list of sequences.
+    """
+    rows = commons.datasets_to_codomains
+    sequences = {}
+    origin = 1
+    for orig_ds in commons.datasets:
+        sequences[orig_ds] = []
+        dest_ds = commons.alt(orig_ds)
+        print(f'Generating sequences starting at {orig_ds}')
+        counter = 0
+        counter_name = commons.set_counter()
+        for feats, label in zip(features[orig_ds], labels[orig_ds]):
+            i = 1
+            fs = feats
+            sequence = [qds[orig_ds].dequantize(fs, rows[orig_ds])]
+            while i < commons.sequence_length:
+                if (i % 2) == origin:
+                    fs, _, _, _, _ = hetero.recall_from_left(fs, method=recall_method, label=label)
+                    sequence.append(qds[dest_ds].dequantize(fs, rows[dest_ds]))
+                else:
+                    fs, _, _, _, _ = hetero.recall_from_right(fs, method=recall_method, label=label)
+                    sequence.append(qds[orig_ds].dequantize(fs, rows[orig_ds]))
+                i += 1
+            sequences[orig_ds].append(sequence)
+            commons.print_counter(counter, 10, 1, '+', name = counter_name)
+            counter += 1
+        origin = (origin + 1) % 2
+    return sequences
+
+def sequences_of_memories(recall_method, filling_percent, es):
+    cols = commons.datasets_to_domains
+    rows = commons.datasets_to_codomains
+    sequences = []
+    labels = []
+    for fold in range(commons.n_folds):
+        filling_features, filling_labels, testing_features, testing_labels \
+                = load_features_n_labels(fold, es)
+        testing_features, testing_labels = sample_features_for_sequencing(testing_features, testing_labels)
+        match_labels(filling_features, filling_labels)
+        total = len(filling_labels[commons.left_dataset])
+        top = int(total*filling_percent/100.0)
+        qds = {}
+        filling_prototypes = {}
+        for dataset in commons.datasets:
+            qd = qudeq.QuDeq(filling_features[dataset], percentiles = commons.use_percentiles)
+            filling_features[dataset] = qd.quantize(filling_features[dataset][:top],rows[dataset])
+            testing_features[dataset] = qd.quantize(testing_features[dataset], rows[dataset])
+            proto_suffix = commons.filling_suffix + commons.proto_suffix
+            proto_filename = commons.features_name(dataset, es) + proto_suffix
+            proto_filename = commons.data_filename(proto_filename, es, fold)
+            prototypes = np.load(proto_filename)
+            filling_prototypes[dataset] = qd.quantize(prototypes, rows[dataset])
+            qds[dataset] = qd
+        hetero = HeteroAssociativeMemory(cols[commons.left_dataset], cols[commons.right_dataset],
+                rows[commons.left_dataset], rows[commons.right_dataset], es, fold,
+                qds[commons.left_dataset], qds[commons.right_dataset],
+                [filling_prototypes[commons.left_dataset], filling_prototypes[commons.right_dataset]])
+        for left_feat, right_feat in zip(filling_features[commons.left_dataset],
+                filling_features[commons.right_dataset]):
+            hetero.register(left_feat, right_feat)
+        seqs = produce_testing_sequences(hetero, testing_features, testing_labels, qds, recall_method)
+        sequences.append(seqs)
+        labels.append(testing_labels)
+    return sequences, labels
+
+def save_sequences(sequences, labels, es):
+    # sequences: list(dict(dataset, list(list)))
+    # For each fold, and for each dataset, there is a list of sequences for each label
+    fold = 0
+    for seqs, lbls in zip(sequences, labels):
+        classifiers = {}
+        decoders = {}
+        for dataset in commons.datasets:
+            model_prefix = commons.model_name(dataset, es)
+            filename = commons.classifier_filename(model_prefix, es, fold)
+            classifier = tf.keras.models.load_model(filename)
+            classifiers[dataset] = classifier
+            filename = commons.decoder_filename(model_prefix, es, fold)
+            decoder = tf.keras.models.load_model(filename)
+            decoders[dataset] = decoder
+        for orig_ds in commons.datasets:
+            dest_ds = commons.alt(orig_ds)
+            path = commons.dreams_path + commons.fold_suffix(fold) + commons.dataset_suffix(orig_ds)
+            for seq, lbl in zip(seqs[orig_ds], lbls[orig_ds]):
+                i = 1
+                for features in seq:
+                    if (i % 2):
+                        label = np.argmax(
+                                classifiers[orig_ds](np.expand_dims(features, axis=0), training = False),
+                                axis=1)[0]
+                        image = decoders[orig_ds](np.expand_dims(features, axis=0), training = False)
+                    else:
+                        label = np.argmax(
+                                classifiers[dest_ds](np.expand_dims(features, axis=0), training = False),
+                                axis=1)[0]
+                        image = decoders[dest_ds](np.expand_dims(features, axis=0), training = False)
+                    image = np.squeeze(image.numpy())
+                    store_dream(image, lbl, i, label, path)
+                    i += 1
+        fold += 1
+
 
 ##############################################################################
 # Main section
@@ -1837,7 +1979,7 @@ def produce_features_from_data(dataset, es):
     labels_prefix = commons.labels_name(dataset, es)
     data_prefix = commons.data_name(dataset, es)
     neural_net.obtain_features(dataset,
-                               model_prefix, features_prefix, labels_prefix, data_prefix, es)
+            model_prefix, features_prefix, labels_prefix, data_prefix, es)
 
 def characterize_features(dataset, es):
     """ Produces a graph of features averages and standard deviations.
@@ -1862,9 +2004,11 @@ def run_evaluation(es):
     test_hetero_fills(es)
 
 def generate_memories(recall_method, es):
-    # decode_test_features(es)
     remember(recall_method, es)
-    # decode_memories(es)
+
+def generate_sequences(recall_method, filling_percent, es):
+    sequences, labels = sequences_of_memories(recall_method, filling_percent, es)
+    save_sequences(sequences, labels, es)
 
 if __name__ == "__main__":
     args = docopt(__doc__)
@@ -1942,6 +2086,8 @@ if __name__ == "__main__":
         generate_memories(commons.recall_with_correct_proto, exp_settings)
     elif args['-q']:
         generate_memories(commons.recall_with_cue, exp_settings)
+    elif args['-u']:
+        generate_sequences(commons.sequence_recall_method, commons.sequence_recall_fill, exp_settings)
     end_of_experiment = time.time()
     duration_of_experiment = end_of_experiment - start_of_experiment
     print(f'DURATION: {duration_of_experiment:.1f} seconds')

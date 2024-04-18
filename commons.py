@@ -32,6 +32,14 @@ datasets = [left_dataset, right_dataset]
 datasets_to_domains = {left_dataset: 64, right_dataset: 64}
 datasets_to_codomains = {left_dataset: 16, right_dataset: 16}
 
+def alt(dataset):
+    if dataset == left_dataset:
+        return right_dataset
+    elif dataset == right_dataset:
+        return left_dataset
+    else:
+        raise ValueError(f'{dataset} is not a valid dataset')
+
 def domains():
     doms = {}
     for d in datasets:
@@ -68,6 +76,10 @@ recall_with_correct_proto = 2
 recall_with_cue = 3
 sampling_without_search = False
 
+sequence_length = 10
+sequence_recall_fill = 64
+sequence_recall_method = recall_with_correct_proto
+
 # Directory where all results are stored.
 data_path = 'data'
 run_path = 'runs'
@@ -84,6 +96,8 @@ dreams_path = 'dreams'
 
 data_prefix = 'data-'
 labels_prefix = 'labels-'
+recall_labels_prefix = 'correct-'
+predicted_labels_prefix = 'predicted-'
 features_prefix = 'features-'
 memories_prefix = 'memories-'
 noised_prefix = 'mem_noised-'
@@ -96,13 +110,13 @@ recog_noised_prefix = 'recog_noised-'
 weights_prefix = 'weights-'
 weights_noised_prefix = 'weights-noised-'
 classification_prefix = 'classification-'
-classification_noised_prefix = 'classif-noised-'
 stats_prefix = 'model_stats-'
 learn_params_prefix ='learn_params-'
 memory_parameters_prefix='mem_params'
 chosen_prefix = 'chosen-'
 distance_prefix = 'distance-'
 fstats_prefix = 'feature_stats-'
+sequence_prefix = 'seq-'
 
 balanced_data = 'balanced'
 seed_data = 'seed'
@@ -317,6 +331,9 @@ def msize_suffix(msize):
 def sigma_suffix(sigma):
     return float_suffix(sigma, 'sgm')
 
+def label_suffix(label):
+    return int_suffix(label, 'lbl')
+
 def dream_depth_suffix(cycle):
     return numeric_suffix('dph', cycle)
 
@@ -350,6 +367,12 @@ def features_name(dataset, es):
 def labels_name(dataset, es):
     return labels_prefix + dataset
 
+def recall_labels_name(dataset, es):
+    return recall_labels_prefix + dataset
+
+def recall_predicted_labels_name(dataset, es):
+    return predicted_labels_prefix + dataset
+
 def memories_name(dataset, es):
     return memories_prefix + dataset
 
@@ -374,9 +397,6 @@ def weights_name(dataset, es):
 def noised_weights_name(dataset, es):
     return weights_noised_prefix + dataset
 
-def noised_classification_name(dataset, es):
-    return classification_noised_prefix + dataset
-
 def learn_params_name(dataset, es):
     return learn_params_prefix + dataset
 
@@ -398,7 +418,7 @@ def dirname(path):
 
 def create_directory(path):
     try:
-        os.makedirs(path)
+        os.makedirs(path, exist_ok = True)
         print(f'Directory {path} created.')
     except FileExistsError:
         print(f'Directory {path} already exists.')
@@ -430,9 +450,11 @@ def pickle_filename(name_prefix, es = None, fold = None):
 def picture_filename(name_prefix, es = None, fold = None):
     return filename(name_prefix, es, fold, extension='.svg')
 
-def image_filename(prefix, idx, label, suffix = '', es = None, fold = None):
-    name_prefix = image_path + '/' + prefix + '/' + \
-        str(label).zfill(3) + '_' + str(idx).zfill(5)  + suffix
+def image_filename(prefix, idx, label, classif=None, suffix = '', es = None, fold = None):
+    name_prefix = os.path.join(image_path, prefix,
+            str(label).zfill(3) + '_' + str(idx).zfill(5)
+                    + (('_' + str(classif).zfill(3)) if classif is not None else '')
+                    + suffix)
     return filename(name_prefix, es, fold, extension='.png')
 
 def learned_data_filename(suffix, es, fold):
@@ -469,19 +491,19 @@ def recog_filename(name_prefix, es, fold):
     return csv_filename(name_prefix, es, fold)
 
 def testing_image_filename(path, idx, label, es, fold):
-    return image_filename(path, idx, label, original_suffix, es, fold)
+    return image_filename(path, idx, label, suffix=original_suffix, es=es, fold=fold)
 
 def prod_testing_image_filename(dir, idx, label, es, fold):
-    return image_filename(dir, idx, label, testing_suffix, es, fold)
+    return image_filename(dir, idx, label, suffix=testing_suffix, es=es, fold=fold)
 
-def noised_image_filename(dir, idx, label, es, fold):
-    return image_filename(dir, idx, label, noised_suffix, es, fold)
+def memory_image_filename(dir, name, idx, label, classif, es, fold):
+    dirname = os.path.join(dir, name) if len(name) > 0 else dir
+    return image_filename(dirname, idx, label, classif, memory_suffix, es, fold)
 
-def prod_noised_image_filename(dir, idx, label, es, fold):
-    return image_filename(dir, idx, label, prod_noised_suffix, es, fold)
-
-def memory_image_filename(dir, idx, label, es, fold):
-    return image_filename(dir, idx, label, memory_suffix, es, fold)
+def dream_image_filename(dir, initial_label, depth, label):
+    name = image_path + '/' + dir + '/' + sequence_prefix + label_suffix(initial_label) \
+        + dream_depth_suffix(depth) + label_suffix(label)
+    return filename(name, extension = '.png')
 
 def mean_idx(m):
     return m

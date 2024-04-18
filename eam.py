@@ -1642,7 +1642,6 @@ def decode_memories(memories, indexes, corrects, predictions,
     model_filename = commons.decoder_filename(model_prefix, es, fold)
     # Loads the decoder.
     model = tf.keras.models.load_model(model_filename)
-    model.summary()
     images = model.predict(memories)
     name = commons.memories_name(dataset, es) \
             + commons.recall_suffix(recall_method) \

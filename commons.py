@@ -96,8 +96,6 @@ dreams_path = 'dreams'
 
 data_prefix = 'data-'
 labels_prefix = 'labels-'
-recall_labels_prefix = 'correct-'
-predicted_labels_prefix = 'predicted-'
 features_prefix = 'features-'
 memories_prefix = 'memories-'
 noised_prefix = 'mem_noised-'
@@ -368,13 +366,10 @@ def labels_name(dataset, es):
     return labels_prefix + dataset
 
 def recall_labels_name(dataset, es):
-    return recall_labels_prefix + dataset
-
-def recall_predicted_labels_name(dataset, es):
-    return predicted_labels_prefix + dataset
+    return memories_prefix + labels_prefix + dataset
 
 def memories_name(dataset, es):
-    return memories_prefix + dataset
+    return memories_prefix + data_prefix + dataset
 
 def prototypes_name(dataset, es):
     return prototypes_prefix + dataset

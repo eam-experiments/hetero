@@ -57,7 +57,6 @@ import png
 from docopt import docopt
 import commons
 import qudeq
-import dataset as ds
 import neural_net
 from associative import AssociativeMemory
 from hetero_associative_4d import HeteroAssociativeMemory4D as HeteroAssociativeMemory
@@ -626,6 +625,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     confrix = np.zeros(
         (commons.n_labels, commons.n_labels+1), dtype='int')
     behaviour = np.zeros(commons.n_behaviours, dtype=int)
+    indexes = []
     memories = []
     correct = []
     mem_weights = []
@@ -635,12 +635,13 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     print('Remembering ', end='')
     counter = 0
     counter_name = commons.set_counter()
-    for a_feats, b_feats, label in zip(a_features, b_features, b_labels):
+    for idx, (a_feats, b_feats, label) in enumerate(zip(a_features, b_features, b_labels)):
         memory, recognized, weight, relation, s = recall(
                 a_feats, recall_method) if recall_method == commons.recall_with_sampling_n_search else recall(
                         a_feats, recall_method, euc = b_feats, weights = None, label = label)
         if recognized:
             stats.append(s)
+            indexes.append(idx)
             memories.append(memory)
             correct.append(label)
             mem_weights.append(weight)
@@ -734,7 +735,7 @@ def recall_by_hetero_memory(remembered_dataset, recall,
                 f'skew = {incorrect_stats_skew}, kurt = {incorrect_stats_kurt}.')
     else:
         print('Stats of incorrect not available')
-    return confrix, behaviour, memories, correct, predictions
+    return confrix, behaviour, memories, indexes, correct, predictions
 
 def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
                               left_eam: AssociativeMemory, right_eam: AssociativeMemory,
@@ -749,7 +750,7 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     mean_weight = eam.mean
     print('Remembering from left by hetero memory')
     qd = qudeqs[right_ds]
-    confrix, behaviour, memories, correct, predictions = recall_by_hetero_memory(right_ds,
+    confrix, behaviour, memories, indexes, correct, predictions = recall_by_hetero_memory(right_ds,
             eam.recall_from_left, left_eam, right_eam, right_classifier,
             testing_features[left_ds], testing_features[right_ds], testing_labels[right_ds],
             rows[right_ds], recall_method, percent, qd, mean_weight)
@@ -760,21 +761,17 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
             + commons.int_suffix(percent, 'fll')
     filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
+    labels = np.array([indexes, correct, predictions], dtype=int).transpose()
     name = commons.recall_labels_name(left_ds, es) \
             + commons.recall_suffix(recall_method) \
             + commons.int_suffix(percent, 'fll')
     filename = commons.data_filename(name, es, fold)
-    np.save(filename, correct)
-    name = commons.recall_predicted_labels_name(left_ds, es) \
-            + commons.recall_suffix(recall_method) \
-            + commons.int_suffix(percent, 'fll')
-    filename = commons.data_filename(name, es, fold)
-    np.save(filename, predictions)
-    decode_memories(memories, correct, predictions, left_ds, percent, recall_method, es, fold)
+    np.save(filename, labels)
+    decode_memories(memories, indexes, correct, predictions, left_ds, percent, recall_method, es, fold)
 
     print('Remembering from right by hetero memory')
     qd = qudeqs[left_ds]
-    confrix, behaviour, memories, correct, predictions = recall_by_hetero_memory(left_ds,
+    confrix, behaviour, memories, indexes, correct, predictions = recall_by_hetero_memory(left_ds,
             eam.recall_from_right, right_eam, left_eam, left_classifier,
             testing_features[right_ds], testing_features[left_ds], testing_labels[left_ds],
             rows[left_ds], recall_method, percent, qd, mean_weight)
@@ -785,17 +782,13 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
             + commons.int_suffix(percent, 'fll')
     filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
+    labels = np.array([indexes, correct, predictions], dtype=int).transpose()
     name = commons.recall_labels_name(right_ds, es) \
             + commons.recall_suffix(recall_method) \
             + commons.int_suffix(percent, 'fll')
     filename = commons.data_filename(name, es, fold)
-    np.save(filename, correct)
-    name = commons.recall_predicted_labels_name(right_ds, es) \
-            + commons.recall_suffix(recall_method) \
-            + commons.int_suffix(percent, 'fll')
-    filename = commons.data_filename(name, es, fold)
-    np.save(filename, predictions)
-    decode_memories(memories, correct, predictions, right_ds, percent, recall_method, es, fold)
+    np.save(filename, labels)
+    decode_memories(memories, indexes, correct, predictions, right_ds, percent, recall_method, es, fold)
 
     # confrixes has three dimensions: datasets, correct label, prediction.
     confrixes = np.array(confrixes, dtype=int)
@@ -1641,9 +1634,9 @@ def store_test(
         directory, idx, label, es, fold)
     store_image(prod_test_filename, prod_test)
 
-def decode_memories(memories, corrects, predictions,
+def decode_memories(memories, indexes, corrects, predictions,
             dataset, percent, recall_method, es, fold):
-    if len(corrects) == 0:
+    if len(indexes) == 0:
         return
     model_prefix = commons.model_name(commons.alt(dataset), es)
     model_filename = commons.decoder_filename(model_prefix, es, fold)
@@ -1657,7 +1650,7 @@ def decode_memories(memories, corrects, predictions,
     n = len(corrects)
     memories_path = commons.memories_path
     for (idx, image, correct, prediction) in \
-            zip(range(n), images, corrects, predictions):
+            zip(indexes, images, corrects, predictions):
         store_memory(image, memories_path, name, idx, correct, prediction, es, fold)
 
 

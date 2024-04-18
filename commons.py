@@ -413,20 +413,16 @@ def dirname(path):
 
 def create_directory(path):
     try:
-        os.makedirs(path, exist_ok = True)
+        os.makedirs(path)
         print(f'Directory {path} created.')
     except FileExistsError:
-        print(f'Directory {path} already exists.')
+        pass
     
 def filename(name_prefix, es = None, fold = None, extension = ''):
     """ Returns a file name in run_path directory with a given extension and an index
     """
     # Create target directory & all intermediate directories if don't exists
-    try:
-        os.makedirs(run_path)
-        print("Directory " , run_path ,  " created ")
-    except FileExistsError:
-        pass
+    create_directory(run_path)
     return run_path + '/' + get_full_name(name_prefix,es) \
         + fold_suffix(fold) + extension
 

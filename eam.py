@@ -1808,8 +1808,9 @@ def save_prototypes(means, stdvs, suffixes, dataset, es):
             np.save(proto_stdvs_filename, stdvs[fold,i])
             proto_images = model.predict(means[fold,i])
             prototypes_path = commons.prototypes_path + s + commons.dataset_suffix(dataset)
+            name = commons.prototypes_name
             for (memory, label) in zip(proto_images, commons.all_labels):
-                store_memory(memory, prototypes_path, label, label, es, fold)
+                store_memory(memory, prototypes_path, name, 0, label, label, es, fold)
 
 def save_features_graphs(means, stdvs, hists, suffixes, dataset, es):
     means = np.mean(means, axis=0)

@@ -95,7 +95,7 @@ def _preprocessed_dataset(dirname):
         noised = np.load(noised_fname)
         labels = np.load(labels_fname).astype('int')
         print('Preprocessed dataset exists, so it is used.')
-    except:
+    except Exception as _:
         print('Preprocessed dataset does not exist.')
     return data, noised, labels
 
@@ -164,7 +164,8 @@ def _get_data_in_range(segment, data_per_label, fold, noised):
             n, m = k, l
         dpl = commons.get_data_in_range(data_per_label[label], n, m)
         data += dpl
-    random.shuffle(data)
+    if segment != _TESTING_SEGMENT:
+        random.shuffle(data)
     labels = np.array([d[0] for d in data])
     i = 2 if noised else 1
     data = np.array([d[i] for d in data])

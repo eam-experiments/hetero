@@ -78,7 +78,7 @@ sampling_without_search = False
 
 sequence_length = 10
 sequence_recall_fill = 64
-sequence_recall_method = recall_with_correct_proto
+sequence_recall_method = recall_with_protos
 
 # Directory where all results are stored.
 data_path = 'data'
@@ -161,7 +161,7 @@ def recall_suffix(n: int):
         return recall_suffix.suffixes[n]
     raise ValueError(f'There is no suffix with {n} index.')
 
-recall_suffix.suffixes = [search_suffix, proto_suffix, 
+recall_suffix.suffixes = [search_suffix, protos_suffix, 
             correct_proto_suffix, cue_suffix]
 
 agreed_suffix = '-agr'

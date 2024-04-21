@@ -1850,7 +1850,8 @@ def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, labels,
     Produces sequences of memories for an array of features.
 
     :param hetero:          A filled hetero-associative memory.
-    :param features:        Features to be used as starting points.
+    :param features:        A dictionary with lists of features to be used as starting points.
+    :param labels:          A dictionary with lists of Labels for features.
     :param qds:             A dictionary of QuDeq (quantizer-dequantizer).
     :param recall_method:   Identifier of the method used by the hetero memory for recalling.
     :return:                A dictionary, an entry for each dataset, with a list of sequences.
@@ -1921,8 +1922,7 @@ def sequences_of_memories(recall_method, filling_percent, es):
 def save_sequences(sequences, labels, es):
     # sequences: list(dict(dataset, list(list)))
     # For each fold, and for each dataset, there is a list of sequences for each label
-    fold = 0
-    for seqs, lbls in zip(sequences, labels):
+    for fold, (seqs, lbls) in enumerate(zip(sequences, labels)):
         classifiers = {}
         decoders = {}
         for dataset in commons.datasets:
@@ -1952,7 +1952,6 @@ def save_sequences(sequences, labels, es):
                     image = np.squeeze(image.numpy())
                     store_dream(image, lbl, i, label, path)
                     i += 1
-        fold += 1
 
 
 ##############################################################################

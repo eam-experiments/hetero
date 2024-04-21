@@ -22,7 +22,7 @@ from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import Callback
 import commons
-import dataset
+import dataset_manager as dsm
 
 batch_size = 32
 epochs = 300
@@ -34,7 +34,7 @@ def conv_block(entry, layers, filters, dropout, first_block = False):
     for i in range(layers):
         if first_block:
             conv = Conv2D(kernel_size =3, padding ='same', activation='relu', 
-                filters = filters, input_shape = (dataset.columns, dataset.rows, 1))(entry)
+                filters = filters, input_shape = (dsm.columns, dsm.rows, 1))(entry)
             first_block = False
         else:
             conv = Conv2D(kernel_size =3, padding ='same', activation='relu', 
@@ -49,7 +49,7 @@ encoder_nlayers = 40
 
 def get_encoder(domain):
     dropout = 0.5
-    input_data = Input(shape=(dataset.columns, dataset.rows, 1))
+    input_data = Input(shape=(dsm.columns, dsm.rows, 1))
     filters = domain // 16
     output = conv_block(input_data, 2, filters, dropout, first_block=True)
     filters *= 2
@@ -70,7 +70,7 @@ def get_encoder(domain):
 
 def get_decoder(domain):
     input_mem = Input(shape=(domain, ))
-    width = dataset.columns // 4
+    width = dsm.columns // 4
     filters = domain // 2
     dense = Dense(
         width*width*filters, activation = 'relu',
@@ -172,8 +172,8 @@ def train_network(ds, prefix, es):
     confusion_matrix = np.zeros((commons.n_labels, commons.n_labels))
     histories = []
     for fold in range(commons.n_folds):
-        training_data, training_labels = dataset.get_training(ds, fold)
-        testing_data, testing_labels = dataset.get_testing(ds, fold)
+        training_data, training_labels = dsm.get_training(ds, fold)
+        testing_data, testing_labels = dsm.get_testing(ds, fold)
         truly_training = int(len(training_labels)*truly_training_percentage)
         validation_data = training_data[truly_training:]
         validation_labels = training_labels[truly_training:]
@@ -185,7 +185,7 @@ def train_network(ds, prefix, es):
         testing_labels = to_categorical(testing_labels)
 
         rmse = tf.keras.metrics.RootMeanSquaredError()
-        input_data = Input(shape=(dataset.columns, dataset.rows, 1))
+        input_data = Input(shape=(dsm.columns, dsm.rows, 1))
         domain = commons.domain(ds)
         input_enc, encoded = get_encoder(domain)
         encoder = Model(input_enc, encoded, name='encoder')
@@ -254,10 +254,10 @@ def obtain_features(ds,
         model = tf.keras.models.load_model(filename)
         model.summary()
 
-        training_data, training_labels = dataset.get_training(ds, fold)
-        filling_data, filling_labels = dataset.get_filling(ds, fold)
-        testing_data, testing_labels = dataset.get_testing(ds, fold)
-        noised_data, noised_labels = dataset.get_testing(ds, fold, noised = True)
+        training_data, training_labels = dsm.get_training(ds, fold)
+        filling_data, filling_labels = dsm.get_filling(ds, fold)
+        testing_data, testing_labels = dsm.get_testing(ds, fold)
+        noised_data, noised_labels = dsm.get_testing(ds, fold, noised = True)
         settings = [
             (training_data, training_labels, commons.training_suffix),
             (filling_data, filling_labels, commons.filling_suffix),

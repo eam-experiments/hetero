@@ -74,7 +74,7 @@ recall_with_sampling_n_search = 0
 recall_with_protos = 1
 recall_with_correct_proto = 2
 recall_with_cue = 3
-sampling_without_search = False
+sampling_without_search = True
 
 sequence_length = 10
 sequence_recall_fill = 64
@@ -174,7 +174,7 @@ learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
 def dataset_suffix(dataset):
     return '-' + dataset
 
-n_folds = 1
+n_folds = 10
 n_jobs = 4
 random_string_length = 30
 dreaming_cycles = 6
@@ -514,19 +514,6 @@ def padding_cropping(data, n_frames):
         for i in range(df+1):
             features.append(data[i:i+n_frames,:])
         return features
-
-def get_data_in_range(data, i, j):
-    if j > i:
-        return data[i:j]
-    else:
-        pre = data[i:]
-        pos = data[:j]
-        if len(pre) == 0:
-            return pos
-        elif len(pos) == 0:
-            return pre
-        else:
-            return np.concatenate((pre,pos), axis=0)
 
 def print_csv(data):
     writer = csv.writer(sys.stdout)

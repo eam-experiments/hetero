@@ -132,11 +132,11 @@ def _shuffle(data, noised, labels):
 
 def _split_by_labels(data, noised, labels):
     data_per_label = {}
-    for l, d, n in zip(labels, data, noised):
-        if l in data_per_label.keys():
-            data_per_label[l].append((l, d, n))
+    for label, datum, noise in zip(labels, data, noised):
+        if label in data_per_label.keys():
+            data_per_label[label].append((label, datum, noise))
         else:
-            data_per_label[l] = [(l, d, n)]
+            data_per_label[label] = [(label, datum, noise)]
     return data_per_label
 
 def _get_data_in_range(segment, data_per_label, fold, noised):
@@ -162,7 +162,7 @@ def _get_data_in_range(segment, data_per_label, fold, noised):
             n, m = j, k
         elif segment == _TESTING_SEGMENT:
             n, m = k, l
-        dpl = commons.get_data_in_range(data_per_label[label], n, m)
+        dpl = get_data_in_range(data_per_label[label], n, m)
         data += dpl
     if segment != _TESTING_SEGMENT:
         random.shuffle(data)
@@ -170,4 +170,17 @@ def _get_data_in_range(segment, data_per_label, fold, noised):
     i = 2 if noised else 1
     data = np.array([d[i] for d in data])
     return data, labels
+
+def get_data_in_range(data: list, i: int, j: int):
+    if j > i:
+        return data[i:j]
+    else:
+        pre = data[i:]
+        pos = data[:j]
+        if len(pre) == 0:
+            return pos
+        elif len(pos) == 0:
+            return pre
+        else:
+            return pre + pos
 

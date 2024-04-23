@@ -1681,9 +1681,9 @@ def features_parameters(dataset, es):
     means = np.zeros((commons.n_folds, 4, commons.n_labels, cols), dtype=float)
     stdvs = np.zeros((commons.n_folds, 4, commons.n_labels, cols), dtype=float)
     hists = np.zeros((commons.n_folds, 4, commons.n_labels), dtype=int)
-    suffixes = []
     model_prefix = commons.model_name(dataset, es)
     for fold in range(commons.n_folds):
+        suffixes = []
         features_filename = commons.features_name(dataset, es) + commons.filling_suffix
         features_filename = commons.data_filename(features_filename, es, fold)
         labels_filename = commons.labels_name(dataset, es) + commons.filling_suffix

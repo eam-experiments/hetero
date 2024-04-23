@@ -1259,8 +1259,8 @@ def hetero_remember_per_fold(recall_method, es, fold):
         # Tagging of filling data produced by the classifier
         # labels = np.argmax(classifiers[dataset].predict(f_features), axis=1)
         # filling_labels[dataset] = labels
-        proto_suffix = suffix + commons.proto_suffix
-        proto_filename = commons.features_name(dataset, es) + proto_suffix
+        proto_filename = commons.features_name(dataset, es) \
+                + commons.proto_suffix + commons.constructed_suffix + commons.means_suffix
         proto_filename = commons.data_filename(proto_filename, es, fold)
         prototypes = np.load(proto_filename)
 
@@ -1791,8 +1791,6 @@ def recall_prototypes(filling_features, testing_features, classifier, cols, rows
 
 def save_prototypes(means, stdvs, suffixes, dataset, es):
     proto_suffix = commons.proto_suffix
-    means_suffix = '-means'
-    stdvs_suffix = '-stdvs'
     for fold in range(commons.n_folds):
         model_prefix = commons.model_name(dataset, es)
         model_filename = commons.decoder_filename(model_prefix, es, fold)
@@ -1802,8 +1800,8 @@ def save_prototypes(means, stdvs, suffixes, dataset, es):
         for i, s in zip(range(len(suffixes)), suffixes):
             proto_filename = commons.features_name(dataset, es) \
                 + proto_suffix + s
-            proto_means_filename = commons.data_filename(proto_filename + means_suffix, es, fold)
-            proto_stdvs_filename = commons.data_filename(proto_filename + stdvs_suffix, es, fold)
+            proto_means_filename = commons.data_filename(proto_filename + commons.means_suffix, es, fold)
+            proto_stdvs_filename = commons.data_filename(proto_filename + commons.stdvs_suffix, es, fold)
             np.save(proto_means_filename, means[fold,i])
             np.save(proto_stdvs_filename, stdvs[fold,i])
             proto_images = model.predict(means[fold,i])

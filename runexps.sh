@@ -25,10 +25,10 @@ python eam.py -s $right_ds --runpath=$runpath && \
 echo "------------------- `date`" && \
 python eam.py -e --runpath=$runpath && \
 echo "------------------- `date`" && \
-python eam.py -v --runpath=$runpath && \
-echo "------------------- `date`" && \
-python eam.py -w --runpath=$runpath && \
-echo "------------------- `date`" && \
+# python eam.py -v --runpath=$runpath && \
+# echo "------------------- `date`" && \
+# python eam.py -w --runpath=$runpath && \
+# echo "------------------- `date`" && \
 python eam.py -q --runpath=$runpath && \
 echo "------------------- `date`" && \
 python eam.py -P --runpath=$runpath && \
@@ -36,6 +36,8 @@ echo "------------------- `date`" && \
 python eam.py -p --runpath=$runpath && \
 echo "------------------- `date`" && \
 python eam.py -r --runpath=$runpath && \
+echo "------------------- `date`" && \
+python eam.py -u --runpath=$runpath && \
 echo "=================== Ending at `date`"
 ok=$?
 if [ $ok -eq 0 ]; then

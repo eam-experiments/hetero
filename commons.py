@@ -156,6 +156,9 @@ protos_suffix = '-protos'
 correct_proto_suffix = '-correct_proto'
 cue_suffix = '-cue'
 
+means_suffix = '-means'
+stdvs_suffix = '-stdvs'
+
 def recall_suffix(n: int):
     if (0 <= n) and (n < len(recall_suffix.suffixes)):
         return recall_suffix.suffixes[n]

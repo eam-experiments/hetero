@@ -130,16 +130,32 @@ noised_suffix = '-noised'
 prod_noised_suffix = '-prod_noised'
 memories_suffix = '-memories'
 proto_suffix = '-proto'
-constructed_suffix = '-constructed'
-extracted_suffix = '-extracted'
-recall_filled_suffix = '-recalled'
-recall_tested_suffix = '-tested'
+
+proto_kind_constructed = 'constructed'
+proto_kind_extracted = 'extracted'
+proto_kind_fill_recalled = 'recalled'
+proto_kind_test_recalled = 'tested'
+
+proto_kinds = [proto_kind_constructed, proto_kind_extracted,
+        proto_kind_fill_recalled, proto_kind_test_recalled]
+
 proto_labels = {
-    constructed_suffix: 'Constructed',
-    extracted_suffix: 'Randomly extracted',
-    recall_filled_suffix: 'Recalled with filling corpus',
-    recall_tested_suffix: 'Recalled with testing corpus'}
+    proto_kind_constructed: 'Constructed',
+    proto_kind_extracted: 'Randomly extracted',
+    proto_kind_fill_recalled: 'Recalled with filling corpus',
+    proto_kind_test_recalled: 'Recalled with testing corpus'}
 proto_formats = ['r--o', 'b:v', 'g-s', 'y-.d']
+
+def __getattr__(name):
+    if name == 'constructed_suffix':
+        return proto_kind_suffix(proto_kind_constructed)
+    elif name == 'extracted_suffix':
+        return proto_kind_suffix(proto_kind_extracted)
+    elif name == 'recall_filled_suffix':
+        return proto_kind_suffix(proto_kind_fill_recalled)
+    elif name == 'recall_tested_suffix':
+        return proto_kind_suffix(proto_kind_test_recalled)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 # Model suffixes.
 encoder_suffix = '-encoder'
@@ -159,10 +175,16 @@ cue_suffix = '-cue'
 means_suffix = '-means'
 stdvs_suffix = '-stdvs'
 
-def recall_suffix(n: int):
-    if (0 <= n) and (n < len(recall_suffix.suffixes)):
-        return recall_suffix.suffixes[n]
-    raise ValueError(f'There is no suffix with {n} index.')
+def recall_suffix(n: int, proto_kind_suffix = None):
+    if (n < 0) or (n >= len(recall_suffix.suffixes)):
+        raise ValueError(f'There is no suffix with {n} index.')
+    suffix = recall_suffix.suffixes[n]
+    if (n == recall_with_protos) or (n == recall_with_correct_proto):
+        if proto_kind_suffix is None:
+            raise ValueError(f'Suffix cannot be None for recall method {n}')
+        else:
+            suffix += proto_kind_suffix
+    return suffix
 
 recall_suffix.suffixes = [search_suffix, protos_suffix, 
             correct_proto_suffix, cue_suffix]
@@ -338,10 +360,14 @@ def label_suffix(label):
 def dream_depth_suffix(cycle):
     return numeric_suffix('dph', cycle)
 
+def proto_kind_suffix(kind):
+    if kind in proto_kinds:
+        return '-' + kind
+    raise ValueError(f'{kind} is not a prototype kind')
+
 def get_name_w_suffix(prefix):
     suffix = ''
     return prefix + suffix
-
 
 def get_full_name(prefix, es):
     if es is None:

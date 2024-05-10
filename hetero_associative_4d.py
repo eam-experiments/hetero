@@ -251,15 +251,15 @@ class HeteroAssociativeMemory4D:
             euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
-        return self._recall(cue, method, euc, weights, label, 0)
+        return self.recall(cue, method, euc, weights, label, 0)
 
     def recall_from_right(self, cue, method = commons.recall_with_sampling_n_search,
             euc = None, weights = None, label = None):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
-        return self._recall(cue, method, euc, weights, label, 1)
+        return self.recall(cue, method, euc, weights, label, 1)
 
-    def _recall(self, cue, method, euc, weights, label, dim):
+    def recall(self, cue, method, euc, weights, label, dim):
         cue = self.validate(cue, dim)
         if euc is not None:
             euc = self.validate(euc, self.alt(dim))
@@ -698,23 +698,22 @@ class HeteroAssociativeMemory4D:
         frequencies = []
         classifier = self.classifiers[dim]
         for lbl in commons.all_labels:
-            counts = np.zeros(commons.n_labels, dtype=int)
             proto = self._prototypes[dim][lbl]
+            counts = np.zeros(commons.n_labels, dtype=int)
             s = self.rows(dim) * self.sigma
             s_projection = self.adjust(projection, proto, s)
-            if (np.count_nonzero(np.sum(projection, axis=1) == 0) != 0):
-                continue
-            memories = []
-            for i in range(commons.presence_iterations):
-                r_io, _ = self.reduce(s_projection, dim)
-                if not self.is_partial(r_io, dim):
-                    memories.append(r_io)
-            if len(memories) > 0:
-                memories = self.rsize_recalls(np.array(memories), dim)
-                classification = np.argmax(classifier(memories, training=False), axis=1)
-                labels, freqs = np.unique(classification, return_counts=True)
-                for lbl, freq in zip(labels, freqs):
-                    counts[lbl] = freq
+            if (np.count_nonzero(np.sum(s_projection, axis=1) == 0) == 0):
+                memories = []
+                for i in range(commons.presence_iterations):
+                    r_io, _ = self.reduce(s_projection, dim)
+                    if not self.is_partial(r_io, dim):
+                        memories.append(r_io)
+                if len(memories) > 0:
+                    memories = self.rsize_recalls(np.array(memories), dim)
+                    classification = np.argmax(classifier(memories, training=False), axis=1)
+                    labels, freqs = np.unique(classification, return_counts=True)
+                    for lbl, freq in zip(labels, freqs):
+                        counts[lbl] = freq
             frequencies.append(counts)
         return np.array(frequencies, dtype=float)
     

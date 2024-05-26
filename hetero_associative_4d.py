@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gc
 import math
 import random
 import numpy as np
@@ -362,12 +363,6 @@ class HeteroAssociativeMemory4D:
         p = self.choose_from_distrib(coherence)
         s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
         r_io, weights = self.reduce(s_projection, self.alt(dim))
-        # i = 0
-        # while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
-        #         and (i < commons.early_threshold):
-        #     r_io, weights = self.reduce(s_projection, self.alt(dim))
-        #     i += 1
-        #     giving_ups += (i == commons.early_threshold)
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights
@@ -377,12 +372,6 @@ class HeteroAssociativeMemory4D:
                 p = self.choose_from_distrib(coherence)
                 s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
                 q_io, q_ws = self.reduce(s_projection, self.alt(dim))
-                # i = 0
-                # while (np.argmax(classifier(np.expand_dims(r_io, axis=0), training=False), axis=1) != p) \
-                #         and (i < commons.early_threshold):
-                #     q_io, q_ws = self.reduce(s_projection, self.alt(dim))
-                #     i += 1
-                # giving_ups += (i == commons.early_threshold)
                 j += 1
             if self.already_visited(q_io, visited):
                 giving_ups += 1
@@ -715,6 +704,7 @@ class HeteroAssociativeMemory4D:
                     for lbl, freq in zip(labels, freqs):
                         counts[lbl] = freq
             frequencies.append(counts)
+        gc.collect()
         return np.array(frequencies, dtype=float)
     
     def rsize_recalls(self, recalls, dim):

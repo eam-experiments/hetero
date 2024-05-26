@@ -74,7 +74,7 @@ recall_with_sampling_n_search = 0
 recall_with_protos = 1
 recall_with_correct_proto = 2
 recall_with_cue = 3
-sampling_without_search = True
+sampling_without_search = False
 
 sequence_length = 10
 sequence_recall_fill = 64
@@ -208,7 +208,7 @@ nn_training_percent = 0.70
 am_filling_percent = 0.20
 am_testing_percent = 0.10
 # Proportion of testing data used for exploring (preliminary results)
-exploration_percent = 100.0
+exploration_ratio = 1.0
 noise_percent = 50
 
 n_labels = 10

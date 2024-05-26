@@ -1306,7 +1306,7 @@ def hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold):
     match_labels(testing_features, testing_labels)
     total = len(filling_labels[left_ds])
     total_test = len(testing_labels[left_ds])
-    top = int(commons.exploration_percent*total_test)
+    top = int(commons.exploration_ratio*total_test)
     testing_labels[left_ds] = testing_labels[left_ds][:top]
     testing_features[left_ds] = testing_features[left_ds][:top]
     testing_labels[right_ds] = testing_labels[right_ds][:top]

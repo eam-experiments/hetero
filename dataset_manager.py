@@ -38,7 +38,6 @@ def get_testing(dataset, fold, noised = False):
 def _get_segment(dataset, segment, fold, noised = False):
     if (_get_segment.data is None):
         _get_segment.data = _load_dataset(dataset, commons.data_path)
-    print('Delimiting segment of data.')
     # We assume the dataset is balanced
     data, labels = _get_data_in_range(segment, _get_segment.data, fold, noised)
     return data, labels
@@ -164,8 +163,7 @@ def _get_data_in_range(segment, data_per_label, fold, noised):
             n, m = k, l
         dpl = get_data_in_range(data_per_label[label], n, m)
         data += dpl
-    if segment != _TESTING_SEGMENT:
-        random.shuffle(data)
+    random.shuffle(data)
     labels = np.array([d[0] for d in data])
     i = 2 if noised else 1
     data = np.array([d[i] for d in data])

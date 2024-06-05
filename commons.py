@@ -199,7 +199,7 @@ learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
 def dataset_suffix(dataset):
     return '-' + dataset
 
-n_folds = 10
+n_folds = 1
 n_jobs = 4
 random_string_length = 30
 dreaming_cycles = 6
@@ -208,7 +208,7 @@ nn_training_percent = 0.70
 am_filling_percent = 0.20
 am_testing_percent = 0.10
 # Proportion of testing data used for exploring (preliminary results)
-exploration_ratio = 1.0
+exploration_ratio = 0.0715
 noise_percent = 50
 
 n_labels = 10

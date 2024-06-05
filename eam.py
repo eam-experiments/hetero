@@ -1552,69 +1552,20 @@ def remember(recall_method, proto_kind_suffix, es):
     total_confrixes = np.array(total_confrixes, dtype=int)
     total_behaviours = np.array(total_behaviours, dtype=int)
 
-    main_avrge_entropies = np.mean(total_entropies, axis=0)
-    main_stdev_entropies = np.std(total_entropies, axis=0)
     main_avrge_precisions = np.mean(total_precisions, axis=0)
-    main_stdev_precisions = np.std(total_precisions, axis=0)
     main_avrge_recalls = np.mean(total_recalls, axis=0)
-    main_stdev_recalls = np.std(total_recalls, axis=0)
-    main_avrge_confrixes = np.mean(total_confrixes, axis=0)
-    main_stdev_confrixes = np.std(total_confrixes, axis=0)
-    main_avrge_behaviours = np.mean(total_behaviours, axis=0)
-    main_stdev_behaviours = np.std(total_behaviours, axis=0)
-    suffix = commons.recall_suffix(recall_method, proto_kind_suffix)
-    np.savetxt(
-        commons.csv_filename(
-            'remember_average_precision' + suffix, es),
-        main_avrge_precisions, delimiter=',')
-    np.savetxt(
-        commons.csv_filename(
-            'remember_average_recall' + suffix, es),
-        main_avrge_recalls, delimiter=',')
-    np.savetxt(
-        commons.csv_filename(
-            'remember_average_entropy' + suffix, es),
-        main_avrge_entropies, delimiter=',')
-    np.savetxt(
-        commons.csv_filename(
-            'remember_stdev_precision' + suffix, es),
-        main_stdev_precisions, delimiter=',')
-    np.savetxt(
-        commons.csv_filename(
-            'remember_stdev_recall' + suffix, es),
-        main_stdev_recalls, delimiter=',')
-    np.savetxt(
-        commons.csv_filename(
-            'remember_stdev_entropy' + suffix, es),
-        main_stdev_entropies, delimiter=',')
-    np.save(commons.data_filename('remember_mean_behaviours' + suffix, es),
-            main_avrge_behaviours)
-    np.save(commons.data_filename('remember_stdv_behaviours' + suffix, es),
-            main_stdev_behaviours)
-    np.save(commons.data_filename('remember_mean_confrixes' + suffix, es),
-            main_avrge_confrixes)
-    np.save(commons.data_filename('remember_stdv_confrixes' + suffix, es),
-            main_stdev_confrixes)
+    f1 = best_f1(main_avrge_precisions, main_avrge_recalls)
+    return f1
 
-    for i in range(len(commons.datasets)):
-        dataset = commons.datasets[i]
-        plot_prerec_graph(
-            100*main_avrge_precisions[i], 100 *
-            main_avrge_recalls[i], main_avrge_entropies,
-            100*main_stdev_precisions[i], 100*main_stdev_recalls[i], dataset,
-            es, prefix='hetero_remember' + suffix + '-', xlabels=commons.memory_fills,
-            xtitle=_('Percentage of memory corpus'))
-        mean_no_response = main_avrge_behaviours[i, :, commons.no_response_idx]
-        mean_no_correct_response = main_avrge_behaviours[i, :, commons.no_correct_response_idx]
-        mean_correct_response = main_avrge_behaviours[i, :, commons.correct_response_idx]
-        plot_behs_graph(mean_no_response, mean_no_correct_response,
-                mean_correct_response, dataset, es, xtags=commons.memory_fills,
-                prefix='hetero_remember' + suffix + '-')
-        for j, f in enumerate(commons.memory_fills):
-            save_conf_matrix(
-                main_avrge_confrixes[i, j], dataset,
-                f'hetero_remember{suffix}-fll_{str(f).zfill(3)}', es)
-    print('Remembering done!')
+def best_f1(precisions, recalls):
+    best = 0
+    print(f'Shapes: {precisions.shape}, {recalls.shape}')
+    for p, r in zip(precisions, recalls):
+        f1s = 2*p*r/(p+r)
+        f1 = np.mean(f1s)
+        if f1 > best:
+            best = f1
+    return best
 
 def store_memory(image, directory, name, idx, correct, prediction, es, fold):
     filename = commons.memory_image_filename(directory, name, idx, correct, prediction, es, fold)
@@ -1998,7 +1949,29 @@ def run_evaluation(es):
     test_hetero_fills(es)
 
 def generate_memories(recall_method, proto_kind_suffix, es):
-    remember(recall_method, proto_kind_suffix, es)
+    golden_ratio = (math.sqrt(5) + 1) / 2
+    best = optimize_for_sigma(recall_method, proto_kind_suffix, 0.1, 1.0, golden_ratio, es)
+    return best
+
+def optimize_for_sigma(recall_method, proto_kind_suffix, a, b, ratio, es):
+    threshold = 1e-5
+    while abs(a-b) > threshold:
+        print(f'Sigma range for search: [{a}, {b}]')
+        c = b - (b - a) / ratio
+        d = a + (b - a) / ratio
+        es.mem_params[commons.sigma_idx] = c
+        fc = remember(recall_method, proto_kind_suffix, es)
+        es.mem_params[commons.sigma_idx] = d
+        fd = remember(recall_method, proto_kind_suffix, es)
+        print(f'F1c = {fc}, F1d = {fd}')
+        if fc > fd:
+            b = d
+        else:
+            a = c
+        print(f'Search range: a = {a}, b = {b}')
+        print(f'Best guess so far: {(a+b)/2}')
+    print(f'Best sigma: {(a+b)/2}')
+    return (a + b) / 2
 
 def generate_sequences(recall_method, filling_percent, es):
     sequences, labels = sequences_of_memories(recall_method, filling_percent, es)

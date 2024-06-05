@@ -74,6 +74,12 @@ class AssociativeMemory:
             print(f'Memory {{n: {self.n}, m: {self.m}, ' +
                 f'xi: {self.xi}, iota: {self.iota}, ' +
                 f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
+            
+    @classmethod
+    def from_relation(cls, relation: np.array, es: commons.ExperimentSettings = None):
+        n, m = relation.shape
+        return cls(n, m, es, relation)
+
     def __str__(self):
         return str(self.relation)
 

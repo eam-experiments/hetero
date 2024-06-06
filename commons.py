@@ -199,7 +199,7 @@ learning_suffixes = [[original_suffix], [agreed_suffix], [amsystem_suffix],
 def dataset_suffix(dataset):
     return '-' + dataset
 
-n_folds = 1
+n_folds = 3
 n_jobs = 4
 random_string_length = 30
 dreaming_cycles = 6

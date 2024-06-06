@@ -1559,7 +1559,6 @@ def remember(recall_method, proto_kind_suffix, es):
 
 def best_f1(precisions, recalls):
     best = 0
-    print(f'Shapes: {precisions.shape}, {recalls.shape}')
     for p, r in zip(precisions, recalls):
         f1s = 2*p*r/(p+r)
         f1 = np.mean(f1s)
@@ -1954,7 +1953,9 @@ def generate_memories(recall_method, proto_kind_suffix, es):
     return best
 
 def optimize_for_sigma(recall_method, proto_kind_suffix, a, b, ratio, es):
-    threshold = 1e-5
+    threshold = 1e-4
+    fbase = remember(recall_method, proto_kind_suffix, es)
+    print(f'F1 to defeat: {fbase} for sigma = {es.sigma}')
     while abs(a-b) > threshold:
         print(f'Sigma range for search: [{a}, {b}]')
         c = b - (b - a) / ratio
@@ -1968,7 +1969,6 @@ def optimize_for_sigma(recall_method, proto_kind_suffix, a, b, ratio, es):
             b = d
         else:
             a = c
-        print(f'Search range: a = {a}, b = {b}')
         print(f'Best guess so far: {(a+b)/2}')
     print(f'Best sigma: {(a+b)/2}')
     return (a + b) / 2

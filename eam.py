@@ -1559,12 +1559,12 @@ def remember(recall_method, proto_kind_suffix, es):
 
 def best_f1(precisions, recalls):
     best = 0
+    sum = 0
     for p, r in zip(precisions, recalls):
         f1s = 2*p*r/(p+r)
-        f1 = np.mean(f1s)
-        if f1 > best:
-            best = f1
-    return best
+        f1 = np.max(f1s)
+        sum += f1
+    return sum/len(precisions)
 
 def store_memory(image, directory, name, idx, correct, prediction, es, fold):
     filename = commons.memory_image_filename(directory, name, idx, correct, prediction, es, fold)

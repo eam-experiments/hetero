@@ -695,7 +695,8 @@ class HeteroAssociativeMemory4D:
         for lbl in commons.all_labels:
             proto = self._prototypes[dim][lbl]
             counts = np.zeros(commons.n_labels, dtype=int)
-            if am.recognize(proto, validate= False):
+            recognized, _ = am.recognize(proto, validate=False)
+            if recognized:
                 s = self.rows(dim) * self.sigma
                 s_projection = self.adjust(projection, proto, s)
                 if (np.count_nonzero(np.sum(s_projection, axis=1) == 0) == 0):

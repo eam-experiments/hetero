@@ -391,13 +391,17 @@ class HeteroAssociativeMemory4D:
                 last_update = k
         return r_io, weights, [sampling_iterations, last_update, giving_ups, distance]
 
-    def correct_proto_recall(self, cue, cue_weights, label, projection, dim):
+    def correct_proto_recall(self, proto, proto_weights, label, projection, dim):
         sampling_iterations = 0
         last_update = 0
         giving_ups = 0
+        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
+        recognized, _ = am.recognize(proto, validate=False)
+        if not recognized:
+            return None, None, [sampling_iterations, last_update, np.nan]
         s_projection = self.adjust_by_proto(projection, label, self.alt(dim))
         r_io, weights = self.reduce(s_projection, self.alt(dim))
-        distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
+        distance = self.distance_recall(proto, proto_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights
         for k in range(commons.sample_size):
@@ -409,7 +413,7 @@ class HeteroAssociativeMemory4D:
                 giving_ups += 1
                 continue
             visited.append(q_io)
-            d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+            d = self.distance_recall(proto, proto_weights, q_io, q_ws, dim)
             if d < distance:
                 r_io = q_io
                 weights = q_ws
@@ -419,6 +423,10 @@ class HeteroAssociativeMemory4D:
         return r_io, weights, [sampling_iterations, last_update, giving_ups, distance]
 
     def cue_recall(self, euc, projection, dim):
+        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
+        recognized, _ = am.recognize(euc, validate=False)
+        if not recognized:
+            return None, None, [0.0]
         s = self.rows(self.alt(dim)) * self.sigma
         s_projection = self.adjust(projection, euc, s)
         r_io, weights = self.reduce(s_projection, self.alt(dim))

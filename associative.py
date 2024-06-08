@@ -29,7 +29,7 @@ def normpdf(x, mean, sd, scale = 1.0):
 
 
 class AssociativeMemory:
-    def __init__(self, n: int, m: int, es: commons.ExperimentSettings = None, relation = None):
+    def __init__(self, n: int, m: int, es: commons.ExperimentSettings = None, relation = None, verbose = False):
         """
         Parameters
         ----------
@@ -70,9 +70,10 @@ class AssociativeMemory:
         # A flag to know whether iota-relation, entropies and means
         # are up to date.
         self._updated = True if relation is None else self.update()
-        print(f'Memory {{n: {self.n}, m: {self.m}, ' +
-            f'xi: {self.xi}, iota: {self.iota}, ' +
-            f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
+        if verbose:
+            print(f'Memory {{n: {self.n}, m: {self.m}, ' +
+                f'xi: {self.xi}, iota: {self.iota}, ' +
+                f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
             
     @classmethod
     def from_relation(cls, relation: np.array, es: commons.ExperimentSettings = None):

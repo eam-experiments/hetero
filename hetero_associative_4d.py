@@ -181,7 +181,7 @@ class HeteroAssociativeMemory4D:
 
     @property
     def exp_settings_2d(self):
-        // Iota has already been applied to the 4D relation.
+        # Iota has already been applied to the 4D relation.
         return commons.ExperimentSettings(iota = 0.0, kappa = self.kappa, xi = math.sqrt(self.xi), sigma = self.sigma)
     
     @property

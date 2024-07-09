@@ -181,7 +181,7 @@ class HeteroAssociativeMemory4D:
 
     @property
     def exp_settings_2d(self):
-        // Iota has already been applied to the 4D relation.
+        # Iota has already been applied to the 4D relation.
         return commons.ExperimentSettings(iota = 0.0, kappa = self.kappa, xi = math.sqrt(self.xi), sigma = self.sigma)
     
     @property
@@ -235,7 +235,7 @@ class HeteroAssociativeMemory4D:
         if weights_b is None:
             weights_b = np.full(len(cue_b), fill_value=1)
         recognized, weights = self.recog_full_weights(cue_a, cue_b, weights_a, weights_b, final = False)
-        mean_weight = np.mean(weights)
+        mean_weight = np.sum(weights)
         recognized = recognized and (self._kappa*self.mean <= mean_weight)
         return recognized, mean_weight
 
@@ -251,7 +251,7 @@ class HeteroAssociativeMemory4D:
         recognized = np.count_nonzero(implication == 0) <= self._xi
         weights = self._weights(r_io)
         if final:
-            recognized = recognized and (self._kappa*self.mean <= np.mean(weights))
+            recognized = recognized and (self._kappa*self.mean <= np.sum(weights))
         return recognized, weights
 
     def recall_from_left(self, cue, method = commons.recall_with_sampling_n_search,
@@ -584,7 +584,7 @@ class HeteroAssociativeMemory4D:
         return norm*column
     
     def _weights(self, r_io):
-        r = r_io*np.count_nonzero(r_io)/np.sum(r_io)
+        r = r_io/np.sum(r_io)
         weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
         return weights
         

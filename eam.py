@@ -76,21 +76,32 @@ FP = (1, 0)
 TN = (1, 1)
 
 
-def plot_prerec_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
-                   es, acc_mean=None, acc_std=None,
-                   prefix='', xlabels=None,
-                   xtitle=None, ytitle=None):
-    """ Plots a precision and recall graph.
-    
-        It can also include accuracy, and it can be used to to graph any
-        measure in percentages.
+def plot_prerec_graph(
+    pre_mean,
+    rec_mean,
+    ent_mean,
+    pre_std,
+    rec_std,
+    dataset,
+    es,
+    acc_mean=None,
+    acc_std=None,
+    prefix='',
+    xlabels=None,
+    xtitle=None,
+    ytitle=None,
+):
+    """Plots a precision and recall graph.
+
+    It can also include accuracy, and it can be used to to graph any
+    measure in percentages.
     """
     plt.figure(figsize=(6.4, 4.8))
     full_length = 100.0
     step = 0.1
     if xlabels is None:
         xlabels = commons.memory_sizes
-    main_step = full_length/len(xlabels)
+    main_step = full_length / len(xlabels)
     x = np.arange(0, full_length, main_step)
 
     # One main step less because levels go on sticks, not
@@ -106,8 +117,9 @@ def plot_prerec_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
     plt.errorbar(x, pre_mean, fmt='r-o', yerr=pre_std, capsize=3, label=_('Precision'))
     plt.errorbar(x, rec_mean, fmt='b--s', yerr=rec_std, capsize=3, label=_('Recall'))
     if (acc_mean is not None) and (acc_std is not None):
-        plt.errorbar(x, acc_mean, fmt='g--d',
-                     yerr=acc_std, capsize=3, label=_('Accuracy'))
+        plt.errorbar(
+            x, acc_mean, fmt='g--d', yerr=acc_std, capsize=3, label=_('Accuracy')
+        )
     plt.xlim(0, xmax)
     plt.ylim(0, ymax)
     plt.xticks(x, xlabels)
@@ -123,8 +135,7 @@ def plot_prerec_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
 
     entropy_labels = [str(e) for e in np.around(ent_mean, decimals=1)]
 
-    cmap = mpl.colors.LinearSegmentedColormap.from_list(
-        'mycolors', ['cyan', 'purple'])
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors', ['cyan', 'purple'])
     z = [[0, 0], [0, 0]]
     levels = np.arange(0.0, xmax, step)
     cs3 = plt.contourf(z, levels, cmap=cmap)
@@ -140,11 +151,13 @@ def plot_prerec_graph(pre_mean, rec_mean, ent_mean, pre_std, rec_std, dataset,
     plt.close()
 
 
-def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, prefix=''):
-    """ Plots the behaviours graph.
-    
-        A behaviour graph is a stacked bars graph that representes three exclusive types
-        of all possible responses: no response, no correct response, and correct response.
+def plot_behs_graph(
+    no_response, no_correct, correct, dataset, es, xtags=None, prefix=''
+):
+    """Plots the behaviours graph.
+
+    A behaviour graph is a stacked bars graph that representes three exclusive types
+    of all possible responses: no response, no correct response, and correct response.
     """
     plt.clf()
     print('Behaviours: ')
@@ -152,7 +165,7 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     print(f'No correct response: {no_correct}')
     print(f'Correct response: {correct}')
     for i in range(len(no_response)):
-        total = (no_response[i] + no_correct[i] + correct[i])/100.0
+        total = (no_response[i] + no_correct[i] + correct[i]) / 100.0
         no_response[i] /= total
         no_correct[i] /= total
         correct[i] /= total
@@ -160,14 +173,14 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     step = 0.1
     if xtags is None:
         xtags = commons.memory_sizes
-    main_step = full_length/len(xtags)
+    main_step = full_length / len(xtags)
     x = np.arange(0.0, full_length, main_step)
 
     # One main step less because levels go on sticks, not
     # on intervals.
     xmax = full_length - main_step + step
     ymax = full_length
-    width = 5       # the width of the bars: can also be len(x) sequence
+    width = 5  # the width of the bars: can also be len(x) sequence
 
     plt.bar(x, correct, width, label=_('Correct response'))
     cumm = np.array(correct)
@@ -191,9 +204,10 @@ def plot_behs_graph(no_response, no_correct, correct, dataset, es, xtags=None, p
     plt.close()
 
 
-def plot_histo_bar(frequencies, dataset, es, xtags=None, xlabel='Categories', label=None, name=''):
-    """ Plots a histogram graph.
-    """
+def plot_histo_bar(
+    frequencies, dataset, es, xtags=None, xlabel='Categories', label=None, name=''
+):
+    """Plots a histogram graph."""
     plt.clf()
     # full_length = 100.0
     # step = 0.1
@@ -202,7 +216,7 @@ def plot_histo_bar(frequencies, dataset, es, xtags=None, xlabel='Categories', la
         xtags = x
     # main_step = full_length/len(frequencies)
     # x = np.arange(0.0, full_length, main_step)
-    frequencies = 100*frequencies / np.sum(frequencies)
+    frequencies = 100 * frequencies / np.sum(frequencies)
     # One main step less because levels go on sticks, not
     # on intervals.
     # xmax = full_length - main_step + step
@@ -227,7 +241,7 @@ def plot_histo_bar(frequencies, dataset, es, xtags=None, xlabel='Categories', la
 
 
 def plot_features_graph(domain, means, stdevs, labels, dataset, es):
-    """ Draws the characterist shape of features per label.
+    """Draws the characterist shape of features per label.
 
     The graph is a dots and lines graph with error bars denoting standard deviations.
     """
@@ -235,8 +249,8 @@ def plot_features_graph(domain, means, stdevs, labels, dataset, es):
     ymax = np.NINF
     for i in commons.all_labels:
         for j in range(2):
-            yn = (means[j,i] - stdevs[j,i]).min()
-            yx = (means[j,i] + stdevs[j,i]).max()
+            yn = (means[j, i] - stdevs[j, i]).min()
+            yx = (means[j, i] + stdevs[j, i]).max()
             ymin = ymin if ymin < yn else yn
             ymax = ymax if ymax > yx else yx
     main_step = 100.0 / domain
@@ -244,10 +258,18 @@ def plot_features_graph(domain, means, stdevs, labels, dataset, es):
     fmts = commons.proto_formats
     for i in commons.all_labels:
         plt.clf()
-        plt.figure(figsize=(12,5))
+        plt.figure(figsize=(12, 5))
         for j in range(len(labels)):
-            plt.errorbar(xrange, means[j,i], fmt=fmts[j], yerr=stdevs[j,i],
-                    ecolor='silver', elinewidth=0.5, capsize=3, label=labels[j])
+            plt.errorbar(
+                xrange,
+                means[j, i],
+                fmt=fmts[j],
+                yerr=stdevs[j, i],
+                ecolor='silver',
+                elinewidth=0.5,
+                capsize=3,
+                label=labels[j],
+            )
         plt.xlim(0, 100)
         plt.ylim(ymin, ymax)
         plt.xticks(xrange, labels='')
@@ -255,19 +277,28 @@ def plot_features_graph(domain, means, stdevs, labels, dataset, es):
         plt.ylabel(_('Values'))
         plt.legend(loc='best')
         plt.grid(axis='y')
-        filename = commons.features_name(dataset, es) + '-' + str(i).zfill(3) + _('-english')
+        filename = (
+            commons.features_name(dataset, es) + '-' + str(i).zfill(3) + _('-english')
+        )
         plt.savefig(commons.picture_filename(filename, es), dpi=600)
     plt.close()
 
 
 def plot_confusion_matrix(matrix, tags, dataset, es, prefix='', vmin=0.0, vmax=None):
-    """ Plots the confusion matrix of labels vs predictions."""
+    """Plots the confusion matrix of labels vs predictions."""
     plt.clf()
     plt.figure(figsize=(6.4, 4.8))
     if vmax is None:
         vmax = np.max(matrix)
-    seaborn.heatmap(matrix, xticklabels=tags, yticklabels=tags,
-                    vmin=vmin, vmax=vmax, annot=False, cmap='Blues')
+    seaborn.heatmap(
+        matrix,
+        xticklabels=tags,
+        yticklabels=tags,
+        vmin=vmin,
+        vmax=vmax,
+        annot=False,
+        cmap='Blues',
+    )
     plt.xlabel(_('Prediction'))
     plt.ylabel(_('Label'))
     fname = prefix + commons.matrix_suffix + '-' + dataset + _('-english')
@@ -276,9 +307,10 @@ def plot_confusion_matrix(matrix, tags, dataset, es, prefix='', vmin=0.0, vmax=N
     plt.close()
 
 
-def plot_relation(relation, prefix, xlabel = 'Characteristics', 
-        ylabel = 'Values', es=None, fold=None):
-    """ Plots a relation (table) as a heat map."""
+def plot_relation(
+    relation, prefix, xlabel='Characteristics', ylabel='Values', es=None, fold=None
+):
+    """Plots a relation (table) as a heat map."""
     plt.clf()
     plt.figure(figsize=(6.4, 4.8))
     seaborn.heatmap(np.transpose(relation), annot=False, cmap='coolwarm')
@@ -292,18 +324,17 @@ def plot_relation(relation, prefix, xlabel = 'Characteristics',
 
 
 def plot_distances(distances, prefix, es=None, fold=None):
-    """ Plots a matrix of distances between categories (labels) in a dataset."""
+    """Plots a matrix of distances between categories (labels) in a dataset."""
     plot_relation(distances, prefix, xlabel='Label', ylabel='Label', es=es, fold=fold)
 
 
 def features_distance(f, g):
-    """ Calculates euclidean distance between two arrays of features."""
+    """Calculates euclidean distance between two arrays of features."""
     return np.linalg.norm(f - g)
 
 
-def stats_measures(filling_features, filling_labels,
-                   testing_features, testing_labels):
-    """ Calculates mean and standard deviation for each feature element per label."""
+def stats_measures(filling_features, filling_labels, testing_features, testing_labels):
+    """Calculates mean and standard deviation for each feature element per label."""
     filling_fpl = {}
     testing_fpl = {}
     for label in range(commons.n_labels):
@@ -313,8 +344,8 @@ def stats_measures(filling_features, filling_labels,
         filling_fpl[label].append(features)
     for features, label in zip(testing_features, testing_labels):
         testing_fpl[label].append(features)
-    means = np.zeros((commons.n_labels+1, 2), dtype=float)
-    stdvs = np.zeros((commons.n_labels+1, 2), dtype=float)
+    means = np.zeros((commons.n_labels + 1, 2), dtype=float)
+    stdvs = np.zeros((commons.n_labels + 1, 2), dtype=float)
     for label in range(commons.n_labels):
         means[label, 0] = np.mean(filling_fpl[label])
         means[label, 1] = np.mean(testing_fpl[label])
@@ -327,8 +358,9 @@ def stats_measures(filling_features, filling_labels,
     return means, stdvs
 
 
-def distance_matrices(filling_features, filling_labels,
-                      testing_features, testing_labels):
+def distance_matrices(
+    filling_features, filling_labels, testing_features, testing_labels
+):
     ff_dist = {}
     ft_dist = {}
     for l1 in range(commons.n_labels):
@@ -377,24 +409,25 @@ def features_per_fold(dataset, es, fold):
     suffix = commons.filling_suffix
     filling_features_filename = commons.features_name(dataset, es) + suffix
     filling_features_filename = commons.data_filename(
-        filling_features_filename, es, fold)
+        filling_features_filename, es, fold
+    )
     filling_labels_filename = commons.labels_name(dataset, es) + suffix
-    filling_labels_filename = commons.data_filename(
-        filling_labels_filename, es, fold)
+    filling_labels_filename = commons.data_filename(filling_labels_filename, es, fold)
 
     suffix = commons.testing_suffix
     testing_features_filename = commons.features_name(dataset, es) + suffix
     testing_features_filename = commons.data_filename(
-        testing_features_filename, es, fold)
+        testing_features_filename, es, fold
+    )
     testing_labels_filename = commons.labels_name(dataset, es) + suffix
-    testing_labels_filename = commons.data_filename(
-        testing_labels_filename, es, fold)
+    testing_labels_filename = commons.data_filename(testing_labels_filename, es, fold)
 
     filling_features = np.load(filling_features_filename)
     filling_labels = np.load(filling_labels_filename)
     testing_features = np.load(testing_features_filename)
     testing_labels = np.load(testing_labels_filename)
     return filling_features, filling_labels, testing_features, testing_labels
+
 
 def match_labels(features, labels, half=False):
     right_features = []
@@ -411,14 +444,18 @@ def match_labels(features, labels, half=False):
     midx = round(len(labels[smaller_ds]) * 4.0 / 9.0)
     matching_labels = labels[smaller_ds][:midx] if half else labels[smaller_ds]
     counter = 0
-    print(f'Matching {len(labels[smaller_ds])} in {smaller_ds} '
-            + f' with {len(labels[larger_ds])} in {larger_ds}:')
+    print(
+        f'Matching {len(labels[smaller_ds])} in {smaller_ds} '
+        + f' with {len(labels[larger_ds])} in {larger_ds}:'
+    )
     for left_label in matching_labels:
         while last in used_idx:
             last += 1
         i = last
         found = False
-        for right_feats, right_label in zip(features[larger_ds][i:], labels[larger_ds][i:]):
+        for right_feats, right_label in zip(
+            features[larger_ds][i:], labels[larger_ds][i:]
+        ):
             if (i not in used_idx) and (left_label == right_label):
                 right_features.append(right_feats)
                 right_labels.append(right_label)
@@ -461,7 +498,7 @@ def describe(features, labels):
         right_label = labels[right_ds][i]
         left_counts[left_label] += 1
         right_counts[right_label] += 1
-        matching += (left_label == right_label)
+        matching += left_label == right_label
     print(f'Matching labels: {matching}')
     print(f'Unmatching labels: {minimum - matching}')
     print(f'Left labels counts: {left_counts}')
@@ -500,21 +537,26 @@ def normality_test(relation):
 
 
 def statistics_per_fold(dataset, es, fold):
-    filling_features, filling_labels, \
-        testing_features, testing_labels = features_per_fold(dataset, es, fold)
+    filling_features, filling_labels, testing_features, testing_labels = (
+        features_per_fold(dataset, es, fold)
+    )
     print(f'Calculating statistics for fold {fold}')
-    return stats_measures(filling_features, filling_labels,
-                          testing_features, testing_labels)
+    return stats_measures(
+        filling_features, filling_labels, testing_features, testing_labels
+    )
 
 
 def distances_per_fold(dataset, es, fold):
-    filling_features, filling_labels, \
-        testing_features, testing_labels = features_per_fold(dataset, es, fold)
+    filling_features, filling_labels, testing_features, testing_labels = (
+        features_per_fold(dataset, es, fold)
+    )
 
     print(f'Calculating distances for fold {fold}')
-    means, stdvs = distance_matrices(filling_features, filling_labels,
-                                     testing_features, testing_labels)
+    means, stdvs = distance_matrices(
+        filling_features, filling_labels, testing_features, testing_labels
+    )
     return means, stdvs
+
 
 def load_dataset_feats_n_labels(dataset, fold, es):
     features_filename = commons.features_name(dataset, es) + commons.filling_suffix
@@ -531,22 +573,26 @@ def load_dataset_feats_n_labels(dataset, fold, es):
     testing_labels = np.load(labels_filename)
     return filling_features, filling_labels, testing_features, testing_labels
 
+
 def load_features_n_labels(fold, es):
     filling_features = {}
     filling_labels = {}
     testing_features = {}
     testing_labels = {}
     for dataset in commons.datasets:
-        filling_features[dataset], filling_labels[dataset], \
-        testing_features[dataset], testing_labels[dataset], \
-                = load_dataset_feats_n_labels(dataset, fold, es)
+        (
+            filling_features[dataset],
+            filling_labels[dataset],
+            testing_features[dataset],
+            testing_labels[dataset],
+        ) = load_dataset_feats_n_labels(dataset, fold, es)
     return filling_features, filling_labels, testing_features, testing_labels
+
 
 def recognize_by_memory(eam, tef_rounded, tel, msize, qd, classifier):
     data = []
     labels = []
-    confrix = np.zeros(
-        (commons.n_labels, commons.n_labels+1), dtype='int')
+    confrix = np.zeros((commons.n_labels, commons.n_labels + 1), dtype='int')
     behaviour = np.zeros(commons.n_behaviours, dtype=np.float64)
     unknown = 0
     for features, label in zip(tef_rounded, tel):
@@ -565,11 +611,13 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, qd, classifier):
             # For calculation of per memory precision and recall
             confrix[correct, prediction] += 1
     behaviour[commons.no_response_idx] = unknown
-    behaviour[commons.correct_response_idx] = \
-        np.sum([confrix[i, i] for i in range(commons.n_labels)])
+    behaviour[commons.correct_response_idx] = np.sum(
+        [confrix[i, i] for i in range(commons.n_labels)]
+    )
 
-    behaviour[commons.no_correct_response_idx] = \
+    behaviour[commons.no_correct_response_idx] = (
         len(tel) - unknown - behaviour[commons.correct_response_idx]
+    )
     print(f'Unknown elements: {unknown}')
     print(f'Confusion matrix:\n{confrix}')
     print(f'Behaviour: {behaviour}')
@@ -577,21 +625,27 @@ def recognize_by_memory(eam, tef_rounded, tel, msize, qd, classifier):
 
 
 def recognize_by_hetero_memory(
-        hetero_eam: HeteroAssociativeMemory,
-        left_eam: AssociativeMemory,
-        right_eam: AssociativeMemory,
-        tefs, tels):
+    hetero_eam: HeteroAssociativeMemory,
+    left_eam: AssociativeMemory,
+    right_eam: AssociativeMemory,
+    tefs,
+    tels,
+):
     confrix = np.zeros((2, 2), dtype=int)
     weights = {'TP': [], 'FN': [], 'FP': [], 'TN': []}
     print('Recognizing by hetero memory')
     counter = 0
-    for left_feat, left_lab, right_feat, right_lab \
-            in zip(tefs[commons.left_dataset], tels[commons.left_dataset],
-                   tefs[commons.right_dataset], tels[commons.right_dataset]):
+    for left_feat, left_lab, right_feat, right_lab in zip(
+        tefs[commons.left_dataset],
+        tels[commons.left_dataset],
+        tefs[commons.right_dataset],
+        tels[commons.right_dataset],
+    ):
         _, left_weights = left_eam.recog_weights(left_feat)
         _, right_weights = right_eam.recog_weights(right_feat)
         recognized, weight = hetero_eam.recognize(
-            left_feat, right_feat, left_weights, right_weights)
+            left_feat, right_feat, left_weights, right_weights
+        )
         if recognized:
             if left_lab == right_lab:
                 confrix[TP] += 1
@@ -614,16 +668,25 @@ def recognize_by_hetero_memory(
     return confrix
 
 
-def recall_by_hetero_memory(remembered_dataset, recall,
-        eam_origin: AssociativeMemory,
-        eam_destination: AssociativeMemory,
-        classifier, a_features, b_features, b_labels,
-        msize, recall_method, mfill, qd, mean_weight):
+def recall_by_hetero_memory(
+    remembered_dataset,
+    recall,
+    eam_origin: AssociativeMemory,
+    eam_destination: AssociativeMemory,
+    classifier,
+    a_features,
+    b_features,
+    b_labels,
+    msize,
+    recall_method,
+    mfill,
+    qd,
+    mean_weight,
+):
     gc.collect()
     # Each row is a correct label and each column is the prediction, including
     # no recognition.
-    confrix = np.zeros(
-        (commons.n_labels, commons.n_labels+1), dtype='int')
+    confrix = np.zeros((commons.n_labels, commons.n_labels + 1), dtype='int')
     behaviour = np.zeros(commons.n_behaviours, dtype=int)
     indexes = []
     memories = []
@@ -635,10 +698,14 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     print('Remembering ', end='')
     counter = 0
     counter_name = commons.set_counter()
-    for idx, (a_feats, b_feats, label) in enumerate(zip(a_features, b_features, b_labels)):
-        memory, recognized, weight, relation, s = recall(
-                a_feats, recall_method) if recall_method == commons.recall_with_sampling_n_search else recall(
-                        a_feats, recall_method, euc = b_feats, weights = None, label = label)
+    for idx, (a_feats, b_feats, label) in enumerate(
+        zip(a_features, b_features, b_labels)
+    ):
+        memory, recognized, weight, relation, s = (
+            recall(a_feats, recall_method)
+            if recall_method == commons.recall_with_sampling_n_search
+            else recall(a_feats, recall_method, euc=b_feats, weights=None, label=label)
+        )
         if recognized:
             stats.append(s)
             indexes.append(idx)
@@ -646,17 +713,28 @@ def recall_by_hetero_memory(remembered_dataset, recall,
             correct.append(label)
             mem_weights.append(weight)
             if random.randrange(100) == 0:
-                prefix = 'projection-' + remembered_dataset + \
-                    '-fill_' + str(int(mfill)).zfill(3) + \
-                    '-lbl_' + str(label).zfill(3)
+                prefix = (
+                    'projection-'
+                    + remembered_dataset
+                    + '-fill_'
+                    + str(int(mfill)).zfill(3)
+                    + '-lbl_'
+                    + str(label).zfill(3)
+                )
                 plot_relation(relation, prefix)
         else:
             unknown += 1
             confrix[label, commons.n_labels] += 1
             unknown_weights.append(weight)
         counter += 1
-        commons.print_counter(counter, 1000, 100, symbol='+',
-            prefix = f'(Recognized : {len(memories)})', name = counter_name)
+        commons.print_counter(
+            counter,
+            1000,
+            100,
+            symbol='+',
+            prefix=f'(Recognized : {len(memories)})',
+            name=counter_name,
+        )
     print(' done')
     correct_weights = []
     incorrect_weights = []
@@ -667,7 +745,9 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     if len(memories) > 0:
         memories = qd.dequantize(np.array(memories), msize)
         predictions = np.argmax(classifier.predict(memories), axis=1)
-        for label, prediction, weight, s in zip(correct, predictions, mem_weights, stats):
+        for label, prediction, weight, s in zip(
+            correct, predictions, mem_weights, stats
+        ):
             # For calculation of per memory precision and recall
             confrix[label, prediction] += 1
             if label == prediction:
@@ -679,40 +759,53 @@ def recall_by_hetero_memory(remembered_dataset, recall,
     print(' done')
     print(' end')
     behaviour[commons.no_response_idx] = unknown
-    behaviour[commons.correct_response_idx] = \
-        np.sum([confrix[i, i] for i in range(commons.n_labels)])
-    behaviour[commons.no_correct_response_idx] = \
-        len(b_labels) - unknown - \
-        behaviour[commons.correct_response_idx]
+    behaviour[commons.correct_response_idx] = np.sum(
+        [confrix[i, i] for i in range(commons.n_labels)]
+    )
+    behaviour[commons.no_correct_response_idx] = (
+        len(b_labels) - unknown - behaviour[commons.correct_response_idx]
+    )
     print(f'Confusion matrix:\n{confrix}')
-    print(f'Behaviour: nr = {behaviour[commons.no_response_idx]}, ' +
-          f'ir = {behaviour[commons.no_correct_response_idx]}, ' +
-          f'cr = {behaviour[commons.correct_response_idx]}')
-    unknown_weights_mean = 0.0 if len(unknown_weights) == 0 \
-        else np.mean(unknown_weights/mean_weight)
-    unknown_weights_stdv = 0.0 if len(unknown_weights) == 0 \
-        else np.std(unknown_weights/mean_weight)
-    incorrect_weights_mean = 0.0 if len(incorrect_weights) == 0 \
-        else np.mean(incorrect_weights/mean_weight)
-    incorrect_weights_stdv = 0.0 if len(incorrect_weights) == 0 \
-        else np.std(incorrect_weights/mean_weight)
-    correct_weights_mean = 0.0 if len(correct_weights) == 0 \
-        else np.mean(correct_weights/mean_weight)
-    correct_weights_stdv = 0.0 if len(correct_weights) == 0 \
-        else np.std(correct_weights/mean_weight)
+    print(
+        f'Behaviour: nr = {behaviour[commons.no_response_idx]}, '
+        + f'ir = {behaviour[commons.no_correct_response_idx]}, '
+        + f'cr = {behaviour[commons.correct_response_idx]}'
+    )
+    unknown_weights_mean = (
+        0.0 if len(unknown_weights) == 0 else np.mean(unknown_weights / mean_weight)
+    )
+    unknown_weights_stdv = (
+        0.0 if len(unknown_weights) == 0 else np.std(unknown_weights / mean_weight)
+    )
+    incorrect_weights_mean = (
+        0.0 if len(incorrect_weights) == 0 else np.mean(incorrect_weights / mean_weight)
+    )
+    incorrect_weights_stdv = (
+        0.0 if len(incorrect_weights) == 0 else np.std(incorrect_weights / mean_weight)
+    )
+    correct_weights_mean = (
+        0.0 if len(correct_weights) == 0 else np.mean(correct_weights / mean_weight)
+    )
+    correct_weights_stdv = (
+        0.0 if len(correct_weights) == 0 else np.std(correct_weights / mean_weight)
+    )
     print(f'Mean weight: {mean_weight}')
-    print(f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), ' + 
-        f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), ' +
-          f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})')
-    
+    print(
+        f'Weights: correct = ({correct_weights_mean}, {correct_weights_stdv}), '
+        + f'incorrect = ({incorrect_weights_mean}, {incorrect_weights_stdv}), '
+        + f'unknown = ({unknown_weights_mean}, {unknown_weights_stdv})'
+    )
+
     if len(stats) > 0:
         stats = np.array(stats)
         stats_mean = np.mean(stats, axis=0)
         stats_stdv = np.std(stats, axis=0)
         stats_skew = scipy.stats.skew(stats)
         stats_kurt = scipy.stats.kurtosis(stats)
-        print(f'Stats: mean = {stats_mean}, stdv = {stats_stdv}, ' +
-                f'skew = {stats_skew}, kurt = {stats_kurt}.')
+        print(
+            f'Stats: mean = {stats_mean}, stdv = {stats_stdv}, '
+            + f'skew = {stats_skew}, kurt = {stats_kurt}.'
+        )
     else:
         print('Stats not available')
     if len(correct_stats) > 0:
@@ -721,8 +814,10 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         correct_stats_stdv = np.std(correct_stats, axis=0)
         correct_stats_skew = scipy.stats.skew(correct_stats)
         correct_stats_kurt = scipy.stats.kurtosis(correct_stats)
-        print(f'Stats of correct: mean = {correct_stats_mean}, stdev = {correct_stats_stdv}, ' + 
-                f'skew = {correct_stats_skew}, kurt = {correct_stats_kurt}.')
+        print(
+            f'Stats of correct: mean = {correct_stats_mean}, stdev = {correct_stats_stdv}, '
+            + f'skew = {correct_stats_skew}, kurt = {correct_stats_kurt}.'
+        )
     else:
         print('Stats of correct not available')
     if len(incorrect_stats) > 0:
@@ -731,17 +826,30 @@ def recall_by_hetero_memory(remembered_dataset, recall,
         incorrect_stats_stdv = np.std(incorrect_stats, axis=0)
         incorrect_stats_skew = scipy.stats.skew(incorrect_stats)
         incorrect_stats_kurt = scipy.stats.kurtosis(incorrect_stats)
-        print(f'Stats of incorrect: mean = {incorrect_stats_mean}, stdev = {incorrect_stats_stdv}, ' + 
-                f'skew = {incorrect_stats_skew}, kurt = {incorrect_stats_kurt}.')
+        print(
+            f'Stats of incorrect: mean = {incorrect_stats_mean}, stdev = {incorrect_stats_stdv}, '
+            + f'skew = {incorrect_stats_skew}, kurt = {incorrect_stats_kurt}.'
+        )
     else:
         print('Stats of incorrect not available')
     return confrix, behaviour, memories, indexes, correct, predictions
 
-def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
-                              left_eam: AssociativeMemory, right_eam: AssociativeMemory,
-                              left_classifier, right_classifier,
-                              testing_features, testing_labels,
-                              qudeqs, recall_method, proto_kind_suffix, percent, es, fold):
+
+def remember_by_hetero_memory(
+    eam: HeteroAssociativeMemory,
+    left_eam: AssociativeMemory,
+    right_eam: AssociativeMemory,
+    left_classifier,
+    right_classifier,
+    testing_features,
+    testing_labels,
+    qudeqs,
+    recall_method,
+    proto_kind_suffix,
+    percent,
+    es,
+    fold,
+):
     left_ds = commons.left_dataset
     right_ds = commons.right_dataset
     rows = commons.codomains()
@@ -750,47 +858,101 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     mean_weight = eam.mean
     print('Remembering from left by hetero memory')
     qd = qudeqs[right_ds]
-    confrix, behaviour, memories, indexes, correct, predictions = recall_by_hetero_memory(right_ds,
-            eam.recall_from_left, left_eam, right_eam, right_classifier,
-            testing_features[left_ds], testing_features[right_ds], testing_labels[right_ds],
-            rows[right_ds], recall_method, percent, qd, mean_weight)
+    confrix, behaviour, memories, indexes, correct, predictions = (
+        recall_by_hetero_memory(
+            right_ds,
+            eam.recall_from_left,
+            left_eam,
+            right_eam,
+            right_classifier,
+            testing_features[left_ds],
+            testing_features[right_ds],
+            testing_labels[right_ds],
+            rows[right_ds],
+            recall_method,
+            percent,
+            qd,
+            mean_weight,
+        )
+    )
     confrixes.append(confrix)
     behaviours.append(behaviour)
-    name = commons.memories_name(left_ds, es) \
-            + commons.recall_suffix(recall_method, proto_kind_suffix) \
-            + commons.int_suffix(percent, 'fll')
+    name = (
+        commons.memories_name(left_ds, es)
+        + commons.recall_suffix(recall_method, proto_kind_suffix)
+        + commons.int_suffix(percent, 'fll')
+    )
     filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
     labels = np.array([indexes, correct, predictions], dtype=int).transpose()
-    name = commons.recall_labels_name(left_ds, es) \
-            + commons.recall_suffix(recall_method, proto_kind_suffix) \
-            + commons.int_suffix(percent, 'fll')
+    name = (
+        commons.recall_labels_name(left_ds, es)
+        + commons.recall_suffix(recall_method, proto_kind_suffix)
+        + commons.int_suffix(percent, 'fll')
+    )
     filename = commons.data_filename(name, es, fold)
     np.save(filename, labels)
-    decode_memories(memories, indexes, correct, predictions, left_ds, percent,
-            recall_method, proto_kind_suffix, es, fold)
+    decode_memories(
+        memories,
+        indexes,
+        correct,
+        predictions,
+        left_ds,
+        percent,
+        recall_method,
+        proto_kind_suffix,
+        es,
+        fold,
+    )
 
     print('Remembering from right by hetero memory')
     qd = qudeqs[left_ds]
-    confrix, behaviour, memories, indexes, correct, predictions = recall_by_hetero_memory(left_ds,
-            eam.recall_from_right, right_eam, left_eam, left_classifier,
-            testing_features[right_ds], testing_features[left_ds], testing_labels[left_ds],
-            rows[left_ds], recall_method, percent, qd, mean_weight)
+    confrix, behaviour, memories, indexes, correct, predictions = (
+        recall_by_hetero_memory(
+            left_ds,
+            eam.recall_from_right,
+            right_eam,
+            left_eam,
+            left_classifier,
+            testing_features[right_ds],
+            testing_features[left_ds],
+            testing_labels[left_ds],
+            rows[left_ds],
+            recall_method,
+            percent,
+            qd,
+            mean_weight,
+        )
+    )
     confrixes.append(confrix)
     behaviours.append(behaviour)
-    name = commons.memories_name(right_ds, es) \
-            + commons.recall_suffix(recall_method, proto_kind_suffix) \
-            + commons.int_suffix(percent, 'fll')
+    name = (
+        commons.memories_name(right_ds, es)
+        + commons.recall_suffix(recall_method, proto_kind_suffix)
+        + commons.int_suffix(percent, 'fll')
+    )
     filename = commons.data_filename(name, es, fold)
     np.save(filename, memories)
     labels = np.array([indexes, correct, predictions], dtype=int).transpose()
-    name = commons.recall_labels_name(right_ds, es) \
-            + commons.recall_suffix(recall_method, proto_kind_suffix) \
-            + commons.int_suffix(percent, 'fll')
+    name = (
+        commons.recall_labels_name(right_ds, es)
+        + commons.recall_suffix(recall_method, proto_kind_suffix)
+        + commons.int_suffix(percent, 'fll')
+    )
     filename = commons.data_filename(name, es, fold)
     np.save(filename, labels)
-    decode_memories(memories, indexes, correct, predictions, right_ds, percent,
-            recall_method, proto_kind_suffix, es, fold)
+    decode_memories(
+        memories,
+        indexes,
+        correct,
+        predictions,
+        right_ds,
+        percent,
+        recall_method,
+        proto_kind_suffix,
+        es,
+        fold,
+    )
 
     # confrixes has three dimensions: datasets, correct label, prediction.
     confrixes = np.array(confrixes, dtype=int)
@@ -798,21 +960,29 @@ def remember_by_hetero_memory(eam: HeteroAssociativeMemory,
     behaviours = np.array(behaviours, dtype=int)
     return confrixes, behaviours
 
+
 def optimum_indexes(precisions, recalls):
     f1s = []
     i = 0
     for p, r in zip(precisions, recalls):
-        f1 = 0 if (r+p) == 0 else 2*(r*p)/(r+p)
+        f1 = 0 if (r + p) == 0 else 2 * (r * p) / (r + p)
         f1s.append((f1, i))
         i += 1
     f1s.sort(reverse=True, key=lambda tuple: tuple[0])
-    return [t[1] for t in f1s[:commons.n_best_memory_sizes]]
+    return [t[1] for t in f1s[: commons.n_best_memory_sizes]]
 
 
 def get_ams_results(
-        midx, msize, domain,
-        filling_features, testing_features,
-        filling_labels, testing_labels, classifier, es):
+    midx,
+    msize,
+    domain,
+    filling_features,
+    testing_features,
+    filling_labels,
+    testing_labels,
+    classifier,
+    es,
+):
     # Round the values
     qd = qudeq.QuDeq(filling_features, percentiles=commons.use_percentiles)
     trf_rounded = qd.quantize(filling_features, msize)
@@ -829,11 +999,11 @@ def get_ams_results(
 
     # Recognize test data.
     confrix, behaviour = recognize_by_memory(
-        eam, tef_rounded, testing_labels, msize, qd, classifier)
+        eam, tef_rounded, testing_labels, msize, qd, classifier
+    )
     responses = len(testing_labels) - behaviour[commons.no_response_idx]
-    precision = behaviour[commons.correct_response_idx]/float(responses)
-    recall = behaviour[commons.correct_response_idx] / \
-        float(len(testing_labels))
+    precision = behaviour[commons.correct_response_idx] / float(responses)
+    recall = behaviour[commons.correct_response_idx] / float(len(testing_labels))
     behaviour[commons.precision_idx] = precision
     behaviour[commons.recall_idx] = recall
     return midx, eam.entropy, behaviour, confrix
@@ -900,41 +1070,52 @@ def test_memory_sizes(dataset, es):
         classifier = tf.keras.models.load_model(filename)
         print(f'Fold: {fold}')
         suffix = commons.filling_suffix
-        filling_features_filename = commons.features_name(
-            dataset, es) + suffix
+        filling_features_filename = commons.features_name(dataset, es) + suffix
         filling_features_filename = commons.data_filename(
-            filling_features_filename, es, fold)
+            filling_features_filename, es, fold
+        )
         filling_labels_filename = commons.labels_name(dataset, es) + suffix
         filling_labels_filename = commons.data_filename(
-            filling_labels_filename, es, fold)
+            filling_labels_filename, es, fold
+        )
 
         suffix = commons.testing_suffix
-        testing_features_filename = commons.features_name(
-            dataset, es) + suffix
+        testing_features_filename = commons.features_name(dataset, es) + suffix
         testing_features_filename = commons.data_filename(
-            testing_features_filename, es, fold)
+            testing_features_filename, es, fold
+        )
         testing_labels_filename = commons.labels_name(dataset, es) + suffix
         testing_labels_filename = commons.data_filename(
-            testing_labels_filename, es, fold)
+            testing_labels_filename, es, fold
+        )
 
         filling_features = np.load(filling_features_filename)
         filling_labels = np.load(filling_labels_filename)
         testing_features = np.load(testing_features_filename)
         testing_labels = np.load(testing_labels_filename)
         validating_network_data(
-            filling_features, filling_labels, classifier, dataset, 'filling data')
+            filling_features, filling_labels, classifier, dataset, 'filling data'
+        )
         validating_network_data(
-            testing_features, testing_labels, classifier, dataset, 'testing data')
-        behaviours = np.zeros(
-            (len(commons.memory_sizes), commons.n_behaviours))
+            testing_features, testing_labels, classifier, dataset, 'testing data'
+        )
+        behaviours = np.zeros((len(commons.memory_sizes), commons.n_behaviours))
         measures = []
         confrixes = []
         entropies = []
         for midx, msize in enumerate(commons.memory_sizes):
             print(f'Memory size: {msize}')
-            results = get_ams_results(midx, msize, domain,
-                                      filling_features, testing_features,
-                                      filling_labels, testing_labels, classifier, es)
+            results = get_ams_results(
+                midx,
+                msize,
+                domain,
+                filling_features,
+                testing_features,
+                filling_labels,
+                testing_labels,
+                classifier,
+                es,
+            )
             measures.append(results)
         for midx, entropy, behaviour, confrix in measures:
             entropies.append(entropy)
@@ -948,13 +1129,12 @@ def test_memory_sizes(dataset, es):
         all_entropies.append(entropies)
 
         # Average precision and recall as percentage
-        precision.append(behaviours[:, commons.precision_idx]*100)
-        recall.append(behaviours[:, commons.recall_idx]*100)
+        precision.append(behaviours[:, commons.precision_idx] * 100)
+        recall.append(behaviours[:, commons.recall_idx] * 100)
 
         all_confrixes.append(np.array(confrixes))
         no_response.append(behaviours[:, commons.no_response_idx])
-        no_correct_response.append(
-            behaviours[:, commons.no_correct_response_idx])
+        no_correct_response.append(behaviours[:, commons.no_correct_response_idx])
         correct_response.append(behaviours[:, commons.correct_response_idx])
 
     # Every row is training fold, and every column is a memory size.
@@ -981,83 +1161,125 @@ def test_memory_sizes(dataset, es):
     stdv_correct_response = np.std(correct_response, axis=0)
     best_memory_idx = optimum_indexes(average_precision, average_recall)
     best_memory_sizes = [commons.memory_sizes[i] for i in best_memory_idx]
-    mean_behaviours = \
-        [mean_no_response, mean_no_correct_response, mean_correct_response]
-    stdv_behaviours = \
-        [stdv_no_response, stdv_no_correct_response, stdv_correct_response]
+    mean_behaviours = [
+        mean_no_response,
+        mean_no_correct_response,
+        mean_correct_response,
+    ]
+    stdv_behaviours = [
+        stdv_no_response,
+        stdv_no_correct_response,
+        stdv_correct_response,
+    ]
 
-    np.savetxt(commons.csv_filename(
-        'memory_precision-' + dataset, es), precision, delimiter=',')
-    np.savetxt(commons.csv_filename(
-        'memory_recall-' + dataset, es), recall, delimiter=',')
-    np.savetxt(commons.csv_filename(
-        'memory_entropy-' + dataset, es), all_entropies, delimiter=',')
-    np.savetxt(commons.csv_filename('mean_behaviours-' + dataset, es),
-               mean_behaviours, delimiter=',')
-    np.savetxt(commons.csv_filename('stdv_behaviours-' + dataset, es),
-               stdv_behaviours, delimiter=',')
-    np.save(commons.data_filename(
-        'memory_confrixes-' + dataset, es), average_confrixes)
+    np.savetxt(
+        commons.csv_filename('memory_precision-' + dataset, es),
+        precision,
+        delimiter=',',
+    )
+    np.savetxt(
+        commons.csv_filename('memory_recall-' + dataset, es), recall, delimiter=','
+    )
+    np.savetxt(
+        commons.csv_filename('memory_entropy-' + dataset, es),
+        all_entropies,
+        delimiter=',',
+    )
+    np.savetxt(
+        commons.csv_filename('mean_behaviours-' + dataset, es),
+        mean_behaviours,
+        delimiter=',',
+    )
+    np.savetxt(
+        commons.csv_filename('stdv_behaviours-' + dataset, es),
+        stdv_behaviours,
+        delimiter=',',
+    )
+    np.save(commons.data_filename('memory_confrixes-' + dataset, es), average_confrixes)
     np.save(commons.data_filename('behaviours-' + dataset, es), behaviours)
-    plot_prerec_graph(average_precision, average_recall, average_entropy,
-                   stdev_precision, stdev_recall, dataset, es, prefix='homo_msizes-')
-    plot_behs_graph(mean_no_response, mean_no_correct_response,
-                    mean_correct_response, dataset, es, prefix='homo_msizes-')
+    plot_prerec_graph(
+        average_precision,
+        average_recall,
+        average_entropy,
+        stdev_precision,
+        stdev_recall,
+        dataset,
+        es,
+        prefix='homo_msizes-',
+    )
+    plot_behs_graph(
+        mean_no_response,
+        mean_no_correct_response,
+        mean_correct_response,
+        dataset,
+        es,
+        prefix='homo_msizes-',
+    )
     print('Memory size evaluation completed!')
     return best_memory_sizes
 
 
-def test_filling_percent(
-        eam, msize, qd,
-        trf, tef, tel, percent, classifier):
+def test_filling_percent(eam, msize, qd, trf, tef, tel, percent, classifier):
     # Registrate filling data.
     for features in trf:
         eam.register(features)
     print(f'Filling of memories done at {percent}%')
-    _, behaviour = recognize_by_memory(
-        eam, tef, tel, msize, qd, classifier)
+    _, behaviour = recognize_by_memory(eam, tef, tel, msize, qd, classifier)
     responses = len(tel) - behaviour[commons.no_response_idx]
-    precision = behaviour[commons.correct_response_idx]/float(responses)
-    recall = behaviour[commons.correct_response_idx]/float(len(tel))
+    precision = behaviour[commons.correct_response_idx] / float(responses)
+    recall = behaviour[commons.correct_response_idx] / float(len(tel))
     behaviour[commons.precision_idx] = precision
     behaviour[commons.recall_idx] = recall
     return behaviour, eam.entropy
 
 
 def test_hetero_filling_percent(
-        hetero_eam: HeteroAssociativeMemory,
-        left_eam: AssociativeMemory,
-        right_eam: AssociativeMemory,
-        trfs, tefs, tels, percent):
+    hetero_eam: HeteroAssociativeMemory,
+    left_eam: AssociativeMemory,
+    right_eam: AssociativeMemory,
+    trfs,
+    tefs,
+    tels,
+    percent,
+):
     # Register filling data.
     print('Filling hetero memory')
     counter = 0
-    for left_feat, right_feat \
-            in zip(trfs[commons.left_dataset], trfs[commons.right_dataset]):
+    for left_feat, right_feat in zip(
+        trfs[commons.left_dataset], trfs[commons.right_dataset]
+    ):
         hetero_eam.register(left_feat, right_feat)
         counter += 1
         commons.print_counter(counter, 1000, 100)
     print(' end')
     print(f'Filling of memories done at {percent}%')
     print(f'Memory full at {100*hetero_eam.fullness}%')
-    confrix = recognize_by_hetero_memory(
-        hetero_eam, left_eam, right_eam, tefs, tels)
+    confrix = recognize_by_hetero_memory(hetero_eam, left_eam, right_eam, tefs, tels)
     return confrix, hetero_eam.entropy
 
 
 def hetero_remember_percent(
-        eam: HeteroAssociativeMemory,
-        left_eam: AssociativeMemory,
-        right_eam: AssociativeMemory,
-        left_classifier, right_classifier,
-        filling_features, testing_features, testing_labels,
-        qudeqs, recall_method, proto_kind_suffix, percent, es, fold):
+    eam: HeteroAssociativeMemory,
+    left_eam: AssociativeMemory,
+    right_eam: AssociativeMemory,
+    left_classifier,
+    right_classifier,
+    filling_features,
+    testing_features,
+    testing_labels,
+    qudeqs,
+    recall_method,
+    proto_kind_suffix,
+    percent,
+    es,
+    fold,
+):
     # Register filling data.
     print('Filling hetero memory')
     counter = 0
-    for left_feat, right_feat \
-            in zip(filling_features[commons.left_dataset],
-                   filling_features[commons.right_dataset]):
+    for left_feat, right_feat in zip(
+        filling_features[commons.left_dataset], filling_features[commons.right_dataset]
+    ):
         eam.register(left_feat, right_feat)
         counter += 1
         commons.print_counter(counter, 1000, 100)
@@ -1065,10 +1287,22 @@ def hetero_remember_percent(
     print(f'Filling of memories done at {percent}%')
     print(f'Memory full at {100*eam.fullness}%')
     confrixes, behaviours = remember_by_hetero_memory(
-        eam, left_eam, right_eam, left_classifier, right_classifier,
-        testing_features, testing_labels, qudeqs,
-        recall_method, proto_kind_suffix, percent, es, fold)
+        eam,
+        left_eam,
+        right_eam,
+        left_classifier,
+        right_classifier,
+        testing_features,
+        testing_labels,
+        qudeqs,
+        recall_method,
+        proto_kind_suffix,
+        percent,
+        es,
+        fold,
+    )
     return confrixes, behaviours, eam.entropy
+
 
 def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     # Create the required associative memories using default parameters.
@@ -1081,18 +1315,18 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     suffix = commons.filling_suffix
     filling_features_filename = commons.features_name(dataset, es) + suffix
     filling_features_filename = commons.data_filename(
-        filling_features_filename, es, fold)
+        filling_features_filename, es, fold
+    )
     filling_labels_filename = commons.labels_name(dataset, es) + suffix
-    filling_labels_filename = commons.data_filename(
-        filling_labels_filename, es, fold)
+    filling_labels_filename = commons.data_filename(filling_labels_filename, es, fold)
 
     suffix = commons.testing_suffix
     testing_features_filename = commons.features_name(dataset, es) + suffix
     testing_features_filename = commons.data_filename(
-        testing_features_filename, es, fold)
+        testing_features_filename, es, fold
+    )
     testing_labels_filename = commons.labels_name(dataset, es) + suffix
-    testing_labels_filename = commons.data_filename(
-        testing_labels_filename, es, fold)
+    testing_labels_filename = commons.data_filename(testing_labels_filename, es, fold)
 
     filling_features = np.load(filling_features_filename)
     filling_labels = np.load(filling_labels_filename)
@@ -1105,7 +1339,7 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
 
     total = len(filling_labels)
     percents = np.array(commons.memory_fills)
-    steps = np.round(total*percents/100.0).astype(int)
+    steps = np.round(total * percents / 100.0).astype(int)
 
     fold_entropies = []
     fold_precision = []
@@ -1115,10 +1349,16 @@ def test_filling_per_fold(mem_size, domain, dataset, es, fold):
     for percent, end in zip(percents, steps):
         features = filling_features[start:end]
         print(f'Filling from {start} to {end}.')
-        behaviour, entropy = \
-            test_filling_percent(eam, mem_size,
-                                 qd, features,
-                                 testing_features, testing_labels, percent, classifier)
+        behaviour, entropy = test_filling_percent(
+            eam,
+            mem_size,
+            qd,
+            features,
+            testing_features,
+            testing_labels,
+            percent,
+            classifier,
+        )
         # A list of tuples (position, label, features)
         # fold_recalls += recalls
         # An array with average entropy per step.
@@ -1143,30 +1383,33 @@ def test_hetero_filling_per_fold(es, fold):
     params = commons.ExperimentSettings()
     left_eam = AssociativeMemory(domains[left_ds], rows[left_ds], params)
     right_eam = AssociativeMemory(domains[right_ds], rows[right_ds], params)
-    hetero_eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-        rows[left_ds], rows[right_ds], es, fold)
+    hetero_eam = HeteroAssociativeMemory(
+        domains[left_ds], domains[right_ds], rows[left_ds], rows[right_ds], es, fold
+    )
     filling_features = {}
     filling_labels = {}
     testing_features = {}
     testing_labels = {}
     for dataset in commons.datasets:
         suffix = commons.filling_suffix
-        filling_features_filename = commons.features_name(
-            dataset, es) + suffix
+        filling_features_filename = commons.features_name(dataset, es) + suffix
         filling_features_filename = commons.data_filename(
-            filling_features_filename, es, fold)
+            filling_features_filename, es, fold
+        )
         filling_labels_filename = commons.labels_name(dataset, es) + suffix
         filling_labels_filename = commons.data_filename(
-            filling_labels_filename, es, fold)
+            filling_labels_filename, es, fold
+        )
 
         suffix = commons.testing_suffix
-        testing_features_filename = commons.features_name(
-            dataset, es) + suffix
+        testing_features_filename = commons.features_name(dataset, es) + suffix
         testing_features_filename = commons.data_filename(
-            testing_features_filename, es, fold)
+            testing_features_filename, es, fold
+        )
         testing_labels_filename = commons.labels_name(dataset, es) + suffix
         testing_labels_filename = commons.data_filename(
-            testing_labels_filename, es, fold)
+            testing_labels_filename, es, fold
+        )
 
         filling_labels[dataset] = np.load(filling_labels_filename)
         testing_labels[dataset] = np.load(testing_labels_filename)
@@ -1186,7 +1429,7 @@ def test_hetero_filling_per_fold(es, fold):
     total = len(filling_features[left_ds])
     print(f'Filling hetero-associative memory with a total of {total} pairs.')
     percents = np.array(commons.memory_fills)
-    steps = np.round(total*percents/100.0).astype(int)
+    steps = np.round(total * percents / 100.0).astype(int)
 
     fold_entropies = []
     fold_precision = []
@@ -1199,24 +1442,28 @@ def test_hetero_filling_per_fold(es, fold):
         features[left_ds] = filling_features[left_ds][start:end]
         features[right_ds] = filling_features[right_ds][start:end]
         print(f'Filling from {start} to {end}.')
-        confrix, entropy = \
-            test_hetero_filling_percent(
-                hetero_eam, left_eam, right_eam,
-                features, testing_features, testing_labels, percent)
+        confrix, entropy = test_hetero_filling_percent(
+            hetero_eam,
+            left_eam,
+            right_eam,
+            features,
+            testing_features,
+            testing_labels,
+            percent,
+        )
         # An array with average entropy per step.
         fold_entropies.append(entropy)
         # Arrays with precision, and recall.
-        positives = confrix[TP]+confrix[FP]
-        fold_precision.append(1.0 if positives == 0 else confrix[TP]/positives)
-        fold_recall.append(confrix[TP]/(confrix[TP]+confrix[FN]))
-        fold_accuracy.append((confrix[TP]+confrix[TN])/np.sum(confrix))
+        positives = confrix[TP] + confrix[FP]
+        fold_precision.append(1.0 if positives == 0 else confrix[TP] / positives)
+        fold_recall.append(confrix[TP] / (confrix[TP] + confrix[FN]))
+        fold_accuracy.append((confrix[TP] + confrix[TN]) / np.sum(confrix))
         start = end
     fold_entropies = np.array(fold_entropies)
     fold_precision = np.array(fold_precision)
     fold_recall = np.array(fold_recall)
     fold_accuracy = np.array(fold_accuracy)
-    print(
-        f'Filling test of hetero-associative memory completed for fold {fold}')
+    print(f'Filling test of hetero-associative memory completed for fold {fold}')
     return fold, fold_entropies, fold_precision, fold_recall, fold_accuracy
 
 
@@ -1237,66 +1484,89 @@ def hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold):
     model_prefix = commons.model_name(right_ds, es)
     filename = commons.classifier_filename(model_prefix, es, fold)
     right_classifier = tf.keras.models.load_model(filename)
-    classifiers = {
-        left_ds: left_classifier,
-        right_ds: right_classifier
-    }
+    classifiers = {left_ds: left_classifier, right_ds: right_classifier}
     filling_features = {}
     filling_labels = {}
     testing_features = {}
     testing_labels = {}
+    testing_data = {}
     filling_prototypes = {}
     qudeqs = {}
     for dataset in commons.datasets:
         suffix = commons.filling_suffix
-        filling_features_filename = commons.features_name(
-            dataset, es) + suffix
+        filling_features_filename = commons.features_name(dataset, es) + suffix
         filling_features_filename = commons.data_filename(
-            filling_features_filename, es, fold)
+            filling_features_filename, es, fold
+        )
         # Original tagging of filling data.
         filling_labels_filename = commons.labels_name(dataset, es) + suffix
         filling_labels_filename = commons.data_filename(
-            filling_labels_filename, es, fold)
+            filling_labels_filename, es, fold
+        )
         filling_labels[dataset] = np.load(filling_labels_filename)
         f_features = np.load(filling_features_filename)
         # Tagging of filling data produced by the classifier
         # labels = np.argmax(classifiers[dataset].predict(f_features), axis=1)
         # filling_labels[dataset] = labels
-        proto_filename = commons.features_name(dataset, es) \
-                + commons.proto_suffix + proto_kind_suffix + commons.means_suffix
+        proto_filename = (
+            commons.features_name(dataset, es)
+            + commons.proto_suffix
+            + proto_kind_suffix
+            + commons.means_suffix
+        )
         proto_filename = commons.data_filename(proto_filename, es, fold)
         prototypes = np.load(proto_filename)
 
         suffix = commons.testing_suffix
-        testing_features_filename = commons.features_name(
-            dataset, es) + suffix
+        testing_features_filename = commons.features_name(dataset, es) + suffix
         testing_features_filename = commons.data_filename(
-            testing_features_filename, es, fold)
+            testing_features_filename, es, fold
+        )
         # Original tagging of testing data.
         testing_labels_filename = commons.labels_name(dataset, es) + suffix
         testing_labels_filename = commons.data_filename(
-            testing_labels_filename, es, fold)
+            testing_labels_filename, es, fold
+        )
         testing_labels[dataset] = np.load(testing_labels_filename)
+        testing_data_filename = commons.data_name(dataset, es) + suffix
+        testing_data_filename = commons.data_filename(testing_data_filename, es, fold)
+        testing_data[dataset] = np.load(testing_data_filename)
         t_features = np.load(testing_features_filename)
         # Tagging of testing data produced by the classifier
         # labels = np.argmax(classifiers[dataset].predict(t_features), axis=1)
         # testing_labels[dataset] = labels
         validating_network_data(
-            f_features, filling_labels[dataset], classifiers[dataset],
-            dataset, 'filling data')
+            f_features,
+            filling_labels[dataset],
+            classifiers[dataset],
+            dataset,
+            'filling data',
+        )
         validating_network_data(
-            t_features, testing_labels[dataset], classifiers[dataset],
-            dataset, 'testing data')
+            t_features,
+            testing_labels[dataset],
+            classifiers[dataset],
+            dataset,
+            'testing data',
+        )
         qd = qudeq.QuDeq(f_features, percentiles=commons.use_percentiles)
         filling_features[dataset] = qd.quantize(f_features, rows[dataset])
         filling_prototypes[dataset] = qd.quantize(prototypes, rows[dataset])
         testing_features[dataset] = qd.quantize(t_features, rows[dataset])
         qudeqs[dataset] = qd
 
-    eam = HeteroAssociativeMemory(domains[left_ds], domains[right_ds],
-            rows[left_ds], rows[right_ds], es, fold, qudeqs[left_ds], qudeqs[right_ds],
-            [filling_prototypes[left_ds], filling_prototypes[right_ds]])
-    
+    eam = HeteroAssociativeMemory(
+        domains[left_ds],
+        domains[right_ds],
+        rows[left_ds],
+        rows[right_ds],
+        es,
+        fold,
+        qudeqs[left_ds],
+        qudeqs[right_ds],
+        [filling_prototypes[left_ds], filling_prototypes[right_ds]],
+    )
+
     for f in filling_features[left_ds]:
         left_eam.register(f)
     for f in filling_features[right_ds]:
@@ -1306,16 +1576,16 @@ def hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold):
     match_labels(testing_features, testing_labels)
     total = len(filling_labels[left_ds])
     total_test = len(testing_labels[left_ds])
-    top = int(commons.exploration_ratio*total_test)
+    top = int(commons.exploration_ratio * total_test)
     testing_labels[left_ds] = testing_labels[left_ds][:top]
     testing_features[left_ds] = testing_features[left_ds][:top]
     testing_labels[right_ds] = testing_labels[right_ds][:top]
     testing_features[right_ds] = testing_features[right_ds][:top]
     describe(testing_features, testing_labels)
-    decode_test_features(testing_features, testing_labels, fold, es)
+    decode_test_features(testing_data, testing_features, testing_labels, fold, es)
     print(f'Filling hetero-associative memory with a total of {total} pairs.')
     percents = np.array(commons.memory_fills)
-    steps = np.round(total*percents/100.0).astype(int)
+    steps = np.round(total * percents / 100.0).astype(int)
 
     fold_entropies = []
     fold_precision = []
@@ -1328,12 +1598,22 @@ def hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold):
         features[left_ds] = filling_features[left_ds][start:end]
         features[right_ds] = filling_features[right_ds][start:end]
         print(f'Filling from {start} to {end}.')
-        confrixes, behaviours, entropy = \
-            hetero_remember_percent(
-                eam, left_eam, right_eam, left_classifier, right_classifier,
-                features, testing_features, testing_labels, qudeqs,
-                recall_method, proto_kind_suffix,
-                percent, es, fold)
+        confrixes, behaviours, entropy = hetero_remember_percent(
+            eam,
+            left_eam,
+            right_eam,
+            left_classifier,
+            right_classifier,
+            features,
+            testing_features,
+            testing_labels,
+            qudeqs,
+            recall_method,
+            proto_kind_suffix,
+            percent,
+            es,
+            fold,
+        )
         fold_entropies.append(entropy)
         fold_behaviours.append(behaviours)
         fold_confrixes.append(confrixes)
@@ -1342,21 +1622,33 @@ def hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold):
         correct = behaviours[:, commons.correct_response_idx]
         incorrect = behaviours[:, commons.no_correct_response_idx]
         with np.errstate(divide='ignore'):
-            fold_precision.append(np.where((correct + incorrect) == 0,
-                1.0, correct/(correct+incorrect)))
+            fold_precision.append(
+                np.where(
+                    (correct + incorrect) == 0, 1.0, correct / (correct + incorrect)
+                )
+            )
         fold_recall.append(
-            behaviours[:, commons.correct_response_idx]/(no_response + correct + incorrect))
+            behaviours[:, commons.correct_response_idx]
+            / (no_response + correct + incorrect)
+        )
         start = end
     fold_entropies = np.array(fold_entropies)
     fold_precision = np.transpose(np.array(fold_precision))
     fold_recall = np.transpose(np.array(fold_recall))
-    fold_behaviours = np.transpose(
-        np.array(fold_behaviours, dtype=int), axes=(1, 0, 2))
+    fold_behaviours = np.transpose(np.array(fold_behaviours, dtype=int), axes=(1, 0, 2))
     fold_confrixes = np.transpose(
-        np.array(fold_confrixes, dtype=int), axes=(1, 0, 2, 3))
-    print(
-        f'Filling test of hetero-associative memory completed for fold {fold}')
-    return fold, fold_entropies, fold_precision, fold_recall, fold_confrixes, fold_behaviours
+        np.array(fold_confrixes, dtype=int), axes=(1, 0, 2, 3)
+    )
+    print(f'Filling test of hetero-associative memory completed for fold {fold}')
+    return (
+        fold,
+        fold_entropies,
+        fold_precision,
+        fold_recall,
+        fold_confrixes,
+        fold_behaviours,
+    )
+
 
 def test_memory_fills(mem_sizes, dataset, es):
     domain = commons.domain(dataset)
@@ -1371,8 +1663,7 @@ def test_memory_fills(mem_sizes, dataset, es):
         list_results = []
 
         for fold in range(testing_folds):
-            results = test_filling_per_fold(
-                mem_size, domain, dataset, es, fold)
+            results = test_filling_per_fold(mem_size, domain, dataset, es, fold)
             list_results.append(results)
         for fold, entropies, precisions, recalls in list_results:
             total_precisions[fold] = precisions
@@ -1388,39 +1679,79 @@ def test_memory_fills(mem_sizes, dataset, es):
 
         np.savetxt(
             commons.csv_filename(
-                'main_average_precision-' + dataset +
-                commons.numeric_suffix('sze', mem_size), es),
-            main_avrge_precisions, delimiter=',')
+                'main_average_precision-'
+                + dataset
+                + commons.numeric_suffix('sze', mem_size),
+                es,
+            ),
+            main_avrge_precisions,
+            delimiter=',',
+        )
         np.savetxt(
             commons.csv_filename(
-                'main_average_recall-' + dataset + commons.numeric_suffix('sze', mem_size), es),
-            main_avrge_recalls, delimiter=',')
+                'main_average_recall-'
+                + dataset
+                + commons.numeric_suffix('sze', mem_size),
+                es,
+            ),
+            main_avrge_recalls,
+            delimiter=',',
+        )
         np.savetxt(
             commons.csv_filename(
-                'main_average_entropy-' + dataset + commons.numeric_suffix('sze', mem_size), es),
-            main_avrge_entropies, delimiter=',')
+                'main_average_entropy-'
+                + dataset
+                + commons.numeric_suffix('sze', mem_size),
+                es,
+            ),
+            main_avrge_entropies,
+            delimiter=',',
+        )
         np.savetxt(
             commons.csv_filename(
-                'main_stdev_precision-' + dataset + commons.numeric_suffix('sze', mem_size), es),
-            main_stdev_precisions, delimiter=',')
+                'main_stdev_precision-'
+                + dataset
+                + commons.numeric_suffix('sze', mem_size),
+                es,
+            ),
+            main_stdev_precisions,
+            delimiter=',',
+        )
         np.savetxt(
             commons.csv_filename(
-                'main_stdev_recall-' + dataset + commons.numeric_suffix('sze', mem_size), es),
-            main_stdev_recalls, delimiter=',')
+                'main_stdev_recall-'
+                + dataset
+                + commons.numeric_suffix('sze', mem_size),
+                es,
+            ),
+            main_stdev_recalls,
+            delimiter=',',
+        )
         np.savetxt(
             commons.csv_filename(
-                'main_stdev_entropy-' + dataset + commons.numeric_suffix('sze', mem_size), es),
-            main_stdev_entropies, delimiter=',')
+                'main_stdev_entropy-'
+                + dataset
+                + commons.numeric_suffix('sze', mem_size),
+                es,
+            ),
+            main_stdev_entropies,
+            delimiter=',',
+        )
 
-        plot_prerec_graph(main_avrge_precisions*100, main_avrge_recalls*100, main_avrge_entropies,
-                       main_stdev_precisions*100, main_stdev_recalls *
-                       100, dataset, es,
-                       prefix='homo_fills' +
-                       commons.numeric_suffix('sze', mem_size) + '-',
-                       xlabels=commons.memory_fills, xtitle=_('Percentage of memory corpus'))
+        plot_prerec_graph(
+            main_avrge_precisions * 100,
+            main_avrge_recalls * 100,
+            main_avrge_entropies,
+            main_stdev_precisions * 100,
+            main_stdev_recalls * 100,
+            dataset,
+            es,
+            prefix='homo_fills' + commons.numeric_suffix('sze', mem_size) + '-',
+            xlabels=commons.memory_fills,
+            xtitle=_('Percentage of memory corpus'),
+        )
 
-        bf_idx = optimum_indexes(
-            main_avrge_precisions, main_avrge_recalls)
+        bf_idx = optimum_indexes(main_avrge_precisions, main_avrge_recalls)
         best_filling_percents.append(commons.memory_fills[bf_idx[0]])
         print(f'Testing fillings for memory size {mem_size} done.')
     return best_filling_percents
@@ -1454,55 +1785,76 @@ def test_hetero_fills(es):
     main_stdev_accuracies = np.std(total_accuracies, axis=0)
 
     np.savetxt(
-        commons.csv_filename(
-            'hetero_average_precision', es),
-        main_avrge_precisions, delimiter=',')
+        commons.csv_filename('hetero_average_precision', es),
+        main_avrge_precisions,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'hetero_average_recall', es),
-        main_avrge_recalls, delimiter=',')
+        commons.csv_filename('hetero_average_recall', es),
+        main_avrge_recalls,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'hetero_average_accuracy', es),
-        main_avrge_accuracies, delimiter=',')
+        commons.csv_filename('hetero_average_accuracy', es),
+        main_avrge_accuracies,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'hetero_average_entropy', es),
-        main_avrge_entropies, delimiter=',')
+        commons.csv_filename('hetero_average_entropy', es),
+        main_avrge_entropies,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'hetero_stdev_precision', es),
-        main_stdev_precisions, delimiter=',')
+        commons.csv_filename('hetero_stdev_precision', es),
+        main_stdev_precisions,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'hetero_stdev_recall', es),
-        main_stdev_recalls, delimiter=',')
+        commons.csv_filename('hetero_stdev_recall', es),
+        main_stdev_recalls,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'hetero_stdev_accuracy', es),
-        main_stdev_accuracies, delimiter=',')
+        commons.csv_filename('hetero_stdev_accuracy', es),
+        main_stdev_accuracies,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'hetero_stdev_entropy', es),
-        main_stdev_entropies, delimiter=',')
+        commons.csv_filename('hetero_stdev_entropy', es),
+        main_stdev_entropies,
+        delimiter=',',
+    )
 
     prefix = 'hetero_recognize-'
-    plot_prerec_graph(100*main_avrge_precisions, 100*main_avrge_recalls, main_avrge_entropies,
-                   100*main_stdev_precisions, 100*main_stdev_recalls, 'hetero',
-                   es, acc_mean=100*main_avrge_accuracies, acc_std=100*main_stdev_accuracies,
-                   prefix=prefix,
-                   xlabels=commons.memory_fills, xtitle=_('Percentage of memory corpus'))
+    plot_prerec_graph(
+        100 * main_avrge_precisions,
+        100 * main_avrge_recalls,
+        main_avrge_entropies,
+        100 * main_stdev_precisions,
+        100 * main_stdev_recalls,
+        'hetero',
+        es,
+        acc_mean=100 * main_avrge_accuracies,
+        acc_std=100 * main_stdev_accuracies,
+        prefix=prefix,
+        xlabels=commons.memory_fills,
+        xtitle=_('Percentage of memory corpus'),
+    )
     print('Testing fillings for hetero-associative done.')
+
 
 def validating_network_data(features, labels, classifier, dataset, description):
     predictions = np.argmax(classifier.predict(features), axis=1)
     total = labels.size
     agreements = np.count_nonzero(predictions == labels)
-    print(f'Validating coherence between data and network for {description} of {dataset}')
+    print(
+        f'Validating coherence between data and network for {description} of {dataset}'
+    )
     print(f'Agreement percentage: {100*agreements/total}')
 
+
 def save_history(history, prefix, es):
-    """ Saves the stats of neural networks.
+    """Saves the stats of neural networks.
 
     Neural networks stats may come either as a History object, that includes
     a History.history dictionary with stats, or directly as a dictionary.
@@ -1518,7 +1870,9 @@ def save_history(history, prefix, es):
 
 
 def save_conf_matrix(matrix, dataset, prefix, es, vmax=None):
-    plot_confusion_matrix(matrix, range(commons.n_labels), dataset, es, prefix, vmax=vmax)
+    plot_confusion_matrix(
+        matrix, range(commons.n_labels), dataset, es, prefix, vmax=vmax
+    )
     fname = prefix + commons.matrix_suffix + '-' + dataset
     filename = commons.data_filename(fname)
     np.save(filename, matrix)
@@ -1542,8 +1896,9 @@ def remember(recall_method, proto_kind_suffix, es):
     total_behaviours = []
 
     for fold in range(testing_folds):
-        fold, entropies, precisions, recalls, confrixes, behaviours = \
+        fold, entropies, precisions, recalls, confrixes, behaviours = (
             hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold)
+        )
         total_precisions[fold] = precisions
         total_recalls[fold] = recalls
         total_entropies[fold] = entropies
@@ -1564,83 +1919,135 @@ def remember(recall_method, proto_kind_suffix, es):
     main_stdev_behaviours = np.std(total_behaviours, axis=0)
     suffix = commons.recall_suffix(recall_method, proto_kind_suffix)
     np.savetxt(
-        commons.csv_filename(
-            'remember_average_precision' + suffix, es),
-        main_avrge_precisions, delimiter=',')
+        commons.csv_filename('remember_average_precision' + suffix, es),
+        main_avrge_precisions,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'remember_average_recall' + suffix, es),
-        main_avrge_recalls, delimiter=',')
+        commons.csv_filename('remember_average_recall' + suffix, es),
+        main_avrge_recalls,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'remember_average_entropy' + suffix, es),
-        main_avrge_entropies, delimiter=',')
+        commons.csv_filename('remember_average_entropy' + suffix, es),
+        main_avrge_entropies,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'remember_stdev_precision' + suffix, es),
-        main_stdev_precisions, delimiter=',')
+        commons.csv_filename('remember_stdev_precision' + suffix, es),
+        main_stdev_precisions,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'remember_stdev_recall' + suffix, es),
-        main_stdev_recalls, delimiter=',')
+        commons.csv_filename('remember_stdev_recall' + suffix, es),
+        main_stdev_recalls,
+        delimiter=',',
+    )
     np.savetxt(
-        commons.csv_filename(
-            'remember_stdev_entropy' + suffix, es),
-        main_stdev_entropies, delimiter=',')
-    np.save(commons.data_filename('remember_mean_behaviours' + suffix, es),
-            main_avrge_behaviours)
-    np.save(commons.data_filename('remember_stdv_behaviours' + suffix, es),
-            main_stdev_behaviours)
-    np.save(commons.data_filename('remember_mean_confrixes' + suffix, es),
-            main_avrge_confrixes)
-    np.save(commons.data_filename('remember_stdv_confrixes' + suffix, es),
-            main_stdev_confrixes)
+        commons.csv_filename('remember_stdev_entropy' + suffix, es),
+        main_stdev_entropies,
+        delimiter=',',
+    )
+    np.save(
+        commons.data_filename('remember_mean_behaviours' + suffix, es),
+        main_avrge_behaviours,
+    )
+    np.save(
+        commons.data_filename('remember_stdv_behaviours' + suffix, es),
+        main_stdev_behaviours,
+    )
+    np.save(
+        commons.data_filename('remember_mean_confrixes' + suffix, es),
+        main_avrge_confrixes,
+    )
+    np.save(
+        commons.data_filename('remember_stdv_confrixes' + suffix, es),
+        main_stdev_confrixes,
+    )
 
     for i in range(len(commons.datasets)):
         dataset = commons.datasets[i]
         plot_prerec_graph(
-            100*main_avrge_precisions[i], 100 *
-            main_avrge_recalls[i], main_avrge_entropies,
-            100*main_stdev_precisions[i], 100*main_stdev_recalls[i], dataset,
-            es, prefix='hetero_remember' + suffix + '-', xlabels=commons.memory_fills,
-            xtitle=_('Percentage of memory corpus'))
+            100 * main_avrge_precisions[i],
+            100 * main_avrge_recalls[i],
+            main_avrge_entropies,
+            100 * main_stdev_precisions[i],
+            100 * main_stdev_recalls[i],
+            dataset,
+            es,
+            prefix='hetero_remember' + suffix + '-',
+            xlabels=commons.memory_fills,
+            xtitle=_('Percentage of memory corpus'),
+        )
         mean_no_response = main_avrge_behaviours[i, :, commons.no_response_idx]
-        mean_no_correct_response = main_avrge_behaviours[i, :, commons.no_correct_response_idx]
-        mean_correct_response = main_avrge_behaviours[i, :, commons.correct_response_idx]
-        plot_behs_graph(mean_no_response, mean_no_correct_response,
-                mean_correct_response, dataset, es, xtags=commons.memory_fills,
-                prefix='hetero_remember' + suffix + '-')
+        mean_no_correct_response = main_avrge_behaviours[
+            i, :, commons.no_correct_response_idx
+        ]
+        mean_correct_response = main_avrge_behaviours[
+            i, :, commons.correct_response_idx
+        ]
+        plot_behs_graph(
+            mean_no_response,
+            mean_no_correct_response,
+            mean_correct_response,
+            dataset,
+            es,
+            xtags=commons.memory_fills,
+            prefix='hetero_remember' + suffix + '-',
+        )
         for j, f in enumerate(commons.memory_fills):
             save_conf_matrix(
-                main_avrge_confrixes[i, j], dataset,
-                f'hetero_remember{suffix}-fll_{str(f).zfill(3)}', es)
+                main_avrge_confrixes[i, j],
+                dataset,
+                f'hetero_remember{suffix}-fll_{str(f).zfill(3)}',
+                es,
+            )
     print('Remembering done!')
 
+
 def store_memory(image, directory, name, idx, correct, prediction, es, fold):
-    filename = commons.memory_image_filename(directory, name, idx, correct, prediction, es, fold)
+    filename = commons.memory_image_filename(
+        directory, name, idx, correct, prediction, es, fold
+    )
     full_directory = commons.dirname(filename)
     commons.create_directory(full_directory)
     store_image(filename, image)
 
+
 def store_dream(image, initial_label, depth, label, path):
-    filename = commons.dream_image_filename(path, initial_label, depth, label) 
+    filename = commons.dream_image_filename(path, initial_label, depth, label)
     full_directory = commons.dirname(filename)
     commons.create_directory(full_directory)
     store_image(filename, image)
-    
+
+
 def store_image(filename, image):
     pixels = image.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(filename)
 
-def store_test(
-        prod_test, test_dir, idx, label, dataset, es, fold):
-    directory = os.path.join(test_dir, dataset)
-    prod_test_filename = commons.prod_testing_image_filename(
-        directory, idx, label, es, fold)
-    store_image(prod_test_filename, prod_test)
 
-def decode_memories(memories, indexes, corrects, predictions,
-            dataset, percent, recall_method, proto_kind_suffix, es, fold):
+def store_test(original, produced, test_dir, idx, label, dataset, es, fold):
+    directory = os.path.join(test_dir, dataset)
+    orig_test_filename = commons.testing_image_filename(directory, idx, label, es, fold)
+    prod_test_filename = commons.prod_testing_image_filename(
+        directory, idx, label, es, fold
+    )
+    store_image(orig_test_filename, original)
+    store_image(prod_test_filename, produced)
+
+
+def decode_memories(
+    memories,
+    indexes,
+    corrects,
+    predictions,
+    dataset,
+    percent,
+    recall_method,
+    proto_kind_suffix,
+    es,
+    fold,
+):
     if len(indexes) == 0:
         return
     model_prefix = commons.model_name(commons.alt(dataset), es)
@@ -1648,17 +2055,18 @@ def decode_memories(memories, indexes, corrects, predictions,
     # Loads the decoder.
     model = tf.keras.models.load_model(model_filename)
     images = model.predict(memories)
-    name = commons.memories_name(dataset, es) \
-            + commons.recall_suffix(recall_method, proto_kind_suffix) \
-            + commons.int_suffix(percent, 'fll')
+    name = (
+        commons.memories_name(dataset, es)
+        + commons.recall_suffix(recall_method, proto_kind_suffix)
+        + commons.int_suffix(percent, 'fll')
+    )
     memories_path = commons.memories_path
-    for (idx, image, correct, prediction) in \
-            zip(indexes, images, corrects, predictions):
+    for idx, image, correct, prediction in zip(indexes, images, corrects, predictions):
         store_memory(image, memories_path, name, idx, correct, prediction, es, fold)
 
 
-def decode_test_features(features, labels, fold, es):
-    """ Creates images directly from test features.
+def decode_test_features(data, features, labels, fold, es):
+    """Creates images directly from test features.
 
     Uses the decoder part of the neural networks to (re)create
     images from features generated by the encoder.
@@ -1673,12 +2081,16 @@ def decode_test_features(features, labels, fold, es):
         prod_test_images = model.predict(features[dataset])
         n = len(labels[dataset])
         # Save images.
-        for (i, image, label) in \
-                zip(range(n), prod_test_images, labels[dataset]):
+        for i, original, produced, label in zip(
+            range(n), data, prod_test_images, labels[dataset]
+        ):
             # if testing_label != label:
             #    raise ValueError(
             #        f'La etiqueta en los datos ({testing_label}) es diferente a ({label})')
-            store_test(image, commons.testing_path, i, label, dataset, es, fold)
+            store_test(
+                original, produced, commons.testing_path, i, label, dataset, es, fold
+            )
+
 
 def features_parameters(dataset, es):
     cols = commons.datasets_to_domains[dataset]
@@ -1700,29 +2112,38 @@ def features_parameters(dataset, es):
         labels_filename = commons.labels_name(dataset, es) + commons.testing_suffix
         labels_filename = commons.data_filename(labels_filename, es, fold)
         testing_features = np.load(features_filename)
-        const_means, const_stdvs = construct_prototypes(filling_features, filling_labels, cols)
+        const_means, const_stdvs = construct_prototypes(
+            filling_features, filling_labels, cols
+        )
         means[fold, 0] = const_means
         stdvs[fold, 0] = const_stdvs
         hists[fold, 0] = np.zeros(commons.n_labels, dtype=int)
         proto_kinds.append(commons.proto_kind_constructed)
         filename = commons.classifier_filename(model_prefix, es, fold)
         classifier = tf.keras.models.load_model(filename)
-        extrt_means, extrt_stdvs, extrt_hist = extract_prototypes(filling_features, classifier, cols, rows)
+        extrt_means, extrt_stdvs, extrt_hist = extract_prototypes(
+            filling_features, classifier, cols, rows
+        )
         means[fold, 1] = extrt_means
         stdvs[fold, 1] = extrt_stdvs
         hists[fold, 1] = extrt_hist
         proto_kinds.append(commons.proto_kind_extracted)
-        recll_means, recll_stdvs, recll_hist = recall_prototypes(filling_features, filling_features, classifier, cols, rows)
+        recll_means, recll_stdvs, recll_hist = recall_prototypes(
+            filling_features, filling_features, classifier, cols, rows
+        )
         means[fold, 2] = recll_means
         stdvs[fold, 2] = recll_stdvs
         hists[fold, 2] = recll_hist
         proto_kinds.append(commons.proto_kind_fill_recalled)
-        rectd_means, rectd_stdvs, rectd_hist = recall_prototypes(filling_features, testing_features, classifier, cols, rows)
+        rectd_means, rectd_stdvs, rectd_hist = recall_prototypes(
+            filling_features, testing_features, classifier, cols, rows
+        )
         means[fold, 3] = rectd_means
         stdvs[fold, 3] = rectd_stdvs
         hists[fold, 3] = rectd_hist
         proto_kinds.append(commons.proto_kind_test_recalled)
     return means, stdvs, hists, proto_kinds
+
 
 def construct_prototypes(features, labels, cols):
     means = np.zeros((commons.n_labels, cols), dtype=float)
@@ -1737,6 +2158,7 @@ def construct_prototypes(features, labels, cols):
         stdvs[label] = stdv
     return means, stdvs
 
+
 def extract_prototypes(features, classifier, cols, rows):
     qd = qudeq.QuDeq(features, percentiles=commons.use_percentiles)
     features = qd.quantize(features, rows)
@@ -1744,14 +2166,14 @@ def extract_prototypes(features, classifier, cols, rows):
     for f in features:
         ams.register(f)
     samples = []
-    n = int(math.pow(2,round(math.log(commons.n_labels*100,2) + 0.5)))
+    n = int(math.pow(2, round(math.log(commons.n_labels * 100, 2) + 0.5)))
     print(f'Samples: {n}')
     for _ in range(n):
         recall, _, _ = ams.recall()
         samples.append(recall)
     samples = qd.dequantize(np.array(samples), rows)
     predictions = np.argmax(classifier.predict(samples), axis=1)
-    clusters = {i:[] for i in commons.all_labels}
+    clusters = {i: [] for i in commons.all_labels}
     for p, s in zip(predictions, samples):
         clusters[p].append(s)
     frequencies = [len(clusters[i]) for i in commons.all_labels]
@@ -1764,6 +2186,7 @@ def extract_prototypes(features, classifier, cols, rows):
         means[label] = mean
         stdvs[label] = stdv
     return means, stdvs, frequencies
+
 
 def recall_prototypes(filling_features, testing_features, classifier, cols, rows):
     qd = qudeq.QuDeq(filling_features, percentiles=commons.use_percentiles)
@@ -1792,6 +2215,7 @@ def recall_prototypes(filling_features, testing_features, classifier, cols, rows
         stdvs[label] = stdv
     return means, stdvs, frequencies
 
+
 def save_prototypes(means, stdvs, proto_kinds, dataset, es):
     proto_suffix = commons.proto_suffix
     for fold in range(commons.n_folds):
@@ -1802,34 +2226,50 @@ def save_prototypes(means, stdvs, proto_kinds, dataset, es):
         model.summary()
         for i, kind in zip(range(len(proto_kinds)), proto_kinds):
             suffix = commons.proto_kind_suffix(kind)
-            proto_filename = commons.features_name(dataset, es) \
-                + proto_suffix + suffix
-            proto_means_filename = commons.data_filename(proto_filename + commons.means_suffix, es, fold)
-            proto_stdvs_filename = commons.data_filename(proto_filename + commons.stdvs_suffix, es, fold)
-            np.save(proto_means_filename, means[fold,i])
-            np.save(proto_stdvs_filename, stdvs[fold,i])
-            proto_images = model.predict(means[fold,i])
-            prototypes_path = commons.prototypes_path + suffix + commons.dataset_suffix(dataset)
+            proto_filename = commons.features_name(dataset, es) + proto_suffix + suffix
+            proto_means_filename = commons.data_filename(
+                proto_filename + commons.means_suffix, es, fold
+            )
+            proto_stdvs_filename = commons.data_filename(
+                proto_filename + commons.stdvs_suffix, es, fold
+            )
+            np.save(proto_means_filename, means[fold, i])
+            np.save(proto_stdvs_filename, stdvs[fold, i])
+            proto_images = model.predict(means[fold, i])
+            prototypes_path = (
+                commons.prototypes_path + suffix + commons.dataset_suffix(dataset)
+            )
             name = commons.prototypes_name(dataset, es)
-            for (memory, label) in zip(proto_images, commons.all_labels):
+            for memory, label in zip(proto_images, commons.all_labels):
                 store_memory(memory, prototypes_path, name, 0, label, label, es, fold)
+
 
 def save_features_graphs(means, stdvs, hists, proto_kinds, dataset, es):
     means = np.mean(means, axis=0)
     stdvs = np.mean(stdvs, axis=0)
     hists = np.mean(hists, axis=0)
     labels = [commons.proto_labels[kind] for kind in proto_kinds]
-    plot_features_graph(commons.datasets_to_domains[dataset], means, stdvs, labels, dataset, es)
+    plot_features_graph(
+        commons.datasets_to_domains[dataset], means, stdvs, labels, dataset, es
+    )
     for hist, label, kind in zip(hists, labels, proto_kinds):
         fname = commons.prototypes_prefix + dataset + commons.proto_kind_suffix(kind)
-        plot_histo_bar(hist, dataset, es, xtags = commons.all_labels,
-                xlabel = 'Label', label=label, name=fname)
-        
+        plot_histo_bar(
+            hist,
+            dataset,
+            es,
+            xtags=commons.all_labels,
+            xlabel='Label',
+            label=label,
+            name=fname,
+        )
+
+
 def sample_features_for_sequencing(features, labels):
     feats = {}
     labls = {}
     for dataset in commons.datasets:
-        unique, counts = np.unique(labels[dataset], return_counts = True)
+        unique, counts = np.unique(labels[dataset], return_counts=True)
         chosen_feats = []
         chosen_labls = []
         for u, c in zip(unique, counts):
@@ -1847,7 +2287,10 @@ def sample_features_for_sequencing(features, labels):
         labls[dataset] = np.array(chosen_labls, dtype=int)
     return feats, labls
 
-def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, labels, qds, recall_method):
+
+def produce_testing_sequences(
+    hetero: HeteroAssociativeMemory, features, labels, qds, recall_method
+):
     """
     Produces sequences of memories for an array of features.
 
@@ -1873,17 +2316,22 @@ def produce_testing_sequences(hetero: HeteroAssociativeMemory, features, labels,
             sequence = [qds[orig_ds].dequantize(fs, rows[orig_ds])]
             while i < commons.sequence_length:
                 if (i % 2) == origin:
-                    fs, _, _, _, _ = hetero.recall_from_left(fs, method=recall_method, label=label)
+                    fs, _, _, _, _ = hetero.recall_from_left(
+                        fs, method=recall_method, label=label
+                    )
                     sequence.append(qds[dest_ds].dequantize(fs, rows[dest_ds]))
                 else:
-                    fs, _, _, _, _ = hetero.recall_from_right(fs, method=recall_method, label=label)
+                    fs, _, _, _, _ = hetero.recall_from_right(
+                        fs, method=recall_method, label=label
+                    )
                     sequence.append(qds[orig_ds].dequantize(fs, rows[orig_ds]))
                 i += 1
             sequences[orig_ds].append(sequence)
-            commons.print_counter(counter, 10, 1, '+', name = counter_name)
+            commons.print_counter(counter, 10, 1, '+', name=counter_name)
             counter += 1
         origin = (origin + 1) % 2
     return sequences
+
 
 def sequences_of_memories(recall_method, filling_percent, es):
     cols = commons.datasets_to_domains
@@ -1891,35 +2339,59 @@ def sequences_of_memories(recall_method, filling_percent, es):
     sequences = []
     labels = []
     for fold in range(commons.n_folds):
-        filling_features, filling_labels, testing_features, testing_labels \
-                = load_features_n_labels(fold, es)
-        testing_features, testing_labels = sample_features_for_sequencing(testing_features, testing_labels)
+        filling_features, filling_labels, testing_features, testing_labels = (
+            load_features_n_labels(fold, es)
+        )
+        testing_features, testing_labels = sample_features_for_sequencing(
+            testing_features, testing_labels
+        )
         match_labels(filling_features, filling_labels)
         total = len(filling_labels[commons.left_dataset])
-        top = int(total*filling_percent/100.0)
+        top = int(total * filling_percent / 100.0)
         qds = {}
         filling_prototypes = {}
         for dataset in commons.datasets:
-            qd = qudeq.QuDeq(filling_features[dataset], percentiles = commons.use_percentiles)
-            filling_features[dataset] = qd.quantize(filling_features[dataset][:top],rows[dataset])
-            testing_features[dataset] = qd.quantize(testing_features[dataset], rows[dataset])
+            qd = qudeq.QuDeq(
+                filling_features[dataset], percentiles=commons.use_percentiles
+            )
+            filling_features[dataset] = qd.quantize(
+                filling_features[dataset][:top], rows[dataset]
+            )
+            testing_features[dataset] = qd.quantize(
+                testing_features[dataset], rows[dataset]
+            )
             proto_suffix = commons.filling_suffix + commons.proto_suffix
             proto_filename = commons.features_name(dataset, es) + proto_suffix
             proto_filename = commons.data_filename(proto_filename, es, fold)
             prototypes = np.load(proto_filename)
             filling_prototypes[dataset] = qd.quantize(prototypes, rows[dataset])
             qds[dataset] = qd
-        hetero = HeteroAssociativeMemory(cols[commons.left_dataset], cols[commons.right_dataset],
-                rows[commons.left_dataset], rows[commons.right_dataset], es, fold,
-                qds[commons.left_dataset], qds[commons.right_dataset],
-                [filling_prototypes[commons.left_dataset], filling_prototypes[commons.right_dataset]])
-        for left_feat, right_feat in zip(filling_features[commons.left_dataset],
-                filling_features[commons.right_dataset]):
+        hetero = HeteroAssociativeMemory(
+            cols[commons.left_dataset],
+            cols[commons.right_dataset],
+            rows[commons.left_dataset],
+            rows[commons.right_dataset],
+            es,
+            fold,
+            qds[commons.left_dataset],
+            qds[commons.right_dataset],
+            [
+                filling_prototypes[commons.left_dataset],
+                filling_prototypes[commons.right_dataset],
+            ],
+        )
+        for left_feat, right_feat in zip(
+            filling_features[commons.left_dataset],
+            filling_features[commons.right_dataset],
+        ):
             hetero.register(left_feat, right_feat)
-        seqs = produce_testing_sequences(hetero, testing_features, testing_labels, qds, recall_method)
+        seqs = produce_testing_sequences(
+            hetero, testing_features, testing_labels, qds, recall_method
+        )
         sequences.append(seqs)
         labels.append(testing_labels)
     return sequences, labels
+
 
 def save_sequences(sequences, labels, es):
     # sequences: list(dict(dataset, list(list)))
@@ -1937,20 +2409,34 @@ def save_sequences(sequences, labels, es):
             decoders[dataset] = decoder
         for orig_ds in commons.datasets:
             dest_ds = commons.alt(orig_ds)
-            path = commons.dreams_path + commons.fold_suffix(fold) + commons.dataset_suffix(orig_ds)
+            path = (
+                commons.dreams_path
+                + commons.fold_suffix(fold)
+                + commons.dataset_suffix(orig_ds)
+            )
             for seq, lbl in zip(seqs[orig_ds], lbls[orig_ds]):
                 i = 1
                 for features in seq:
-                    if (i % 2):
+                    if i % 2:
                         label = np.argmax(
-                                classifiers[orig_ds](np.expand_dims(features, axis=0), training = False),
-                                axis=1)[0]
-                        image = decoders[orig_ds](np.expand_dims(features, axis=0), training = False)
+                            classifiers[orig_ds](
+                                np.expand_dims(features, axis=0), training=False
+                            ),
+                            axis=1,
+                        )[0]
+                        image = decoders[orig_ds](
+                            np.expand_dims(features, axis=0), training=False
+                        )
                     else:
                         label = np.argmax(
-                                classifiers[dest_ds](np.expand_dims(features, axis=0), training = False),
-                                axis=1)[0]
-                        image = decoders[dest_ds](np.expand_dims(features, axis=0), training = False)
+                            classifiers[dest_ds](
+                                np.expand_dims(features, axis=0), training=False
+                            ),
+                            axis=1,
+                        )[0]
+                        image = decoders[dest_ds](
+                            np.expand_dims(features, axis=0), training=False
+                        )
                     image = np.squeeze(image.numpy())
                     store_dream(image, lbl, i, label, path)
                     i += 1
@@ -1959,52 +2445,59 @@ def save_sequences(sequences, labels, es):
 ##############################################################################
 # Main section
 
+
 def create_and_train_network(dataset, es):
     print(f'Memory size (columns): {commons.domain(dataset)}')
     model_prefix = commons.model_name(dataset, es)
     stats_prefix = commons.stats_model_name(dataset, es)
     history, conf_matrix = neural_net.train_network(dataset, model_prefix, es)
     save_history(history, stats_prefix, es)
-    save_conf_matrix(conf_matrix, '',  stats_prefix, es, vmax=1.0)
+    save_conf_matrix(conf_matrix, '', stats_prefix, es, vmax=1.0)
+
 
 def produce_features_from_data(dataset, es):
     model_prefix = commons.model_name(dataset, es)
     features_prefix = commons.features_name(dataset, es)
     labels_prefix = commons.labels_name(dataset, es)
     data_prefix = commons.data_name(dataset, es)
-    neural_net.obtain_features(dataset,
-            model_prefix, features_prefix, labels_prefix, data_prefix, es)
+    neural_net.obtain_features(
+        dataset, model_prefix, features_prefix, labels_prefix, data_prefix, es
+    )
+
 
 def characterize_features(dataset, es):
-    """ Produces a graph of features averages and standard deviations.
-    """
-    means, stdvs, hists, proto_kinds  = features_parameters(dataset, es)
+    """Produces a graph of features averages and standard deviations."""
+    means, stdvs, hists, proto_kinds = features_parameters(dataset, es)
     save_prototypes(means, stdvs, proto_kinds, dataset, es)
     save_features_graphs(means, stdvs, hists, proto_kinds, dataset, es)
 
-    
+
 def describe_dataset(dataset, es):
     statistics(dataset, es)
     distances(dataset, es)
 
+
 def run_separate_evaluation(dataset, es):
     best_memory_sizes = test_memory_sizes(dataset, es)
     print(f'Best memory sizes: {best_memory_sizes}')
-    best_filling_percents = test_memory_fills(
-        commons.memory_sizes, dataset, es)
+    best_filling_percents = test_memory_fills(commons.memory_sizes, dataset, es)
     save_learned_params(commons.memory_sizes, best_filling_percents, dataset, es)
+
 
 def run_evaluation(es):
     test_hetero_fills(es)
 
+
 def generate_memories(recall_method, proto_kind_suffix, es):
     remember(recall_method, proto_kind_suffix, es)
+
 
 def generate_sequences(recall_method, filling_percent, es):
     sequences, labels = sequences_of_memories(recall_method, filling_percent, es)
     save_sequences(sequences, labels, es)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     args = docopt(__doc__)
     if args['--relsmean']:
         n = int(args['--relsmean'])
@@ -2023,17 +2516,15 @@ if __name__ == "__main__":
     if args['--runpath']:
         commons.run_path = args['--runpath']
     if args['es']:
-        es_lang = gettext.translation(
-            'eam', localedir='locale', languages=['es'])
+        es_lang = gettext.translation('eam', localedir='locale', languages=['es'])
         es_lang.install()
 
     # Reading memories parameters
     _prefix = commons.memory_parameters_prefix
     _filename = commons.csv_filename(_prefix)
     parameters = None
-    parameters = np.genfromtxt(
-            _filename, dtype=float, delimiter=',', skip_header=1)
-    exp_settings = commons.ExperimentSettings(params = parameters)
+    parameters = np.genfromtxt(_filename, dtype=float, delimiter=',', skip_header=1)
+    exp_settings = commons.ExperimentSettings(params=parameters)
     print(f'Working directory: {commons.run_path}')
     print(f'Experimental settings: {exp_settings}')
     np.set_printoptions(linewidth=1024)
@@ -2074,22 +2565,21 @@ if __name__ == "__main__":
         run_evaluation(exp_settings)
     elif args['-r']:
         generate_memories(
-                commons.recall_with_sampling_n_search,
-                commons.constructed_suffix,
-                exp_settings)
+            commons.recall_with_sampling_n_search,
+            commons.constructed_suffix,
+            exp_settings,
+        )
     elif args['-q']:
         generate_memories(
-                commons.recall_with_cue,
-                commons.constructed_suffix, 
-                exp_settings)
+            commons.recall_with_cue, commons.constructed_suffix, exp_settings
+        )
     elif args['-p']:
         _kind = args['<kind>']
         if _kind not in commons.proto_kinds:
             raise ValueError(f'"{_kind}" is not a prototype kind')
         generate_memories(
-            commons.recall_with_protos,
-            commons.proto_kind_suffix(_kind),
-            exp_settings)
+            commons.recall_with_protos, commons.proto_kind_suffix(_kind), exp_settings
+        )
     elif args['-P']:
         _kind = args['<kind>']
         if _kind not in commons.proto_kinds:
@@ -2097,9 +2587,12 @@ if __name__ == "__main__":
         generate_memories(
             commons.recall_with_correct_proto,
             commons.proto_kind_suffix(_kind),
-            exp_settings)
+            exp_settings,
+        )
     elif args['-u']:
-        generate_sequences(commons.sequence_recall_method, commons.sequence_recall_fill, exp_settings)
+        generate_sequences(
+            commons.sequence_recall_method, commons.sequence_recall_fill, exp_settings
+        )
     end_of_experiment = time.time()
     duration_of_experiment = end_of_experiment - start_of_experiment
     print(f'DURATION: {duration_of_experiment:.1f} seconds')

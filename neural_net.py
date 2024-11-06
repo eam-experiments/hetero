@@ -84,7 +84,7 @@ def get_decoder(domain):
         dropout /= 2.0
         filters = filters // 4
         output = BatchNormalization()(output)
-    output = Conv2D(filters = filters, kernel_size=3, strides=1,activation='sigmoid', padding='same')(output)
+    output = Conv2DTranspose(filters = filters, kernel_size=3, strides=1,activation='sigmoid', padding='same')(output)
     output_img = Rescaling(255.0, name='decoded')(output)
     return input_mem, output_img
 

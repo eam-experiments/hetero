@@ -2082,7 +2082,7 @@ def decode_test_features(data, features, labels, fold, es):
         n = len(labels[dataset])
         # Save images.
         for i, original, produced, label in zip(
-            range(n), data, prod_test_images, labels[dataset]
+            range(n), data[dataset], prod_test_images, labels[dataset]
         ):
             # if testing_label != label:
             #    raise ValueError(

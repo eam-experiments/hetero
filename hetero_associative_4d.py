@@ -342,7 +342,8 @@ class HeteroAssociativeMemory4D:
             r_io, weights = self.reduce(projection, self.alt(dim))
         else:
             am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
-            r_io, weights = am.recall_weights(context_cue, validate=False)
+            r_io, recognized, weights = am.recall_weights(context_cue, validate=False)
+            assert recognized, 'Prototype must be recognized, as it has been'
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights
@@ -562,7 +563,7 @@ class HeteroAssociativeMemory4D:
         chosen_label = None
         chosen_weights = None
         distance = float('inf')
-        for label in selection.keys:
+        for label in selection:
             proto = self._prototypes[dim][label]
             weights = selection[label]
             d = self.distance_recall(cue, cue_weights, proto, weights, dim)

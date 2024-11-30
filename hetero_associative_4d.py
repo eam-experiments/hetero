@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import gc
 import math
 import random
 import numpy as np
@@ -20,10 +19,20 @@ import tensorflow as tf
 import commons
 from associative import AssociativeMemory
 
+
 class HeteroAssociativeMemory4D:
-    def __init__(self, n: int, p: int, m: int, q: int,
-        es: commons.ExperimentSettings, fold, nm_qd = None, pq_qd = None,
-        prototypes = None):
+    def __init__(
+        self,
+        n: int,
+        p: int,
+        m: int,
+        q: int,
+        es: commons.ExperimentSettings,
+        fold,
+        nm_qd=None,
+        pq_qd=None,
+        prototypes=None,
+    ):
         """
         Parameters
         ----------
@@ -42,9 +51,9 @@ class HeteroAssociativeMemory4D:
             defined by (n,m), and (p,q), or a list of None.
         """
         self._n = n
-        self._m = m+1 # +1 to handle partial functions.
+        self._m = m + 1  # +1 to handle partial functions.
         self._p = p
-        self._q = q+1 # +1 to handle partial functions.
+        self._q = q + 1  # +1 to handle partial functions.
         self._xi = es.xi
         self._absolute_max = 2**16 - 1
         self._sigma = es.sigma
@@ -71,10 +80,12 @@ class HeteroAssociativeMemory4D:
             classifier = tf.keras.models.load_model(filename)
             self.classifiers.append(classifier)
 
-        print(f'Relational memory {self.model_name} {{n: {self.n}, p: {self.p}, ' +
-            f'm: {self.m}, q: {self.q}, ' +
-            f'xi: {self.xi}, iota: {self.iota}, ' +
-            f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created')
+        print(
+            f'Relational memory {self.model_name} {{n: {self.n}, p: {self.p}, '
+            + f'm: {self.m}, q: {self.q}, '
+            + f'xi: {self.xi}, iota: {self.iota}, '
+            + f'kappa: {self.kappa}, sigma: {self.sigma}}}, has been created'
+        )
 
     def __str__(self):
         return f'{{n: {self.n}, p: {self.p}, m: {self.m}, q: {self.q},\n{self.rel_string}}}'
@@ -82,7 +93,7 @@ class HeteroAssociativeMemory4D:
     @property
     def model_name(self):
         return commons.d4_model_name
-    
+
     @property
     def n(self):
         return self._n
@@ -93,15 +104,15 @@ class HeteroAssociativeMemory4D:
 
     @property
     def m(self):
-        return self._m-1
+        return self._m - 1
 
     @property
     def q(self):
-        return self._q-1
+        return self._q - 1
 
     @property
     def relation(self):
-        return self._relation[:, :, :self.m, :self.q]
+        return self._relation[:, :, : self.m, : self.q]
 
     @property
     def absolute_max_value(self):
@@ -130,7 +141,7 @@ class HeteroAssociativeMemory4D:
 
     @property
     def iota_relation(self):
-        return self._full_iota_relation[:, :, :self.m, :self.q]
+        return self._full_iota_relation[:, :, : self.m, : self.q]
 
     @property
     def _full_iota_relation(self):
@@ -182,14 +193,16 @@ class HeteroAssociativeMemory4D:
     @property
     def exp_settings_2d(self):
         # Iota has already been applied to the 4D relation.
-        return commons.ExperimentSettings(iota = 0.0, kappa = self.kappa, xi = math.sqrt(self.xi), sigma = self.sigma)
-    
+        return commons.ExperimentSettings(
+            iota=0.0, kappa=self.kappa, xi=math.sqrt(self.xi), sigma=self.sigma
+        )
+
     @property
     def fullness(self):
         count = np.count_nonzero(self.relation)
-        total = self.n*self.m*self.p*self.q
-        return count*1.0/total
-    
+        total = self.n * self.m * self.p * self.q
+        return count * 1.0 / total
+
     @property
     def rel_string(self):
         return self.relation_to_string(self.relation)
@@ -206,7 +219,7 @@ class HeteroAssociativeMemory4D:
             if v == u:
                 return True
         return False
-    
+
     def undefined_function(self, dim):
         return np.full(self.cols(dim), self.undefined(dim), dtype=int)
 
@@ -219,7 +232,7 @@ class HeteroAssociativeMemory4D:
     def rows(self, dim):
         return self.m if dim == 0 else self.q
 
-    def register(self, cue_a, cue_b, weights_a = None, weights_b = None) -> None:
+    def register(self, cue_a, cue_b, weights_a=None, weights_b=None) -> None:
         if weights_a is None:
             weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
@@ -229,17 +242,21 @@ class HeteroAssociativeMemory4D:
         r_io = self.vectors_to_relation(cue_a, cue_b, weights_a, weights_b)
         self.abstract(r_io)
 
-    def recognize(self, cue_a, cue_b, weights_a = None, weights_b = None):
+    def recognize(self, cue_a, cue_b, weights_a=None, weights_b=None):
         if weights_a is None:
             weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
             weights_b = np.full(len(cue_b), fill_value=1)
-        recognized, weights = self.recog_full_weights(cue_a, cue_b, weights_a, weights_b, final = False)
+        recognized, weights = self.recog_full_weights(
+            cue_a, cue_b, weights_a, weights_b, final=False
+        )
         mean_weight = np.sum(weights)
-        recognized = recognized and (self._kappa*self.mean <= mean_weight)
+        recognized = recognized and (self._kappa * self.mean <= mean_weight)
         return recognized, mean_weight
 
-    def recog_full_weights(self, cue_a, cue_b, weights_a = None, weights_b = None, final = True):
+    def recog_full_weights(
+        self, cue_a, cue_b, weights_a=None, weights_b=None, final=True
+    ):
         if weights_a is None:
             weights_a = np.full(len(cue_a), fill_value=1)
         if weights_b is None:
@@ -251,17 +268,29 @@ class HeteroAssociativeMemory4D:
         recognized = np.count_nonzero(implication == 0) <= self._xi
         weights = self._weights(r_io)
         if final:
-            recognized = recognized and (self._kappa*self.mean <= np.sum(weights))
+            recognized = recognized and (self._kappa * self.mean <= np.sum(weights))
         return recognized, weights
 
-    def recall_from_left(self, cue, method = commons.recall_with_sampling_n_search,
-            euc = None, weights = None, label = None):
+    def recall_from_left(
+        self,
+        cue,
+        method=commons.recall_with_sampling_n_search,
+        euc=None,
+        weights=None,
+        label=None,
+    ):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
         return self.recall(cue, method, euc, weights, label, 0)
 
-    def recall_from_right(self, cue, method = commons.recall_with_sampling_n_search,
-            euc = None, weights = None, label = None):
+    def recall_from_right(
+        self,
+        cue,
+        method=commons.recall_with_sampling_n_search,
+        euc=None,
+        weights=None,
+        label=None,
+    ):
         if weights is None:
             weights = np.full(len(cue), fill_value=1)
         return self.recall(cue, method, euc, weights, label, 1)
@@ -271,14 +300,15 @@ class HeteroAssociativeMemory4D:
         if euc is not None:
             euc = self.validate(euc, self.alt(dim))
         projection = self.project(cue, weights, dim)
-        recognized = (np.count_nonzero(np.sum(projection, axis=1) == 0) == 0)
+        recognized = np.count_nonzero(np.sum(projection, axis=1) == 0) == 0
         if not recognized:
             r_io = self.undefined_function(self.alt(dim))
             weight = 0.0
             stats = [0, 0, 0.0, 0.0]
         else:
-            r_io, weights, stats = \
-                    self.optimal_recall(cue, method, euc, weights, label, projection, dim)
+            r_io, weights, stats = self.optimal_recall(
+                cue, method, euc, weights, label, projection, dim
+            )
             if r_io is None:
                 recognized = False
                 r_io = self.undefined_function(self.alt(dim))
@@ -293,18 +323,26 @@ class HeteroAssociativeMemory4D:
             return self.sample_n_search_recall(cue, cue_weights, projection, dim)
         elif method == commons.recall_with_protos:
             return self.prototypes_recall(cue, cue_weights, label, projection, dim)
-        elif method == commons.recall_with_correct_proto:
-            return self.correct_proto_recall(cue, cue_weights, label, projection, dim)
-        elif method == commons.recall_with_cue:
-            return self.cue_recall(euc, projection, dim)
         else:
             raise ValueError(f'Incorrect value for method: {method}')
-            
-    def sample_n_search_recall(self, cue, cue_weights, projection, dim):
+
+    def sample_n_search_recall(
+        self,
+        cue,
+        cue_weights,
+        projection,
+        dim,
+        context_cue=None,
+        context_cue_weights=None,
+    ):
         sampling_iterations = 0
         giving_ups = 0
         last_update = 0
-        r_io, weights = self.reduce(projection, self.alt(dim))
+        if (context_cue is None) or (context_cue_weights is None):
+            r_io, weights = self.reduce(projection, self.alt(dim))
+        else:
+            am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
+            r_io, weights = am.recall_weights(context_cue, validate=False)
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights
@@ -337,7 +375,9 @@ class HeteroAssociativeMemory4D:
                 t = neighbors.pop()
                 i = t[0]
                 v = t[1]
-                q_io = np.array([r_io[j] if j != i else v for j in range(self.cols(self.alt(dim)))])
+                q_io = np.array(
+                    [r_io[j] if j != i else v for j in range(self.cols(self.alt(dim)))]
+                )
                 if self.already_visited(q_io, visited):
                     giving_ups += 1
                     continue
@@ -355,112 +395,72 @@ class HeteroAssociativeMemory4D:
                 r_io = q_io
                 weights = q_ws
         diffs, length = self.functions_distance(sampling_io, sampling_ws, r_io, weights)
-        return r_io, weights, [sampling_iterations, search_iterations,
-                last_update, giving_ups, distance2, (distance2- distance), diffs, length]
-    
+        return (
+            r_io,
+            weights,
+            [
+                sampling_iterations,
+                search_iterations,
+                last_update,
+                giving_ups,
+                distance2,
+                (distance2 - distance),
+                diffs,
+                length,
+            ],
+        )
+
     def prototypes_recall(self, cue, cue_weights, label, projection, dim):
-        sampling_iterations = 0
-        last_update = 0
-        # giving_ups = 0
-        giving_ups = 0
-        coherence = self.protos_coherence(projection, self.alt(dim))
-        if np.sum(coherence) == 0:
-            return None, None, [sampling_iterations, last_update, np.nan]
-        p = self.choose_from_distrib(coherence)
-        s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
-        r_io, weights = self.reduce(s_projection, self.alt(dim))
-        distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
-        visited = [r_io]
-        q_io, q_ws = r_io, weights
-        for k in range(commons.sample_size):
-            j = 0
-            while self.already_visited(q_io, visited) and (j < commons.early_threshold):
-                p = self.choose_from_distrib(coherence)
-                s_projection = self.adjust_by_proto(projection, p, self.alt(dim))
-                q_io, q_ws = self.reduce(s_projection, self.alt(dim))
-                j += 1
-            if self.already_visited(q_io, visited):
-                giving_ups += 1
-                continue
-            visited.append(q_io)
-            d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
-            if d < distance:
-                r_io = q_io
-                weights = q_ws
-                distance = d
-                sampling_iterations += 1
-                last_update = k
-        return r_io, weights, [sampling_iterations, last_update, giving_ups, distance]
+        selection = self.protos_selection(projection, self.alt(dim))
+        if len(selection) == 0:
+            print(f'Label: {label}, Chosen: None')
+            return None, None, [0, 0, np.nan]
+        proto_label, proto, proto_weights = self.choose_from_selection(
+            selection, cue, cue_weights, self.alt(dim)
+        )
+        print(f'Label: {label}, Chosen: {proto_label}')
+        return self.sample_n_search_recall(
+            cue, cue_weights, projection, dim, proto, proto_weights
+        )
 
-    def correct_proto_recall(self, proto, proto_weights, label, projection, dim):
-        sampling_iterations = 0
-        last_update = 0
-        giving_ups = 0
-        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
-        recognized, _ = am.recognize(proto, validate=False)
-        if not recognized:
-            return None, None, [sampling_iterations, last_update, np.nan]
-        s_projection = self.adjust_by_proto(projection, label, self.alt(dim))
-        r_io, weights = self.reduce(s_projection, self.alt(dim))
-        distance = self.distance_recall(proto, proto_weights, r_io, weights, dim)
-        visited = [r_io]
-        q_io, q_ws = r_io, weights
-        for k in range(commons.sample_size):
-            j = 0
-            while self.already_visited(q_io, visited) and (j < commons.early_threshold):
-                q_io, q_ws = self.reduce(s_projection, self.alt(dim))
-                j += 1
-            if j == commons.early_threshold:
-                giving_ups += 1
-                continue
-            visited.append(q_io)
-            d = self.distance_recall(proto, proto_weights, q_io, q_ws, dim)
-            if d < distance:
-                r_io = q_io
-                weights = q_ws
-                distance = d
-                sampling_iterations += 1
-                last_update = k
-        return r_io, weights, [sampling_iterations, last_update, giving_ups, distance]
-
-    def cue_recall(self, euc, projection, dim):
-        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
-        recognized, _ = am.recognize(euc, validate=False)
-        if not recognized:
-            return None, None, [0.0]
-        s = self.rows(self.alt(dim)) * self.sigma
-        s_projection = self.adjust(projection, euc, s)
-        r_io, weights = self.reduce(s_projection, self.alt(dim))
-        return r_io, weights, [0.0]
-    
     def abstract(self, r_io):
         self._relation = np.where(
             self._relation == self.absolute_max_value,
-            self._relation, self._relation + r_io)
+            self._relation,
+            self._relation + r_io,
+        )
         self._updated = False
 
     def containment(self, r_io):
         return np.where((r_io == 0) | (self._full_iota_relation != 0), 1, 0)
 
     def project(self, cue, weights, dim):
-        integration = np.zeros((self.cols(self.alt(dim)), self.rows(self.alt(dim))), dtype=float)
+        integration = np.zeros(
+            (self.cols(self.alt(dim)), self.rows(self.alt(dim))), dtype=float
+        )
         sum_weights = np.sum(weights)
         if sum_weights == 0:
             return integration
         first = True
-        w = cue.size*weights/sum_weights
+        w = cue.size * weights / sum_weights
         for i in range(cue.size):
             k = cue[i]
             if self.is_undefined(k, dim):
                 continue
-            projection = (self._full_iota_relation[i, :, k, :self.q] if dim == 0
-                else self._full_iota_relation[:, i, :self.m, k])
+            projection = (
+                self._full_iota_relation[i, :, k, : self.q]
+                if dim == 0
+                else self._full_iota_relation[:, i, : self.m, k]
+            )
             if first:
-                integration = w[i]*projection
+                integration = w[i] * projection
                 first = False
             else:
-                integration = np.where((integration == 0) | (projection == 0),
-                        0, integration + w[i]*projection)
+                integration = np.where(
+                    (integration == 0) | (projection == 0),
+                    0,
+                    integration + w[i] * projection,
+                )
         return integration
 
     def distance_recall(self, cue, cue_weights, q_io, q_ws, dim, label=None):
@@ -484,35 +484,46 @@ class HeteroAssociativeMemory4D:
                 continue
             ws += w
             s = np.sum(column)
-            ps = column if s == 0.0 else column/np.sum(column)
-            d = np.dot(np.square(np.arange(self.rows(dim))-v),ps)*w
+            ps = column if s == 0.0 else column / np.sum(column)
+            d = np.dot(np.square(np.arange(self.rows(dim)) - v), ps) * w
             distance += d
         return distance / np.sum(ws)
-    
+
     def functions_distance(self, p_io, p_ws, q_io, q_ws):
         abs = np.abs(p_io - q_io)
         diff = np.sum(abs)
         length = np.max(abs)
         return diff, length
 
-    def protos_coherence(self, projection, dim):
-        frequencies = self.prototypes_frequencies(projection, dim)
-        coherence = []
-        adjustment = -math.log2(0.9999)
-        for label in commons.all_labels:
-            freqs = frequencies[label]
-            s = np.sum(freqs)
-            probs = freqs if s == 0 else freqs/s
-            entropy = np.sum(np.multiply(-probs, np.log2(np.where(probs == 0.0, 1.0, probs))))
-            coherence.append(probs[label]/(entropy+adjustment))
-        return np.array(coherence)
+    def protos_selection(self, projection, dim):
+        """Selects prototypes that are recognized by the projection
+
+        Returns an dictionary of labels: weights, where labels
+        are the labels of the recognized prototypes, associated
+        to their corresponding array of weights.
+        """
+        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
+        selection = {}
+        for lbl in commons.all_labels:
+            proto = self._prototypes[dim][lbl]
+            recognized, weights = am.recog_weights(proto, validate=False)
+            if recognized:
+                selection[lbl] = weights
+        return selection
 
     # Reduces a relation to a function
-    def reduce(self, relation, dim, excluded = None):
+    def reduce(self, relation, dim, excluded=None):
         cols = self.cols(dim)
-        v = np.array([self.choose(column, dim) for column in relation]) \
-            if excluded is None else \
-                np.array([self.choose(column, dim, exc) for column, exc in zip(relation, excluded)])
+        v = (
+            np.array([self.choose(column, dim) for column in relation])
+            if excluded is None
+            else np.array(
+                [
+                    self.choose(column, dim, exc)
+                    for column, exc in zip(relation, excluded)
+                ]
+            )
+        )
         weights = []
         for i in range(cols):
             if self.is_undefined(v[i], dim):
@@ -521,20 +532,20 @@ class HeteroAssociativeMemory4D:
                 weights.append(relation[i, v[i]])
         return v, np.array(weights)
 
-    def choose(self, column, dim, excluded = None):
+    def choose(self, column, dim, excluded=None):
         """Choose a value from the column given a cue
-        
+
         It assumes the column as a probabilistic distribution.
         """
         s = column.sum()
         if s == 0:
             return self.undefined(dim)
-        if (excluded is not None):
+        if excluded is not None:
             if s > column[excluded]:
                 s -= column[excluded]
             else:
                 excluded = None
-        r = s*random.random()
+        r = s * random.random()
         for j in range(column.size):
             if (excluded is not None) and (j == excluded):
                 continue
@@ -543,30 +554,35 @@ class HeteroAssociativeMemory4D:
             r -= column[j]
         return self.undefined(dim)
 
-    def choose_from_distrib(self, distribution):
-        """Choose a value using the probability distribution"""
-        s = distribution.sum()
-        if s == 0:
-            raise ValueError('Invalid probability distribution')
-        r = s*random.random()
+    def choose_from_selection(
+        self, selection: dict[int, np.ndarray], cue, cue_weights, dim
+    ):
+        """Chooses a prototype (giving its label and recognition weight"""
         chosen = None
-        for j in range(distribution.size):
-            if r <= distribution[j]:
-                chosen = j
-                break
-            r -= distribution[j]
-        return chosen
+        chosen_label = None
+        chosen_weights = None
+        distance = float('inf')
+        for label in selection.keys:
+            proto = self._prototypes[dim][label]
+            weights = selection[label]
+            d = self.distance_recall(cue, cue_weights, proto, weights, dim)
+            if d < distance:
+                chosen = proto
+                chosen_label = label
+                chosen_weights = weights
+                distance = d
+        return chosen_label, chosen, chosen_weights
 
     def neighborhood(self, projection, r_io, dim):
         neigh = []
-        rows = self.rows(dim)-1
+        rows = self.rows(dim) - 1
         for i in range(self.cols(dim)):
             column = projection[i]
             value = r_io[i]
-            if (value < rows) and (column[value+1] > 0):
-                neigh.append((i, value+1))
-            if (0 < value) and (column[value-1] > 0):
-                neigh.append((i, value-1))
+            if (value < rows) and (column[value + 1] > 0):
+                neigh.append((i, value + 1))
+            if (0 < value) and (column[value - 1] > 0):
+                neigh.append((i, value - 1))
         random.shuffle(neigh)
         return neigh
 
@@ -580,17 +596,22 @@ class HeteroAssociativeMemory4D:
         return np.array(s_projection)
 
     def ponderate(self, column, mean, s):
-        norm = np.array([self.normpdf(i, mean, s)/self.normpdf(0, 0, s) for i in range(column.size)])
-        return norm*column
-    
+        norm = np.array(
+            [
+                self.normpdf(i, mean, s) / self.normpdf(0, 0, s)
+                for i in range(column.size)
+            ]
+        )
+        return norm * column
+
     def _weights(self, r_io):
-        r = r_io/np.sum(r_io)
-        weights = np.sum(r[:, :, :self.m, :self.q] * self.relation, axis=(2,3))
+        r = r_io / np.sum(r_io)
+        weights = np.sum(r[:, :, : self.m, : self.q] * self.relation, axis=(2, 3))
         return weights
-        
+
     def weights_in_projection(self, projection, q_io, dim):
         return projection[np.arange(self.cols(dim)), q_io]
-    
+
     def update(self):
         self._update_entropies()
         self._update_means()
@@ -603,13 +624,17 @@ class HeteroAssociativeMemory4D:
                 relation = self.relation[i, j, :, :]
                 total = np.sum(relation)
                 if total > 0:
-                    matrix = relation/total
+                    matrix = relation / total
                 else:
                     matrix = relation.copy()
-                matrix = np.multiply(-matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix)))
+                matrix = np.multiply(
+                    -matrix, np.log2(np.where(matrix == 0.0, 1.0, matrix))
+                )
                 self._entropies[i, j] = np.sum(matrix)
-        print(f'Entropy updated to mean = {np.mean(self._entropies)}, ' 
-              + f'stdev = {np.std(self._entropies)}')
+        print(
+            f'Entropy updated to mean = {np.mean(self._entropies)}, '
+            + f'stdev = {np.std(self._entropies)}'
+        )
 
     def _update_means(self):
         for i in range(self.n):
@@ -617,7 +642,7 @@ class HeteroAssociativeMemory4D:
                 r = self.relation[i, j, :, :]
                 count = np.count_nonzero(r)
                 count = 1 if count == 0 else count
-                self._means[i,j] = np.sum(r)/count
+                self._means[i, j] = np.sum(r) / count
 
     def _update_iota_relation(self):
         for i in range(self.n):
@@ -625,36 +650,43 @@ class HeteroAssociativeMemory4D:
                 matrix = self.relation[i, j, :, :]
                 s = np.sum(matrix)
                 if s == 0:
-                    self._iota_relation[i, j, :self.m, :self.q] = \
-                        np.zeros((self.m, self.q), dtype=int)
+                    self._iota_relation[i, j, : self.m, : self.q] = np.zeros(
+                        (self.m, self.q), dtype=int
+                    )
                 else:
                     count = np.count_nonzero(matrix)
-                    threshold = self.iota*s/count
-                    self._iota_relation[i, j, :self.m, :self.q] = \
-                        np.where(matrix < threshold, 0, matrix)
-        turned_off = np.count_nonzero(self._relation) - np.count_nonzero(self._iota_relation)
+                    threshold = self.iota * s / count
+                    self._iota_relation[i, j, : self.m, : self.q] = np.where(
+                        matrix < threshold, 0, matrix
+                    )
+        turned_off = np.count_nonzero(self._relation) - np.count_nonzero(
+            self._iota_relation
+        )
         print(f'Iota relation updated, and {turned_off} cells have been turned off')
 
     def validate(self, cue, dim):
-        """ It asumes vector is an array of floats, and np.nan
-            is used to register an undefined value, but it also
-            considerers any negative number or out of range number
-            as undefined.
+        """It asumes vector is an array of floats, and np.nan
+        is used to register an undefined value, but it also
+        considerers any negative number or out of range number
+        as undefined.
         """
         expected_length = self.cols(dim)
         if (len(cue.shape) < 1) or (len(cue.shape) > 2):
             raise ValueError(f'Unexpected shape of cue(s): {cue.shape}.')
         if len(cue.shape) == 1:
             if cue.size != expected_length:
-                raise ValueError('Invalid lenght of the input data. Expected ' +
-                        f'{expected_length} and given {cue.size}')
+                raise ValueError(
+                    'Invalid lenght of the input data. Expected '
+                    + f'{expected_length} and given {cue.size}'
+                )
         elif cue.shape[1] != expected_length:
-            raise ValueError(f'Expected shape (n, {expected_length}) ' +
-                    f'but got shape {cue.shape}')
+            raise ValueError(
+                f'Expected shape (n, {expected_length}) ' + f'but got shape {cue.shape}'
+            )
         threshold = self.rows(dim)
         undefined = self.undefined(dim)
         v = np.where(cue < 0, 0, cue)
-        v = np.where(threshold <= v, self.rows(dim)-1, v)
+        v = np.where(threshold <= v, self.rows(dim) - 1, v)
         v = np.nan_to_num(v, copy=True, nan=undefined)
         v = v.round()
         return v.astype('int')
@@ -668,8 +700,9 @@ class HeteroAssociativeMemory4D:
             return [None, None]
         protos = []
         for dim in range(2):
-            protos.append(None if prototypes[dim] is None \
-                    else self.validate(prototypes[dim], dim))
+            protos.append(
+                None if prototypes[dim] is None else self.validate(prototypes[dim], dim)
+            )
         return protos
 
     def vectors_to_relation(self, cue_a, cue_b, weights_a, weights_b):
@@ -678,56 +711,37 @@ class HeteroAssociativeMemory4D:
             k = cue_a[i]
             for j in range(self.p):
                 label = cue_b[j]
-                w = math.sqrt(weights_a[i]*weights_b[j])
+                w = math.sqrt(weights_a[i] * weights_b[j])
                 relation[i, j, k, label] = int(w)
         return relation
 
     def to_relation(self, cue, dim):
-        relation = np.zeros((self.cols(dim), self.rows(dim)+1), dtype=bool)
+        relation = np.zeros((self.cols(dim), self.rows(dim) + 1), dtype=bool)
         relation[range(self.cols(dim)), cue] = True
-        return relation[:, :self.rows(dim)]
+        return relation[:, : self.rows(dim)]
 
     def _set_margins(self):
-        """ Set margins to one.
+        """Set margins to one.
 
         Margins are tuples (i, j, k, l) where either k = self.m or l = self.q.
         """
-        self._relation[:, :, self.m, :] = np.full((self._n, self._p, self._q), 1, dtype=int)
-        self._relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
-        self._iota_relation[:, :, self.m, :] = np.full((self._n, self._p, self._q), 1, dtype=int)
-        self._iota_relation[:, :, :, self.q] = np.full((self._n, self._p, self._m), 1, dtype=int)
+        self._relation[:, :, self.m, :] = np.full(
+            (self._n, self._p, self._q), 1, dtype=int
+        )
+        self._relation[:, :, :, self.q] = np.full(
+            (self._n, self._p, self._m), 1, dtype=int
+        )
+        self._iota_relation[:, :, self.m, :] = np.full(
+            (self._n, self._p, self._q), 1, dtype=int
+        )
+        self._iota_relation[:, :, :, self.q] = np.full(
+            (self._n, self._p, self._m), 1, dtype=int
+        )
 
-    def prototypes_frequencies(self, projection, dim):
-        frequencies = []
-        classifier = self.classifiers[dim]
-        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
-        for lbl in commons.all_labels:
-            proto = self._prototypes[dim][lbl]
-            counts = np.zeros(commons.n_labels, dtype=int)
-            recognized, _ = am.recognize(proto, validate=False)
-            if recognized:
-                s = self.rows(dim) * self.sigma
-                s_projection = self.adjust(projection, proto, s)
-                if (np.count_nonzero(np.sum(s_projection, axis=1) == 0) == 0):
-                    memories = []
-                    for i in range(commons.presence_iterations):
-                        r_io, _ = self.reduce(s_projection, dim)
-                        if not self.is_partial(r_io, dim):
-                            memories.append(r_io)
-                    if len(memories) > 0:
-                        memories = self.rsize_recalls(np.array(memories), dim)
-                        classification = np.argmax(classifier(memories, training=False), axis=1)
-                        labels, freqs = np.unique(classification, return_counts=True)
-                        for lbl, freq in zip(labels, freqs):
-                            counts[lbl] = freq
-            frequencies.append(counts)
-        gc.collect()
-        return np.array(frequencies, dtype=float)
-    
     def rsize_recalls(self, recalls, dim):
         return self.qudeqs[dim].dequantize(recalls, self.rows(dim))
 
-    def relation_to_string(self, a, p = ''):
+    def relation_to_string(self, a, p=''):
         if a.ndim == 1:
             return f'{p}{a}'
         s = f'{p}[\n'
@@ -742,7 +756,7 @@ class HeteroAssociativeMemory4D:
             if np.array_equal(r_io, q_io):
                 return True
         return False
-    
+
     def adjust_by_proto(self, relation, label, dim):
         proto = self._prototypes[dim][label]
         s = self.rows(dim) * self.sigma
@@ -750,8 +764,7 @@ class HeteroAssociativeMemory4D:
         return q
 
     def normpdf(self, x, mean, sd):
-        var = float(sd)**2
-        denom = (2*math.pi*var)**.5
-        num = math.exp(-(float(x)-float(mean))**2/(2*var))
-        return num/denom
-
+        var = float(sd) ** 2
+        denom = (2 * math.pi * var) ** 0.5
+        num = math.exp(-((float(x) - float(mean)) ** 2) / (2 * var))
+        return num / denom

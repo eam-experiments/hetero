@@ -338,13 +338,13 @@ class HeteroAssociativeMemory4D:
         sampling_iterations = 0
         giving_ups = 0
         last_update = 0
-        if (context_cue is None) or (context_cue_weights is None):
-            r_io, weights = self.reduce(projection, self.alt(dim))
-        else:
+        recognized = False
+        if (context_cue is not None) and (context_cue_weights is not None):
             am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
             r_io, recognized, weights = am.recall_weights(context_cue, validate=False)
-            assert recognized, 'Prototype must be recognized, as it has been'
             r_io = r_io.astype(int)
+        if not recognized:
+            r_io, weights = self.reduce(projection, self.alt(dim))
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
         q_io, q_ws = r_io, weights

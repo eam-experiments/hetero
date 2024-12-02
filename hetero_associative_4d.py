@@ -412,16 +412,18 @@ class HeteroAssociativeMemory4D:
         )
 
     def prototypes_recall(self, cue, cue_weights, label, projection, dim):
-        selection = self.protos_selection(projection, self.alt(dim))
+        selection = self.protos_selection(dim)
         if len(selection) == 0:
             print(f'Label: {label}, Chosen: None')
             return None, None, [0, 0, np.nan]
-        proto_label, proto, proto_weights = self.choose_from_selection(
-            selection, cue, cue_weights, self.alt(dim)
+        proto_label, proto_cue, proto_weights = self.choose_from_selection(
+            selection, projection, self.alt(dim)
         )
-        print(f'Label: {label}, Chosen: {proto_label}')
+        print(
+            f'Label: {label}, Contained: {label in selection},  Chosen: {proto_label}'
+        )
         return self.sample_n_search_recall(
-            cue, cue_weights, projection, dim, proto, proto_weights
+            cue, cue_weights, projection, dim, proto_cue, proto_weights
         )
 
     def abstract(self, r_io):
@@ -496,20 +498,21 @@ class HeteroAssociativeMemory4D:
         length = np.max(abs)
         return diff, length
 
-    def protos_selection(self, projection, dim):
+    def protos_selection(self, dim):
         """Selects prototypes that are recognized by the projection
 
         Returns an dictionary of labels: weights, where labels
         are the labels of the recognized prototypes, associated
         to their corresponding array of weights.
         """
-        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
         selection = {}
+        weights = np.full(self.cols(dim), fill_value=1)
         for lbl in commons.all_labels:
             proto = self._prototypes[dim][lbl]
-            recognized, weights = am.recog_weights(proto, validate=False)
+            projection = self.project(proto, weights, dim)
+            recognized = np.count_nonzero(np.sum(projection, axis=1) == 0) == 0
             if recognized:
-                selection[lbl] = weights
+                selection[lbl] = projection
         return selection
 
     # Reduces a relation to a function
@@ -555,24 +558,23 @@ class HeteroAssociativeMemory4D:
             r -= column[j]
         return self.undefined(dim)
 
-    def choose_from_selection(
-        self, selection: dict[int, np.ndarray], cue, cue_weights, dim
-    ):
+    def choose_from_selection(self, selection: dict[int, np.ndarray], projection, dim):
         """Chooses a prototype (giving its label and recognition weight"""
         chosen = None
         chosen_label = None
-        chosen_weights = None
         distance = float('inf')
         for label in selection:
-            proto = self._prototypes[dim][label]
-            weights = selection[label]
-            d = self.distance_recall(cue, cue_weights, proto, weights, dim)
+            proto_projection = selection[label]
+            d = self.distance_projections(projection, proto_projection)
             if d < distance:
-                chosen = proto
+                chosen = proto_projection
                 chosen_label = label
-                chosen_weights = weights
                 distance = d
-        return chosen_label, chosen, chosen_weights
+        chosen_cue, chosen_weights = self.reduce(chosen, dim)
+        return chosen_label, chosen_cue, chosen_weights
+
+    def distance_projections(self, p, q):
+        return np.mean(np.linalg.norm(p - q, axis=1))
 
     def neighborhood(self, projection, r_io, dim):
         neigh = []

@@ -64,6 +64,7 @@ d3_with_distance = False
 sample_size = 2 * max(datasets_to_domains.values()) - 1
 early_threshold = sample_size
 presence_iterations = 2 * sample_size
+num_proto_tries = 100
 mean_matches = 1
 stdv_matches = 0
 use_percentiles = True

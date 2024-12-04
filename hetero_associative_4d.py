@@ -332,18 +332,13 @@ class HeteroAssociativeMemory4D:
         cue_weights,
         projection,
         dim,
-        context_cue=None,
-        context_cue_weights=None,
+        r_io=None,
+        weights=None,
     ):
         sampling_iterations = 0
         giving_ups = 0
         last_update = 0
-        recognized = False
-        if (context_cue is not None) and (context_cue_weights is not None):
-            am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
-            r_io, recognized, weights = am.recall_weights(context_cue, validate=False)
-            r_io = r_io.astype(int)
-        if not recognized:
+        if (r_io is None) or (weights is None):
             r_io, weights = self.reduce(projection, self.alt(dim))
         distance = self.distance_recall(cue, cue_weights, r_io, weights, dim)
         visited = [r_io]
@@ -417,14 +412,26 @@ class HeteroAssociativeMemory4D:
         if len(selection) == 0:
             print(f'Label: {label}, Chosen: None')
             return None, None, [0, 0, np.nan]
-        proto_label, proto_cue, proto_weights = self.choose_from_selection(
+        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
+        proto_label, proto_projection = self.choose_from_selection(
             selection, projection, self.alt(dim)
         )
+        recognized = False
+        for n in range(commons.num_proto_tries):
+            proto_cue, proto_weights = self.reduce(proto_projection, dim)
+            r_io, recognized, weights = am.recall_weights(proto_cue, validate=False)
+            if recognized:
+                r_io = r_io.astype(int)
+                break
         print(
-            f'Label: {label}, Contained: {label in selection},  Chosen: {proto_label}'
+            f'Label: {label}, Contained: {label in selection},  Chosen: {proto_label}, Tries: {n}'
         )
-        return self.sample_n_search_recall(
-            cue, cue_weights, projection, dim, proto_cue, proto_weights
+        return (
+            self.sample_n_search_recall(
+                cue, cue_weights, projection, dim, r_io, weights
+            )
+            if recognized
+            else self.sample_n_search_recall(cue, cue_weights, projection, dim)
         )
 
     def abstract(self, r_io):
@@ -560,7 +567,10 @@ class HeteroAssociativeMemory4D:
         return self.undefined(dim)
 
     def choose_from_selection(self, selection: dict[int, np.ndarray], projection, dim):
-        """Chooses a prototype (giving its label and recognition weight"""
+        """Chooses a prototype (giving its label and recognition weight
+
+        Returns the label and projection of the chosen prototype.
+        """
         chosen = None
         chosen_label = None
         distance = float('inf')
@@ -571,8 +581,7 @@ class HeteroAssociativeMemory4D:
                 chosen = proto_projection
                 chosen_label = label
                 distance = d
-        chosen_cue, chosen_weights = self.reduce(chosen, dim)
-        return chosen_label, chosen_cue, chosen_weights
+        return chosen_label, chosen
 
     def distance_projections(self, p, q):
         return np.mean(np.linalg.norm(p - q, axis=1))

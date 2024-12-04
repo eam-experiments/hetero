@@ -413,7 +413,7 @@ class HeteroAssociativeMemory4D:
             print(f'Label: {label}, Chosen: None')
             return None, None, [0, 0, np.nan]
         am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
-        proto_label, proto_projection = self.choose_from_selection(
+        proto_label, proto_projection, distances = self.choose_from_selection(
             selection, projection, self.alt(dim)
         )
         recognized = False
@@ -424,7 +424,7 @@ class HeteroAssociativeMemory4D:
                 r_io = r_io.astype(int)
                 break
         print(
-            f'Label: {label}, Contained: {label in selection},  Chosen: {proto_label}, Tries: {n if recognized else 100}'
+            f'Label: {label}, Contained: {label in selection},  Chosen: {proto_label}, Distances: {distances}'
         )
         return (
             self.sample_n_search_recall(
@@ -574,21 +574,40 @@ class HeteroAssociativeMemory4D:
         chosen = None
         chosen_label = None
         distance = float('inf')
+        ds = {}
         for label in selection:
             proto_projection = selection[label]
             d = self.distance_projections(projection, proto_projection)
+            ds[label] = d
             if d < distance:
                 chosen = proto_projection
                 chosen_label = label
                 distance = d
-        return chosen_label, chosen
+        return chosen_label, chosen, ds
 
     def distance_projections(self, p, q):
         p_totals = np.sum(p, axis=1)
         q_totals = np.sum(q, axis=1)
         p_probs = p / p_totals[:, None]
         q_probs = q / q_totals[:, None]
-        return np.mean(np.linalg.norm(p_probs - q_probs, axis=1, ord=1))
+        return np.mean(self.probs_distances(p_probs, q_probs))
+
+    def probs_distances(self, p_probs, q_probs):
+        distances = []
+        for p, q in zip(p_probs, q_probs):
+            d = self.wasserstein_distance(p, q)
+            distances.append(d)
+        return distances
+
+    def wasserstein_distance(self, p, q):
+        cum_p = 0.0
+        cum_q = 0.0
+        distance = 0.0
+        for pi, qi in zip(p, q):
+            cum_p += pi
+            cum_q += qi
+            distance += abs(cum_p - cum_q)
+        return distance
 
     def neighborhood(self, projection, r_io, dim):
         neigh = []

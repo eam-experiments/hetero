@@ -584,7 +584,11 @@ class HeteroAssociativeMemory4D:
         return chosen_label, chosen
 
     def distance_projections(self, p, q):
-        return np.mean(np.linalg.norm(p - q, axis=1))
+        p_totals = np.sum(p, axis=1)
+        q_totals = np.sum(q, axis=1)
+        p_probs = p / p_totals[:, None]
+        q_probs = q / q_totals[:, None]
+        return np.mean(np.linalg.norm(p_probs - q_probs, axis=1, ord=1))
 
     def neighborhood(self, projection, r_io, dim):
         neigh = []

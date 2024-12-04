@@ -588,7 +588,24 @@ class HeteroAssociativeMemory4D:
         q_totals = np.sum(q, axis=1)
         p_probs = p / p_totals[:, None]
         q_probs = q / q_totals[:, None]
-        return np.mean(np.linalg.norm(p_probs - q_probs, axis=1, ord=1))
+        return np.mean(self.probs_distances(p_probs, q_probs))
+
+    def probs_distances(self, p_probs, q_probs):
+        distances = []
+        for p, q in zip(p_probs, q_probs):
+            d = self.wessserstein_distance(p, q)
+            distances.append(d)
+        return distances
+
+    def wasserstein_distance(self, p, q):
+        cum_p = 0.0
+        cum_q = 0.0
+        distance = 0.0
+        for pi, qi in zip(p, q):
+            cum_p += pi
+            cum_q += qi
+            distance += abs(cum_p - cum_q)
+        return distance
 
     def neighborhood(self, projection, r_io, dim):
         neigh = []

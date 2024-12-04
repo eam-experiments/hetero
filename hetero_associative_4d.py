@@ -424,7 +424,7 @@ class HeteroAssociativeMemory4D:
                 r_io = r_io.astype(int)
                 break
         print(
-            f'Label: {label}, Contained: {label in selection},  Chosen: {proto_label}, Tries: {n}'
+            f'Label: {label}, Contained: {label in selection},  Chosen: {proto_label}, Tries: {n if recognized else 100}'
         )
         return (
             self.sample_n_search_recall(

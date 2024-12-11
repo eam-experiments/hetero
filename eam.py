@@ -17,7 +17,7 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -m | -p <kind> | -u)
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -m | -p <kind> | -P <kind>| -u)
     [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
@@ -31,6 +31,7 @@ Options:
   -r    Evaluates hetero-recalling using search.
   -m    Adds homo-associative modulation to hetero-recalling.
   -p    Adds prototype modulation to hetero-recalling.
+  -P    Adds prototype with distance back to original cue as modulation.
   -u    Generates sequences of memories
   --relsmean=MEAN   Average number of relations per data element.
   --relsstdv=STDV   Standard deviation of the number of relations per data element.
@@ -2572,6 +2573,15 @@ if __name__ == '__main__':
             raise ValueError(f'"{_kind}" is not a prototype kind')
         generate_memories(
             commons.recall_with_protos, commons.proto_kind_suffix(_kind), exp_settings
+        )
+    elif args['-P']:
+        _kind = args['<kind>']
+        if _kind not in commons.proto_kinds:
+            raise ValueError(f'"{_kind}" is not a prototype kind')
+        generate_memories(
+            commons.recall_with_back_protos,
+            commons.proto_kind_suffix(_kind),
+            exp_settings,
         )
     elif args['-u']:
         generate_sequences(

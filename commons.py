@@ -62,6 +62,7 @@ d4_model_name = '4DEHAM'
 d3_with_distance = False
 
 sample_size = 2 * max(datasets_to_domains.values()) - 1
+protos_sample_size = 2 * max(datasets_to_domains.values()) - 1
 early_threshold = sample_size
 presence_iterations = 2 * sample_size
 num_proto_tries = 100
@@ -79,6 +80,7 @@ projection_transform = project_same
 recall_with_sampling_n_search = 0
 recall_with_protos = 1
 recall_with_memories = 2
+recall_with_back_protos = 3
 sampling_without_search = False
 
 sequence_length = 10

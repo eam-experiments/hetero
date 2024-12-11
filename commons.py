@@ -79,8 +79,8 @@ projection_transform = project_same
 
 recall_with_sampling_n_search = 0
 recall_with_protos = 1
-recall_with_memories = 2
-recall_with_back_protos = 3
+recall_with_back_protos = 2
+recall_with_memories = 3
 sampling_without_search = False
 
 sequence_length = 10
@@ -183,6 +183,7 @@ matrix_suffix = '-confrix'
 
 search_suffix = '-search'
 protos_suffix = '-protos'
+protos_back_suffix = '-protback'
 memories_suffix = '-memos'
 means_suffix = '-means'
 stdvs_suffix = '-stdvs'
@@ -203,6 +204,7 @@ def recall_suffix(n: int, proto_kind_suffix=None):
 recall_suffix.suffixes = [
     search_suffix,
     protos_suffix,
+    protos_back_suffix,
     memories_suffix,
 ]
 

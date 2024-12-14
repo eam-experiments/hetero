@@ -323,6 +323,10 @@ class HeteroAssociativeMemory4D:
             return self.sample_n_search_recall(cue, cue_weights, projection, dim)
         elif method == commons.recall_with_protos:
             return self.prototypes_recall(cue, cue_weights, label, projection, dim)
+        elif method == commons.recall_with_back_protos:
+            return self.prototypes_back_distance_recall(
+                cue, cue_weights, label, projection, dim
+            )
         else:
             raise ValueError(f'Incorrect value for method: {method}')
 
@@ -432,6 +436,41 @@ class HeteroAssociativeMemory4D:
             )
             if recognized
             else self.sample_n_search_recall(cue, cue_weights, projection, dim)
+        )
+
+    def prototypes_back_distance_recall(self, cue, cue_weights, label, projection, dim):
+        """Modulates recall using the prototype that generates the minimum
+        distance to the original cue"""
+        selection = self.protos_selection(dim)
+        if len(selection) == 0:
+            print(f'Label: {label}, Chosen: None')
+            return None, None, [0, 0, np.nan]
+        am = AssociativeMemory.from_relation(projection, self.exp_settings_2d)
+        prob_dist = self.protos_probability_distribution(
+            selection, projection, self.alt(dim)
+        )
+        distance = float('inf')
+        r_io = None
+        weights = None
+        for _ in range(commons.protos_sample_size):
+            proto_label, proto_projection = self.choose_from_distribution(
+                selection, prob_dist
+            )
+            recognized = False
+            for n in range(commons.num_proto_tries):
+                proto_cue, proto_weights = self.reduce(proto_projection, dim)
+                q_io, recognized, q_ws = am.recall_weights(proto_cue, validate=False)
+                if recognized:
+                    q_io = q_io.astype(int)
+                    break
+            if recognized:
+                d = self.distance_recall(cue, cue_weights, q_io, q_ws, dim)
+                if d < distance:
+                    r_io = q_io
+                    weights = q_ws
+                    distance = d
+        return self.sample_n_search_recall(
+            cue, cue_weights, projection, dim, r_io, weights
         )
 
     def abstract(self, r_io):
@@ -584,6 +623,33 @@ class HeteroAssociativeMemory4D:
                 chosen_label = label
                 distance = d
         return chosen_label, chosen, ds
+
+    def protos_probability_distribution(
+        self, selection: dict[int, np.ndarray], projection, dim
+    ):
+        """Generates a probability distribution for chosen prototypes from their
+        distance to the cue's projection.
+
+        A probability distribution on the selected prototypes.
+        """
+        ds = np.zeros(len(selection), dtype=float)
+        beta = 2.0
+        for i, label in enumerate(selection):
+            proto_projection = selection[label]
+            d = self.distance_projections(projection, proto_projection)
+            ds[i] = d
+        ds = ds / np.sum(ds)
+        ds = np.power(1 - ds, beta)
+        ds = ds / np.sum(ds)
+        return ds
+
+    def choose_from_distribution(self, selection, prob_dist):
+        v = random.random()
+        cum = 0.0
+        for i, label in enumerate(selection):
+            cum += prob_dist[i]
+            if v <= cum:
+                return label, selection[label]
 
     def distance_projections(self, p, q):
         p_totals = np.sum(p, axis=1)

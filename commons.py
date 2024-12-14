@@ -62,8 +62,10 @@ d4_model_name = '4DEHAM'
 d3_with_distance = False
 
 sample_size = 2 * max(datasets_to_domains.values()) - 1
+protos_sample_size = 2 * max(datasets_to_domains.values()) - 1
 early_threshold = sample_size
 presence_iterations = 2 * sample_size
+num_proto_tries = 10
 mean_matches = 1
 stdv_matches = 0
 use_percentiles = True
@@ -77,8 +79,8 @@ projection_transform = project_same
 
 recall_with_sampling_n_search = 0
 recall_with_protos = 1
-recall_with_correct_proto = 2
-recall_with_cue = 3
+recall_with_back_protos = 2
+recall_with_memories = 3
 sampling_without_search = False
 
 sequence_length = 10
@@ -181,9 +183,8 @@ matrix_suffix = '-confrix'
 
 search_suffix = '-search'
 protos_suffix = '-protos'
-correct_proto_suffix = '-correct_proto'
-cue_suffix = '-cue'
-
+protos_back_suffix = '-protback'
+memories_suffix = '-memos'
 means_suffix = '-means'
 stdvs_suffix = '-stdvs'
 
@@ -192,7 +193,7 @@ def recall_suffix(n: int, proto_kind_suffix=None):
     if (n < 0) or (n >= len(recall_suffix.suffixes)):
         raise ValueError(f'There is no suffix with {n} index.')
     suffix = recall_suffix.suffixes[n]
-    if (n == recall_with_protos) or (n == recall_with_correct_proto):
+    if n == recall_with_protos:
         if proto_kind_suffix is None:
             raise ValueError(f'Suffix cannot be None for recall method {n}')
         else:
@@ -203,8 +204,8 @@ def recall_suffix(n: int, proto_kind_suffix=None):
 recall_suffix.suffixes = [
     search_suffix,
     protos_suffix,
-    correct_proto_suffix,
-    cue_suffix,
+    protos_back_suffix,
+    memories_suffix,
 ]
 
 agreed_suffix = '-agr'

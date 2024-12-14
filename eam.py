@@ -17,7 +17,7 @@
 
 Usage:
   eam -h | --help
-  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -p <kind> | -P <kind> | -q | -u)
+  eam (-n <dataset> | -f <dataset> | -d <dataset> | -s <dataset> | -c <dataset> | -e | -r | -m | -p <kind> | -P <kind>| -u)
     [--relsmean=MEAN] [--relsstdv=STDV] [--runpath=PATH] [ -l (en | es) ]
 
 Options:
@@ -29,9 +29,9 @@ Options:
   -s    Runs separated tests of memories performance for MNIST y Fashion.
   -e    Evaluates recognition of hetero-associations.
   -r    Evaluates hetero-recalling using search.
-  -p    Validates hetero-recalling using prototypes.
-  -P    Validates hetero-recalling using correct prototype.
-  -q    Validates hetero-recalling using cue.
+  -m    Adds homo-associative modulation to hetero-recalling.
+  -p    Adds prototype modulation to hetero-recalling.
+  -P    Adds prototype with distance back to original cue as modulation.
   -u    Generates sequences of memories
   --relsmean=MEAN   Average number of relations per data element.
   --relsstdv=STDV   Standard deviation of the number of relations per data element.
@@ -1505,9 +1505,6 @@ def hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold):
         )
         filling_labels[dataset] = np.load(filling_labels_filename)
         f_features = np.load(filling_features_filename)
-        # Tagging of filling data produced by the classifier
-        # labels = np.argmax(classifiers[dataset].predict(f_features), axis=1)
-        # filling_labels[dataset] = labels
         proto_filename = (
             commons.features_name(dataset, es)
             + commons.proto_suffix
@@ -1532,9 +1529,6 @@ def hetero_remember_per_fold(recall_method, proto_kind_suffix, es, fold):
         testing_data_filename = commons.data_filename(testing_data_filename, es, fold)
         testing_data[dataset] = np.load(testing_data_filename)
         t_features = np.load(testing_features_filename)
-        # Tagging of testing data produced by the classifier
-        # labels = np.argmax(classifiers[dataset].predict(t_features), axis=1)
-        # testing_labels[dataset] = labels
         validating_network_data(
             f_features,
             filling_labels[dataset],
@@ -2569,9 +2563,9 @@ if __name__ == '__main__':
             commons.constructed_suffix,
             exp_settings,
         )
-    elif args['-q']:
+    elif args['-m']:
         generate_memories(
-            commons.recall_with_cue, commons.constructed_suffix, exp_settings
+            commons.recall_with_memories, commons.constructed_suffix, exp_settings
         )
     elif args['-p']:
         _kind = args['<kind>']
@@ -2585,7 +2579,7 @@ if __name__ == '__main__':
         if _kind not in commons.proto_kinds:
             raise ValueError(f'"{_kind}" is not a prototype kind')
         generate_memories(
-            commons.recall_with_correct_proto,
+            commons.recall_with_back_protos,
             commons.proto_kind_suffix(_kind),
             exp_settings,
         )

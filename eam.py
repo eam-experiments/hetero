@@ -701,11 +701,22 @@ def recall_by_hetero_memory(
     for idx, (a_feats, b_feats, label) in enumerate(
         zip(a_features, b_features, b_labels)
     ):
-        memory, recognized, weight, relation, s = (
-            recall(a_feats, recall_method)
-            if recall_method == commons.recall_with_sampling_n_search
-            else recall(a_feats, recall_method, euc=b_feats, weights=None, label=label)
-        )
+        if recall_method == commons.recall_with_mems_as_protos:
+            cue_a, recognized, cue_a_weights = eam_origin.recall_weights(a_feats)
+            if recognized:
+                cue_b, recognized, weight, relation, s = recall(
+                    cue_a, commons.recall_with_sampling_n_search, weights=cue_a_weights
+                )
+                if recognized:
+                    memory, recognized, weight = eam_destination.recall(cue_b)
+        else:
+            memory, recognized, weight, relation, s = (
+                recall(a_feats, recall_method)
+                if recall_method == commons.recall_with_sampling_n_search
+                else recall(
+                    a_feats, recall_method, euc=b_feats, weights=None, label=label
+                )
+            )
         if recognized:
             stats.append(s)
             indexes.append(idx)
@@ -1280,7 +1291,16 @@ def hetero_remember_percent(
     for left_feat, right_feat in zip(
         filling_features[commons.left_dataset], filling_features[commons.right_dataset]
     ):
-        eam.register(left_feat, right_feat)
+        if recall_method != commons.recall_with_mems_as_protos:
+            eam.register(left_feat, right_feat)
+        else:
+            left_recall, recognized, left_weights = left_eam.recall_weights(left_feat)
+            if recognized:
+                right_recall, recognized, right_weights = right_eam.recall_weights(
+                    right_feat
+                )
+                if recognized:
+                    eam.register(left_recall, right_recall, left_weights, right_weights)
         counter += 1
         commons.print_counter(counter, 1000, 100)
     print(' end')
@@ -2565,7 +2585,7 @@ if __name__ == '__main__':
         )
     elif args['-m']:
         generate_memories(
-            commons.recall_with_memories, commons.constructed_suffix, exp_settings
+            commons.recall_with_mems_as_protos, commons.constructed_suffix, exp_settings
         )
     elif args['-p']:
         _kind = args['<kind>']

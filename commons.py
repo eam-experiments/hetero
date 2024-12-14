@@ -80,7 +80,7 @@ projection_transform = project_same
 recall_with_sampling_n_search = 0
 recall_with_protos = 1
 recall_with_back_protos = 2
-recall_with_memories = 3
+recall_with_mems_as_protos = 3
 sampling_without_search = False
 
 sequence_length = 10
